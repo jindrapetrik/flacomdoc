@@ -1,0 +1,7 @@
+/build/
+/dist/
+/.idea/
+/nbproject/private/
+Thumbs.db
+*(Selective Sync Conflict*
+/config.properties
