@@ -70,6 +70,18 @@ public class XflToCs4Converter {
         return null;
     }
 
+    private static List<Element> getAllSubElements(Node n) {
+        NodeList list = n.getChildNodes();
+        List<Element> ret = new ArrayList<>();
+        for (int i = 0; i < list.getLength(); i++) {
+            Node sn = list.item(i);
+            if (sn instanceof Element) {
+                ret.add((Element) sn);
+            }
+        }
+        return ret;
+    }
+
     private static List<Node> getAllSubNodesByName(Node n, String name) {
         NodeList list = n.getChildNodes();
         List<Node> ret = new ArrayList<>();
@@ -115,7 +127,7 @@ public class XflToCs4Converter {
                 fg.writeSolidFill(color);
                 break;
             case "LinearGradient":
-            case "RadialGradient":
+            case "RadialGradient": {
                 double a = 1;
                 double b = 0;
                 double c = 0;
@@ -199,7 +211,94 @@ public class XflToCs4Converter {
                     type = FlaCs4Writer.TYPE_RADIAL_GRADIENT;
                 }
                 fg.writeGradientFill(colors, ratios, type, linearRGB, spreadMethod, a, b, c, d, tx, ty, focalPointRatio);
-                break;
+            }
+            break;
+            case "BitmapFill": {
+                Node bitmapPathAttr = fillStyleVal.getAttributes().getNamedItem("bitmapPath");
+                if (bitmapPathAttr != null) {
+                    String bitmapPath = bitmapPathAttr.getTextContent(); //assuming attribute set
+                    Node mediaNode = getSubNodeByName(fillStyleVal.getOwnerDocument().getDocumentElement(), "media");
+                    if (mediaNode != null) {
+                        List<Element> mediaElements = getAllSubElements(mediaNode);
+                        int mediaId = 0;
+                        for (Element e : mediaElements) {
+                            mediaId++;
+                            if ("DOMBitmapItem".equals(e.getNodeName())) {
+                                String name = e.getAttribute("name");
+                                if (name != null) {
+                                    if (bitmapPath.equals(name)) {
+
+                                        double a = 1;
+                                        double b = 0;
+                                        double c = 0;
+                                        double d = 1;
+                                        double tx = 0;
+                                        double ty = 0;
+                                        
+                                        Node matrix = getSubNodeByName(fillStyleVal, "matrix");
+                                        if (matrix != null) {
+                                            matrix = getSubNodeByName(matrix, "Matrix");
+                                        }
+                                        Node aAttr = matrix.getAttributes().getNamedItem("a");
+                                        if (aAttr != null) {
+                                            a = Double.parseDouble(aAttr.getTextContent());
+                                        }
+                                        Node bAttr = matrix.getAttributes().getNamedItem("b");
+                                        if (bAttr != null) {
+                                            b = Double.parseDouble(bAttr.getTextContent());
+                                        }
+                                        Node cAttr = matrix.getAttributes().getNamedItem("c");
+                                        if (cAttr != null) {
+                                            c = Double.parseDouble(cAttr.getTextContent());
+                                        }
+                                        Node dAttr = matrix.getAttributes().getNamedItem("d");
+                                        if (dAttr != null) {
+                                            d = Double.parseDouble(dAttr.getTextContent());
+                                        }
+
+                                        Node txAttr = matrix.getAttributes().getNamedItem("tx");
+                                        if (txAttr != null) {
+                                            tx = Double.parseDouble(txAttr.getTextContent());
+                                        }
+
+                                        Node tyAttr = matrix.getAttributes().getNamedItem("ty");
+                                        if (tyAttr != null) {
+                                            ty = Double.parseDouble(tyAttr.getTextContent());
+                                        }
+                                        
+                                        boolean bitmapIsClipped = false;
+                                        Node bitmapIsClippedAttr = fillStyleVal.getAttributes().getNamedItem("bitmapIsClippe");
+                                        if (bitmapIsClippedAttr != null) {
+                                            bitmapIsClipped = "true".equals(bitmapIsClippedAttr.getTextContent());
+                                        }
+                                        
+                                        boolean allowSmoothing = "true".equals(e.getAttribute("allowSmoothing"));
+                                                                                
+                                        int type;
+                                        if (allowSmoothing) {
+                                            if (bitmapIsClipped) {
+                                                type = FlaCs4Writer.TYPE_CLIPPED_BITMAP;
+                                            } else {
+                                                type = FlaCs4Writer.TYPE_BITMAP;
+                                            }
+                                        } else {
+                                            if (bitmapIsClipped) {
+                                                type = FlaCs4Writer.TYPE_NON_SMOOTHED_CLIPPED_BITMAP;
+                                            } else {
+                                                type = FlaCs4Writer.TYPE_NON_SMOOTHED_BITMAP;
+                                            }
+                                        }                                     
+                                        
+                                        fg.writeBitmapFill(type, a, b, c, d, tx, ty, mediaId);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            break;
         }
     }
 
@@ -321,7 +420,7 @@ public class XflToCs4Converter {
                 List<Node> layers = getAllSubNodesByName(layersNode, "DOMLayer");
 
                 Map<Integer, Integer> layerIndexToRevLayerIndex = new HashMap<>();
-                Stack<Integer> openedLayers = new Stack<>();                
+                Stack<Integer> openedLayers = new Stack<>();
                 Map<Integer, Integer> layerToFolderEndCount = new HashMap<>();
                 Map<Integer, Integer> folderToEndLayer = new HashMap<>();
 

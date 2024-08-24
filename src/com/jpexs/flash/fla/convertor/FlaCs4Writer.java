@@ -70,6 +70,11 @@ public class FlaCs4Writer {
     public static final int TYPE_LINEAR_GRADIENT = 0x10;
     public static final int TYPE_RADIAL_GRADIENT = 0x12;
 
+    public static final int TYPE_BITMAP = 0x40;
+    public static final int TYPE_CLIPPED_BITMAP = 0x41;
+    public static final int TYPE_NON_SMOOTHED_BITMAP = 0x42;
+    public static final int TYPE_NON_SMOOTHED_CLIPPED_BITMAP = 0x43;
+
     private String x = "0";
     private String y = "0";
     private int strokeStyle = 0;
@@ -538,6 +543,59 @@ public class FlaCs4Writer {
         this.y = anchorY;
     }
 
+    public void writeMatrix(
+            double a,
+            double b,
+            double c,
+            double d,
+            double tx,
+            double ty) throws IOException {
+        double multiplier = 1.52587890625e-5;
+        a /= multiplier;
+        b /= multiplier;
+        c /= multiplier;
+        d /= multiplier;
+
+        tx *= 20;
+        ty *= 20;
+
+        long aLong = (long) Math.round(a);
+        long bLong = (long) Math.round(b);
+        long cLong = (long) Math.round(c);
+        long dLong = (long) Math.round(d);
+        long txLong = (long) Math.round(tx);
+        long tyLong = (long) Math.round(ty);
+        
+        os.write(new byte[]{
+            (byte) (aLong & 0xFF), (byte) ((aLong >> 8) & 0xFF), (byte) ((aLong >> 16) & 0xFF), (byte) ((aLong >> 24) & 0xFF),
+            (byte) (bLong & 0xFF), (byte) ((bLong >> 8) & 0xFF), (byte) ((bLong >> 16) & 0xFF), (byte) ((bLong >> 24) & 0xFF),
+            (byte) (cLong & 0xFF), (byte) ((cLong >> 8) & 0xFF), (byte) ((cLong >> 16) & 0xFF), (byte) ((cLong >> 24) & 0xFF),
+            (byte) (dLong & 0xFF), (byte) ((dLong >> 8) & 0xFF), (byte) ((dLong >> 16) & 0xFF), (byte) ((dLong >> 24) & 0xFF),
+            (byte) (txLong & 0xFF), (byte) ((txLong >> 8) & 0xFF), (byte) ((txLong >> 16) & 0xFF), (byte) ((txLong >> 24) & 0xFF),
+            (byte) (tyLong & 0xFF), (byte) ((tyLong >> 8) & 0xFF), (byte) ((tyLong >> 16) & 0xFF), (byte) ((tyLong >> 24) & 0xFF),            
+        });
+    }
+    
+    public void writeBitmapFill(
+            int type,
+            double a,
+            double b,
+            double c,
+            double d,
+            double tx,
+            double ty,
+            int bitmapId
+    ) throws IOException {       
+        os.write(new byte[]{
+            (byte) 0xFF, 0x00, 0x00, (byte) 0xFF,
+            (byte) type,
+            0x00});
+        writeMatrix(a, b, c, d, tx, ty);
+        os.write(new byte[] {
+            (byte) bitmapId, 0x00
+        });
+    }
+
     public void writeGradientFill(
             Color[] colors,
             double stopPos[],
@@ -551,25 +609,12 @@ public class FlaCs4Writer {
             double tx,
             double ty,
             double focalRatio
-    ) throws IOException {
-
-        double multiplier = 1.52587890625e-5;
-        a /= multiplier;
-        b /= multiplier;
-        c /= multiplier;
-        d /= multiplier;
-
-        tx *= 20;
-        ty *= 20;
+    ) throws IOException {        
 
         os.write(new byte[]{
-            0x00, 0x00, 0x00, 0x00 /*this is sometimes 0xFF*/, (byte) type, 0x00,
-            (byte) (((int) a) & 0xFF), (byte) (((int) a >> 8) & 0xFF), (byte) (((int) a >> 16) & 0xFF), (byte) (((int) a >> 24) & 0xFF),
-            (byte) (((int) b) & 0xFF), (byte) (((int) b >> 8) & 0xFF), (byte) (((int) b >> 16) & 0xFF), (byte) (((int) b >> 24) & 0xFF),
-            (byte) (((int) c) & 0xFF), (byte) (((int) c >> 8) & 0xFF), (byte) (((int) c >> 16) & 0xFF), (byte) (((int) c >> 24) & 0xFF),
-            (byte) (((int) d) & 0xFF), (byte) (((int) d >> 8) & 0xFF), (byte) (((int) d >> 16) & 0xFF), (byte) (((int) d >> 24) & 0xFF),
-            (byte) ((int) tx & 0xFF), (byte) ((((int) tx) >> 8) & 0xFF), (byte) ((((int) tx) >> 16) & 0xFF), (byte) ((((int) tx) >> 24) & 0xFF),
-            (byte) ((int) ty & 0xFF), (byte) ((((int) ty) >> 8) & 0xFF), (byte) ((((int) ty) >> 16) & 0xFF), (byte) ((((int) ty) >> 24) & 0xFF),
+            0x00, 0x00, 0x00, 0x00 /*this is sometimes 0xFF*/, (byte) type, 0x00});
+        writeMatrix(a, b, c, d, tx, ty);
+        os.write(new byte[]{
             (byte) colors.length,
             (byte) Math.round(focalRatio * 256), 0x00, 0x00, 0x00, (byte) (flow + (linearRgb ? 1 : 0)), 0x00, 0x00, 0x00
         });
