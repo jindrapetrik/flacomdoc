@@ -234,7 +234,7 @@ public class XflToCs4Converter {
                                         double d = 1;
                                         double tx = 0;
                                         double ty = 0;
-                                        
+
                                         Node matrix = getSubNodeByName(fillStyleVal, "matrix");
                                         if (matrix != null) {
                                             matrix = getSubNodeByName(matrix, "Matrix");
@@ -265,15 +265,15 @@ public class XflToCs4Converter {
                                         if (tyAttr != null) {
                                             ty = Double.parseDouble(tyAttr.getTextContent());
                                         }
-                                        
+
                                         boolean bitmapIsClipped = false;
                                         Node bitmapIsClippedAttr = fillStyleVal.getAttributes().getNamedItem("bitmapIsClippe");
                                         if (bitmapIsClippedAttr != null) {
                                             bitmapIsClipped = "true".equals(bitmapIsClippedAttr.getTextContent());
                                         }
-                                        
+
                                         boolean allowSmoothing = "true".equals(e.getAttribute("allowSmoothing"));
-                                                                                
+
                                         int type;
                                         if (allowSmoothing) {
                                             if (bitmapIsClipped) {
@@ -287,8 +287,8 @@ public class XflToCs4Converter {
                                             } else {
                                                 type = FlaCs4Writer.TYPE_NON_SMOOTHED_BITMAP;
                                             }
-                                        }                                     
-                                        
+                                        }
+
                                         fg.writeBitmapFill(type, a, b, c, d, tx, ty, mediaId);
                                         break;
                                     }
@@ -562,272 +562,273 @@ public class XflToCs4Converter {
 
                     Node framesNode = getSubNodeByName(layer, "frames");
                     if (framesNode != null) {
-                        NodeList frames = framesNode.getChildNodes();
-                        for (int f = 0; f < frames.getLength(); f++) {
-                            Node frame = frames.item(f);
-                            if ("DOMFrame".equals(frame.getNodeName())) {
-                                fg.writeKeyFrameBegin();
-                                Node elementsNode = getSubNodeByName(frame, "elements");
-                                if (elementsNode != null) {
-                                    NodeList elements = elementsNode.getChildNodes();
-                                    boolean emptyFrame = true;
-                                    for (int e = 0; e < elements.getLength(); e++) {
-                                        Node element = elements.item(e);
-                                        if ("DOMShape".equals(element.getNodeName())) {
-                                            emptyFrame = false;
-                                            Node fillsNode = getSubNodeByName(element, "fills");
-                                            List<Node> fillStyles = new ArrayList<>();
-                                            if (fillsNode != null) {
-                                                fillStyles = getAllSubNodesByName(fillsNode, "FillStyle");
-                                            }
+                        List<Node> frames = getAllSubNodesByName(framesNode, "DOMFrame");
+                        for (int f = 0; f < frames.size(); f++) {
+                            if (f > 0) {
+                                fg.writeKeyFrameSeparator();
+                            }
+                            Node frame = frames.get(f);
+                            fg.writeKeyFrameBegin();
+                            Node elementsNode = getSubNodeByName(frame, "elements");
+                            if (elementsNode != null) {
+                                NodeList elements = elementsNode.getChildNodes();
+                                boolean emptyFrame = true;
+                                for (int e = 0; e < elements.getLength(); e++) {
+                                    Node element = elements.item(e);
+                                    if ("DOMShape".equals(element.getNodeName())) {
+                                        emptyFrame = false;
+                                        Node fillsNode = getSubNodeByName(element, "fills");
+                                        List<Node> fillStyles = new ArrayList<>();
+                                        if (fillsNode != null) {
+                                            fillStyles = getAllSubNodesByName(fillsNode, "FillStyle");
+                                        }
 
-                                            Comparator<Node> indexComparator = new Comparator<>() {
-                                                @Override
-                                                public int compare(Node o1, Node o2) {
-                                                    Node indexAttr1Node = o1.getAttributes().getNamedItem("index");
-                                                    int index1 = 0;
-                                                    if (indexAttr1Node != null) {
-                                                        index1 = Integer.parseInt(indexAttr1Node.getTextContent());
-                                                    }
-                                                    Node indexAttr2Node = o2.getAttributes().getNamedItem("index");
-                                                    int index2 = 0;
-                                                    if (indexAttr2Node != null) {
-                                                        index2 = Integer.parseInt(indexAttr2Node.getTextContent());
-                                                    }
-                                                    return index1 - index2;
+                                        Comparator<Node> indexComparator = new Comparator<>() {
+                                            @Override
+                                            public int compare(Node o1, Node o2) {
+                                                Node indexAttr1Node = o1.getAttributes().getNamedItem("index");
+                                                int index1 = 0;
+                                                if (indexAttr1Node != null) {
+                                                    index1 = Integer.parseInt(indexAttr1Node.getTextContent());
                                                 }
-                                            };
-
-                                            fillStyles.sort(indexComparator);
-                                            Node strokesNode = getSubNodeByName(element, "strokes");
-                                            List<Node> strokeStyles = new ArrayList<>();
-                                            if (strokesNode != null) {
-                                                strokeStyles = getAllSubNodesByName(strokesNode, "StrokeStyle");
+                                                Node indexAttr2Node = o2.getAttributes().getNamedItem("index");
+                                                int index2 = 0;
+                                                if (indexAttr2Node != null) {
+                                                    index2 = Integer.parseInt(indexAttr2Node.getTextContent());
+                                                }
+                                                return index1 - index2;
                                             }
-                                            strokeStyles.sort(indexComparator);
+                                        };
 
-                                            Node edgesNode = getSubNodeByName(element, "edges");
-                                            List<Node> edges = new ArrayList<>();
-                                            if (edgesNode != null) {
-                                                edges = getAllSubNodesByName(edgesNode, "Edge");
+                                        fillStyles.sort(indexComparator);
+                                        Node strokesNode = getSubNodeByName(element, "strokes");
+                                        List<Node> strokeStyles = new ArrayList<>();
+                                        if (strokesNode != null) {
+                                            strokeStyles = getAllSubNodesByName(strokesNode, "StrokeStyle");
+                                        }
+                                        strokeStyles.sort(indexComparator);
+
+                                        Node edgesNode = getSubNodeByName(element, "edges");
+                                        List<Node> edges = new ArrayList<>();
+                                        if (edgesNode != null) {
+                                            edges = getAllSubNodesByName(edgesNode, "Edge");
+                                        }
+
+                                        int totalEdgeCount = 0;
+
+                                        for (Node edge : edges) {
+                                            Node edgesAttrNode = edge.getAttributes().getNamedItem("edges");
+                                            if (edgesAttrNode != null) {
+                                                String edgesAttr = edgesAttrNode.getTextContent();
+                                                totalEdgeCount += FlaCs4Writer.getEdgesCount(edgesAttr);
+                                            }
+                                        }
+
+                                        //fg.writeKeyFrame(1, KEYMODE_STANDARD);
+                                        fg.write(new byte[]{
+                                            (byte) totalEdgeCount, 0x00, 0x00, 0x00
+                                        });
+                                        fg.write(new byte[]{(byte) fillStyles.size(), 0x00});
+                                        for (Node fillStyle : fillStyles) {
+                                            Node fillStyleVal = getFirstSubElement(fillStyle);
+                                            handleFill(fillStyleVal, fg);
+                                        }
+                                        fg.write(new byte[]{(byte) strokeStyles.size(), 0x00});
+                                        for (Node strokeStyle : strokeStyles) {
+                                            Node strokeStyleVal = getFirstSubElement(strokeStyle);
+                                            int scaleMode = FlaCs4Writer.SCALE_MODE_NONE;
+
+                                            double weight = 1.0;
+                                            Node weightAttr = strokeStyleVal.getAttributes().getNamedItem("weight");
+                                            if (weightAttr != null) {
+                                                weight = Double.parseDouble(weightAttr.getTextContent());
                                             }
 
-                                            int totalEdgeCount = 0;
+                                            float miterLimit = 3f;
+                                            Node miterLimitAttr = strokeStyleVal.getAttributes().getNamedItem("miterLimit");
+                                            if (miterLimitAttr != null) {
+                                                miterLimit = Float.parseFloat(miterLimitAttr.getTextContent());
+                                            }
 
-                                            for (Node edge : edges) {
-                                                Node edgesAttrNode = edge.getAttributes().getNamedItem("edges");
-                                                if (edgesAttrNode != null) {
-                                                    String edgesAttr = edgesAttrNode.getTextContent();
-                                                    totalEdgeCount += FlaCs4Writer.getEdgesCount(edgesAttr);
+                                            int styleParam1 = 0;
+                                            int styleParam2 = 0;
+
+                                            int joints = 0;
+                                            int caps = 0;
+                                            boolean pixelHinting = false;
+                                            Node pixelHintingAttr = strokeStyleVal.getAttributes().getNamedItem("pixelHinting");
+                                            if (pixelHintingAttr != null) {
+                                                if ("true".equals(pixelHintingAttr.getTextContent())) {
+                                                    pixelHinting = true;
                                                 }
                                             }
 
-                                            //fg.writeKeyFrame(1, KEYMODE_STANDARD);
-                                            fg.write(new byte[]{
-                                                (byte) totalEdgeCount, 0x00, 0x00, 0x00
-                                            });
-                                            fg.write(new byte[]{(byte) fillStyles.size(), 0x00});
-                                            for (Node fillStyle : fillStyles) {
-                                                Node fillStyleVal = getFirstSubElement(fillStyle);
+                                            switch (strokeStyleVal.getNodeName()) {
+                                                case "SolidStroke":
+                                                    styleParam1 = 0;
+                                                    styleParam2 = 0;
+                                                    joints = FlaCs4Writer.JOIN_STYLE_ROUND;
+                                                    caps = FlaCs4Writer.CAP_STYLE_ROUND;
+
+                                                    Node scaleModeAttr = strokeStyleVal.getAttributes().getNamedItem("scaleMode");
+                                                    if (scaleModeAttr != null) {
+                                                        if ("normal".equals(scaleModeAttr.getTextContent())) {
+                                                            scaleMode = FlaCs4Writer.SCALE_MODE_NORMAL;
+                                                        }
+                                                        if ("horizontal".equals(scaleModeAttr.getTextContent())) {
+                                                            scaleMode = FlaCs4Writer.SCALE_MODE_HORIZONTAL;
+                                                        }
+                                                        if ("vertical".equals(scaleModeAttr.getTextContent())) {
+                                                            scaleMode = FlaCs4Writer.SCALE_MODE_VERTICAL;
+                                                        }
+                                                    }
+
+                                                    Node capsAttr = strokeStyleVal.getAttributes().getNamedItem("caps");
+                                                    if (capsAttr != null) {
+                                                        if ("none".equals(capsAttr.getTextContent())) {
+                                                            caps = FlaCs4Writer.CAP_STYLE_NONE;
+                                                        }
+                                                        if ("square".equals(capsAttr.getTextContent())) {
+                                                            caps = FlaCs4Writer.CAP_STYLE_SQUARE;
+                                                        }
+                                                    }
+
+                                                    Node jointsAttr = strokeStyleVal.getAttributes().getNamedItem("joints");
+                                                    if (jointsAttr != null) {
+                                                        if ("bevel".equals(jointsAttr.getTextContent())) {
+                                                            joints = FlaCs4Writer.JOIN_STYLE_BEVEL;
+                                                        }
+                                                        if ("miter".equals(jointsAttr.getTextContent())) {
+                                                            joints = FlaCs4Writer.JOIN_STYLE_MITER;
+                                                        }
+                                                    }
+                                                    break;
+                                                case "DashedStroke":
+                                                    double dash1 = 6;
+                                                    double dash2 = 6;
+                                                    Node dash1Attr = strokeStyleVal.getAttributes().getNamedItem("dash1");
+                                                    if (dash1Attr != null) {
+                                                        dash1 = Double.parseDouble(dash1Attr.getTextContent());
+                                                    }
+                                                    Node dash2Attr = strokeStyleVal.getAttributes().getNamedItem("dash2");
+                                                    if (dash2Attr != null) {
+                                                        dash2 = Double.parseDouble(dash2Attr.getTextContent());
+                                                    }
+
+                                                    if (dash1 < 0.25 || dash1 > 300.0) {
+                                                        throw new IllegalArgumentException("DashedStroke.dash1 is invalid");
+                                                    }
+                                                    if (dash2 < 0.25 || dash2 > 300.0) {
+                                                        throw new IllegalArgumentException("DashedStroke.dash2 is invalid");
+                                                    }
+
+                                                    styleParam1 = (int) Math.round(dash1 * 20);
+                                                    styleParam2 = (int) Math.round(dash2 * 20);
+                                                    break;
+                                                case "DottedStroke":
+                                                    double dotSpace = 3;
+                                                    Node dotSpaceAttr = strokeStyleVal.getAttributes().getNamedItem("dotSpace");
+                                                    if (dotSpaceAttr != null) {
+                                                        dotSpace = Double.parseDouble(dotSpaceAttr.getTextContent());
+                                                    }
+                                                    if (dotSpace < 0.0 || dotSpace > 300.0) {
+                                                        throw new IllegalArgumentException("DottedStroke.dotSpace is invalid");
+                                                    }
+                                                    styleParam2 = (int) (0x10 * Math.round(dotSpace * 10) + 0x02);
+                                                    break;
+                                                case "RaggedStroke":
+                                                    int pattern = getStrokeTypeParameter(strokeStyleVal, "pattern", Arrays.asList("solid", "simple", "random", "dotted", "random dotted", "triple dotted", "random tripple dotted"), "simple");
+                                                    int waveHeight = getStrokeTypeParameter(strokeStyleVal, "waveHeight", Arrays.asList("flat", "wavy", "very wavy", "wild"), "wavy");
+                                                    int waveLength = getStrokeTypeParameter(strokeStyleVal, "waveLength", Arrays.asList("very short", "short", "medium", "long"), "short");
+                                                    styleParam2 = 0x08 * pattern + 0x40 * waveHeight + 0x100 * waveLength + 0x03;
+                                                    break;
+                                                case "StippleStroke":
+                                                    int dotSize = getStrokeTypeParameter(strokeStyleVal, "dotSize", Arrays.asList("tiny", "small", "medium", "large"), "small");
+                                                    int variation = getStrokeTypeParameter(strokeStyleVal, "variation", Arrays.asList("one size", "small variation", "varied sizes", "random sizes"), "varied sizes");
+                                                    int density = getStrokeTypeParameter(strokeStyleVal, "density", Arrays.asList("very dense", "dense", "sparse", "very sparse"), "sparse");
+
+                                                    styleParam2 = 0x08 * dotSize + 0x20 * variation + 0x80 * density + 0x04;
+                                                    break;
+                                                case "HatchedStroke":
+                                                    int hatchThickness = getStrokeTypeParameter(strokeStyleVal, "hatchThickness", Arrays.asList("hairline", "thin", "medium", "thick"), "hairline");
+                                                    int space = getStrokeTypeParameter(strokeStyleVal, "space", Arrays.asList("very close", "close", "distant", "very distant"), "distant");
+                                                    int jiggle = getStrokeTypeParameter(strokeStyleVal, "jiggle", Arrays.asList("none", "bounce", "loose", "wild"), "none");
+                                                    int rotate = getStrokeTypeParameter(strokeStyleVal, "rotate", Arrays.asList("none", "slight", "medium", "free"), "none");
+                                                    int curve = getStrokeTypeParameter(strokeStyleVal, "curve", Arrays.asList("straight", "slight curve", "medium curve", "very curved"), "straight");
+                                                    int length = getStrokeTypeParameter(strokeStyleVal, "length", Arrays.asList("equal", "slight variation", "medium variation", "random"), "equal");
+
+                                                    styleParam2 = 0x08 * hatchThickness
+                                                            + 0x20 * space
+                                                            + 0x200 * jiggle
+                                                            + 0x80 * rotate
+                                                            + 0x800 * curve
+                                                            + 0x2000 * length
+                                                            + 0x05;
+                                                    break;
+                                            }
+
+                                            Node sharpCornersAttr = strokeStyleVal.getAttributes().getNamedItem("sharpCorners");
+                                            if (sharpCornersAttr != null) {
+                                                if ("true".equals(sharpCornersAttr.getTextContent())) {
+                                                    styleParam2 += 0x8000;
+                                                }
+                                            }
+
+                                            Node fill = getSubNodeByName(strokeStyleVal, "fill");
+                                            if (fill != null) {
+                                                Node fillStyleVal = getFirstSubElement(fill);
+                                                Color baseColor = Color.black;
+                                                if ("SolidColor".equals(fillStyleVal.getNodeName())) {
+                                                    baseColor = parseColorWithAlpha(fillStyleVal);
+                                                }
+
+                                                fg.writeStrokeBegin(baseColor, weight, pixelHinting, scaleMode, caps, joints, miterLimit, styleParam1, styleParam2);
                                                 handleFill(fillStyleVal, fg);
                                             }
-                                            fg.write(new byte[]{(byte) strokeStyles.size(), 0x00});
-                                            for (Node strokeStyle : strokeStyles) {
-                                                Node strokeStyleVal = getFirstSubElement(strokeStyle);
-                                                int scaleMode = FlaCs4Writer.SCALE_MODE_NONE;
-
-                                                double weight = 1.0;
-                                                Node weightAttr = strokeStyleVal.getAttributes().getNamedItem("weight");
-                                                if (weightAttr != null) {
-                                                    weight = Double.parseDouble(weightAttr.getTextContent());
-                                                }
-
-                                                float miterLimit = 3f;
-                                                Node miterLimitAttr = strokeStyleVal.getAttributes().getNamedItem("miterLimit");
-                                                if (miterLimitAttr != null) {
-                                                    miterLimit = Float.parseFloat(miterLimitAttr.getTextContent());
-                                                }
-
-                                                int styleParam1 = 0;
-                                                int styleParam2 = 0;
-
-                                                int joints = 0;
-                                                int caps = 0;
-                                                boolean pixelHinting = false;
-                                                Node pixelHintingAttr = strokeStyleVal.getAttributes().getNamedItem("pixelHinting");
-                                                if (pixelHintingAttr != null) {
-                                                    if ("true".equals(pixelHintingAttr.getTextContent())) {
-                                                        pixelHinting = true;
-                                                    }
-                                                }
-
-                                                switch (strokeStyleVal.getNodeName()) {
-                                                    case "SolidStroke":
-                                                        styleParam1 = 0;
-                                                        styleParam2 = 0;
-                                                        joints = FlaCs4Writer.JOIN_STYLE_ROUND;
-                                                        caps = FlaCs4Writer.CAP_STYLE_ROUND;
-
-                                                        Node scaleModeAttr = strokeStyleVal.getAttributes().getNamedItem("scaleMode");
-                                                        if (scaleModeAttr != null) {
-                                                            if ("normal".equals(scaleModeAttr.getTextContent())) {
-                                                                scaleMode = FlaCs4Writer.SCALE_MODE_NORMAL;
-                                                            }
-                                                            if ("horizontal".equals(scaleModeAttr.getTextContent())) {
-                                                                scaleMode = FlaCs4Writer.SCALE_MODE_HORIZONTAL;
-                                                            }
-                                                            if ("vertical".equals(scaleModeAttr.getTextContent())) {
-                                                                scaleMode = FlaCs4Writer.SCALE_MODE_VERTICAL;
-                                                            }
-                                                        }
-
-                                                        Node capsAttr = strokeStyleVal.getAttributes().getNamedItem("caps");
-                                                        if (capsAttr != null) {
-                                                            if ("none".equals(capsAttr.getTextContent())) {
-                                                                caps = FlaCs4Writer.CAP_STYLE_NONE;
-                                                            }
-                                                            if ("square".equals(capsAttr.getTextContent())) {
-                                                                caps = FlaCs4Writer.CAP_STYLE_SQUARE;
-                                                            }
-                                                        }
-
-                                                        Node jointsAttr = strokeStyleVal.getAttributes().getNamedItem("joints");
-                                                        if (jointsAttr != null) {
-                                                            if ("bevel".equals(jointsAttr.getTextContent())) {
-                                                                joints = FlaCs4Writer.JOIN_STYLE_BEVEL;
-                                                            }
-                                                            if ("miter".equals(jointsAttr.getTextContent())) {
-                                                                joints = FlaCs4Writer.JOIN_STYLE_MITER;
-                                                            }
-                                                        }
-                                                        break;
-                                                    case "DashedStroke":
-                                                        double dash1 = 6;
-                                                        double dash2 = 6;
-                                                        Node dash1Attr = strokeStyleVal.getAttributes().getNamedItem("dash1");
-                                                        if (dash1Attr != null) {
-                                                            dash1 = Double.parseDouble(dash1Attr.getTextContent());
-                                                        }
-                                                        Node dash2Attr = strokeStyleVal.getAttributes().getNamedItem("dash2");
-                                                        if (dash2Attr != null) {
-                                                            dash2 = Double.parseDouble(dash2Attr.getTextContent());
-                                                        }
-
-                                                        if (dash1 < 0.25 || dash1 > 300.0) {
-                                                            throw new IllegalArgumentException("DashedStroke.dash1 is invalid");
-                                                        }
-                                                        if (dash2 < 0.25 || dash2 > 300.0) {
-                                                            throw new IllegalArgumentException("DashedStroke.dash2 is invalid");
-                                                        }
-
-                                                        styleParam1 = (int) Math.round(dash1 * 20);
-                                                        styleParam2 = (int) Math.round(dash2 * 20);
-                                                        break;
-                                                    case "DottedStroke":
-                                                        double dotSpace = 3;
-                                                        Node dotSpaceAttr = strokeStyleVal.getAttributes().getNamedItem("dotSpace");
-                                                        if (dotSpaceAttr != null) {
-                                                            dotSpace = Double.parseDouble(dotSpaceAttr.getTextContent());
-                                                        }
-                                                        if (dotSpace < 0.0 || dotSpace > 300.0) {
-                                                            throw new IllegalArgumentException("DottedStroke.dotSpace is invalid");
-                                                        }
-                                                        styleParam2 = (int) (0x10 * Math.round(dotSpace * 10) + 0x02);
-                                                        break;
-                                                    case "RaggedStroke":
-                                                        int pattern = getStrokeTypeParameter(strokeStyleVal, "pattern", Arrays.asList("solid", "simple", "random", "dotted", "random dotted", "triple dotted", "random tripple dotted"), "simple");
-                                                        int waveHeight = getStrokeTypeParameter(strokeStyleVal, "waveHeight", Arrays.asList("flat", "wavy", "very wavy", "wild"), "wavy");
-                                                        int waveLength = getStrokeTypeParameter(strokeStyleVal, "waveLength", Arrays.asList("very short", "short", "medium", "long"), "short");
-                                                        styleParam2 = 0x08 * pattern + 0x40 * waveHeight + 0x100 * waveLength + 0x03;
-                                                        break;
-                                                    case "StippleStroke":
-                                                        int dotSize = getStrokeTypeParameter(strokeStyleVal, "dotSize", Arrays.asList("tiny", "small", "medium", "large"), "small");
-                                                        int variation = getStrokeTypeParameter(strokeStyleVal, "variation", Arrays.asList("one size", "small variation", "varied sizes", "random sizes"), "varied sizes");
-                                                        int density = getStrokeTypeParameter(strokeStyleVal, "density", Arrays.asList("very dense", "dense", "sparse", "very sparse"), "sparse");
-
-                                                        styleParam2 = 0x08 * dotSize + 0x20 * variation + 0x80 * density + 0x04;
-                                                        break;
-                                                    case "HatchedStroke":
-                                                        int hatchThickness = getStrokeTypeParameter(strokeStyleVal, "hatchThickness", Arrays.asList("hairline", "thin", "medium", "thick"), "hairline");
-                                                        int space = getStrokeTypeParameter(strokeStyleVal, "space", Arrays.asList("very close", "close", "distant", "very distant"), "distant");
-                                                        int jiggle = getStrokeTypeParameter(strokeStyleVal, "jiggle", Arrays.asList("none", "bounce", "loose", "wild"), "none");
-                                                        int rotate = getStrokeTypeParameter(strokeStyleVal, "rotate", Arrays.asList("none", "slight", "medium", "free"), "none");
-                                                        int curve = getStrokeTypeParameter(strokeStyleVal, "curve", Arrays.asList("straight", "slight curve", "medium curve", "very curved"), "straight");
-                                                        int length = getStrokeTypeParameter(strokeStyleVal, "length", Arrays.asList("equal", "slight variation", "medium variation", "random"), "equal");
-
-                                                        styleParam2 = 0x08 * hatchThickness
-                                                                + 0x20 * space
-                                                                + 0x200 * jiggle
-                                                                + 0x80 * rotate
-                                                                + 0x800 * curve
-                                                                + 0x2000 * length
-                                                                + 0x05;
-                                                        break;
-                                                }
-
-                                                Node sharpCornersAttr = strokeStyleVal.getAttributes().getNamedItem("sharpCorners");
-                                                if (sharpCornersAttr != null) {
-                                                    if ("true".equals(sharpCornersAttr.getTextContent())) {
-                                                        styleParam2 += 0x8000;
-                                                    }
-                                                }
-
-                                                Node fill = getSubNodeByName(strokeStyleVal, "fill");
-                                                if (fill != null) {
-                                                    Node fillStyleVal = getFirstSubElement(fill);
-                                                    Color baseColor = Color.black;
-                                                    if ("SolidColor".equals(fillStyleVal.getNodeName())) {
-                                                        baseColor = parseColorWithAlpha(fillStyleVal);
-                                                    }
-
-                                                    fg.writeStrokeBegin(baseColor, weight, pixelHinting, scaleMode, caps, joints, miterLimit, styleParam1, styleParam2);
-                                                    handleFill(fillStyleVal, fg);
-                                                }
-                                            }
-                                            fg.beginShape();
-                                            for (Node edge : edges) {
-                                                int strokeStyle = 0;
-                                                int fillStyle0 = 0;
-                                                int fillStyle1 = 0;
-                                                Node strokeStyleAttr = edge.getAttributes().getNamedItem("strokeStyle");
-                                                if (strokeStyleAttr != null) {
-                                                    strokeStyle = Integer.parseInt(strokeStyleAttr.getTextContent());
-                                                }
-                                                Node fillStyle0StyleAttr = edge.getAttributes().getNamedItem("fillStyle0");
-                                                if (fillStyle0StyleAttr != null) {
-                                                    fillStyle0 = Integer.parseInt(fillStyle0StyleAttr.getTextContent());
-                                                }
-                                                Node fillStyle1StyleAttr = edge.getAttributes().getNamedItem("fillStyle1");
-                                                if (fillStyle1StyleAttr != null) {
-                                                    fillStyle1 = Integer.parseInt(fillStyle1StyleAttr.getTextContent());
-                                                }
-                                                Node edgesAttrNode = edge.getAttributes().getNamedItem("edges");
-                                                if (edgesAttrNode != null) {
-                                                    String edgesStr = edgesAttrNode.getTextContent();
-                                                    fg.writeEdges(edgesStr, strokeStyle, fillStyle0, fillStyle1);
-                                                }
-                                            }
-
                                         }
-                                    }
+                                        fg.beginShape();
+                                        for (Node edge : edges) {
+                                            int strokeStyle = 0;
+                                            int fillStyle0 = 0;
+                                            int fillStyle1 = 0;
+                                            Node strokeStyleAttr = edge.getAttributes().getNamedItem("strokeStyle");
+                                            if (strokeStyleAttr != null) {
+                                                strokeStyle = Integer.parseInt(strokeStyleAttr.getTextContent());
+                                            }
+                                            Node fillStyle0StyleAttr = edge.getAttributes().getNamedItem("fillStyle0");
+                                            if (fillStyle0StyleAttr != null) {
+                                                fillStyle0 = Integer.parseInt(fillStyle0StyleAttr.getTextContent());
+                                            }
+                                            Node fillStyle1StyleAttr = edge.getAttributes().getNamedItem("fillStyle1");
+                                            if (fillStyle1StyleAttr != null) {
+                                                fillStyle1 = Integer.parseInt(fillStyle1StyleAttr.getTextContent());
+                                            }
+                                            Node edgesAttrNode = edge.getAttributes().getNamedItem("edges");
+                                            if (edgesAttrNode != null) {
+                                                String edgesStr = edgesAttrNode.getTextContent();
+                                                fg.writeEdges(edgesStr, strokeStyle, fillStyle0, fillStyle1);
+                                            }
+                                        }
 
-                                    if (emptyFrame) {
-                                        fg.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
                                     }
-                                    int keyMode = FlaCs4Writer.KEYMODE_STANDARD;
-                                    Node keyModeAttr = frame.getAttributes().getNamedItem("keyMode");
-                                    if (keyModeAttr != null) {
-                                        keyMode = Integer.parseInt(keyModeAttr.getTextContent());
-                                    }
-
-                                    int duration = 1;
-                                    Node durationAttr = frame.getAttributes().getNamedItem("duration");
-                                    if (durationAttr != null) {
-                                        duration = Integer.parseInt(durationAttr.getTextContent());
-                                    }
-
-                                    fg.writeKeyFrameEnd(duration, keyMode);
                                 }
+
+                                if (emptyFrame) {
+                                    fg.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
+                                }
+                                int keyMode = FlaCs4Writer.KEYMODE_STANDARD;
+                                Node keyModeAttr = frame.getAttributes().getNamedItem("keyMode");
+                                if (keyModeAttr != null) {
+                                    keyMode = Integer.parseInt(keyModeAttr.getTextContent());
+                                }
+
+                                int duration = 1;
+                                Node durationAttr = frame.getAttributes().getNamedItem("duration");
+                                if (durationAttr != null) {
+                                    duration = Integer.parseInt(durationAttr.getTextContent());
+                                }
+
+                                fg.writeKeyFrameEnd(duration, keyMode);
                             }
                         }
                     }
