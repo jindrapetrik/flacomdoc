@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301  USA
  */
-package com.jpexs.comdoc;
+package com.jpexs.cfb;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -75,36 +75,36 @@ public class DirectoryEntry {
         SimpleDateFormat sdt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String objectTypeStr = "";
         switch (objectType) {
-            case ComDoc.TYPE_UNKNOWN:
+            case CompoundFileBinary.TYPE_UNKNOWN:
                 objectTypeStr = "unknown";
                 break;
-            case ComDoc.TYPE_STORAGE_OBJECT:
+            case CompoundFileBinary.TYPE_STORAGE_OBJECT:
                 objectTypeStr = "storage_object";
                 break;
-            case ComDoc.TYPE_STREAM_OBJECT:
+            case CompoundFileBinary.TYPE_STREAM_OBJECT:
                 objectTypeStr = "stream_object";
                 break;
-            case ComDoc.TYPE_ROOT_STORAGE_OBJECT:
+            case CompoundFileBinary.TYPE_ROOT_STORAGE_OBJECT:
                 objectTypeStr = "root_storage_object";
                 break;
         }
-        String colorStr = colorFlag == ComDoc.COLOR_BLACK ? "black" : "red";
-        return ""+streamId+": \"" + getFilename() + "\" - "
+        String colorStr = colorFlag == CompoundFileBinary.COLOR_BLACK ? "black" : "red";
+        return "" + streamId + ": \"" + getFilename() + "\" - "
                 + "type " + objectTypeStr + ", "
                 + "color " + colorStr + ", "
-                + "leftSibling "+streamIdToString(leftSiblingId)+", "
-                + "rightSibling "+streamIdToString(rightSiblingId)+", "
-                + "child "+streamIdToString(childId)+", "
+                + "leftSibling " + streamIdToString(leftSiblingId) + ", "
+                + "rightSibling " + streamIdToString(rightSiblingId) + ", "
+                + "child " + streamIdToString(childId) + ", "
                 + "sector " + startingSectorLocation + ", "
                 + "size: " + streamSize + ", "
                 + "created " + (creationTime == null ? "-" : sdt.format(creationTime)) + ", "
                 + "modified " + (modifiedTime == null ? "-" : sdt.format(modifiedTime));
     }
-    
+
     private String streamIdToString(long streamId) {
-        if (streamId == ComDoc.NOSTREAM) {
+        if (streamId == CompoundFileBinary.NOSTREAM) {
             return "NOSTREAM";
         }
-        return "" + streamId;              
+        return "" + streamId;
     }
 }

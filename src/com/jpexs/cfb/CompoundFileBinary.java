@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301  USA
  */
-package com.jpexs.comdoc;
+package com.jpexs.cfb;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,17 +30,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * Compound File Binary file format reading class.
  *
  * @author JPEXS
  */
-public class ComDoc implements AutoCloseable {
+public class CompoundFileBinary implements AutoCloseable {
 
     private static final byte SIGNATURE[] = new byte[]{(byte) 0xD0, (byte) 0xCF, (byte) 0x11, (byte) 0xE0, (byte) 0xA1, (byte) 0xB1, (byte) 0x1A, (byte) 0xE1};
 
-    private static final byte CLSID_NULL[] = new byte[]{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-    
+    private static final byte CLSID_NULL[] = new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
     private RandomAccessFile raf;
-    
+
     /**
      * Maximum regular sector number.
      */
@@ -65,7 +66,7 @@ public class ComDoc implements AutoCloseable {
      * Specifies an unallocated sector in the FAT, Mini FAT, or DIFAT.
      */
     private static final long FREESECT = 0xFFFFFFFFl;
-    
+
     /**
      * Maximum regular stream ID.
      */
@@ -74,27 +75,25 @@ public class ComDoc implements AutoCloseable {
      * Terminator or empty pointer.
      */
     public static final long NOSTREAM = 0xFFFFFFFFl;
-   
-    
+
     public static final int TYPE_UNKNOWN = 0;
     public static final int TYPE_STORAGE_OBJECT = 1;
     public static final int TYPE_STREAM_OBJECT = 2;
     public static final int TYPE_ROOT_STORAGE_OBJECT = 5;
-    
+
     public static final int COLOR_RED = 0;
     public static final int COLOR_BLACK = 1;
-    
-    
+
     private Map<Long, Long> fat;
     private Map<Long, Long> minifat;
     private List<DirectoryEntry> directoryEntries;
     private long miniStreamStartingSector;
-    
+
     private long miniStreamCutoffSize;
     private long miniStreamSize;
     private int sectorLength;
-    
-    public ComDoc(File file) throws IOException {
+
+    public CompoundFileBinary(File file) throws IOException {
         init(file);
     }
 
@@ -103,7 +102,7 @@ public class ComDoc implements AutoCloseable {
         raf.readFully(ret);
         return ret;
     }
-    
+
     private Date readDate() throws IOException {
         //long date = (new Date().getTime() + 11644473600000L) * 10000L;
         long filetime = readUI64();
@@ -112,7 +111,7 @@ public class ComDoc implements AutoCloseable {
         }
         return new Date((filetime / 10000L) - 11644473600000L);
     }
-    
+
     private int readEx() throws IOException {
         int ret = raf.read();
         if (ret == -1) {
@@ -120,28 +119,28 @@ public class ComDoc implements AutoCloseable {
         }
         return ret;
     }
-    
+
     private void skipZeroBytes(int count, String errorMsg) throws IOException {
-        for(int i = 0; i < count; i++) {
+        for (int i = 0; i < count; i++) {
             if (readEx() != 0) {
                 throw new IOException(errorMsg);
             }
         }
     }
-    
+
     private int readUI16() throws IOException {
         return readEx() + (readEx() << 8);
     }
-    
+
     private long readUI32() throws IOException {
-        return (readEx() + (readEx() << 8) + (readEx() << 16) + (readEx() << 24)) & 0xffffffffL;        
+        return (readEx() + (readEx() << 8) + (readEx() << 16) + (readEx() << 24)) & 0xffffffffL;
     }
-    
+
     //This is actually not UI64, it is SI664
     private long readUI64() throws IOException {
-        return readUI32() + (readUI32() << 32);        
+        return readUI32() + (readUI32() << 32);
     }
-    
+
     private void init(File file) throws IOException {
         raf = new RandomAccessFile(file, "r");
         byte signature[] = readBytes(SIGNATURE.length);
@@ -154,7 +153,7 @@ public class ComDoc implements AutoCloseable {
         }
         int minorVersion = readUI16(); //should be 0x003E
         int majorVersion = readUI16();
-        
+
         if (majorVersion != 3 && majorVersion != 4) {
             throw new IOException("Unknown version of the file " + majorVersion);
         }
@@ -178,7 +177,7 @@ public class ComDoc implements AutoCloseable {
         if (majorVersion == 3 && numDirectorySectors != 0) {
             throw new IOException("Number of directory sectors must be zero for majorVersion 3");
         }
-        
+
         long numFatSectors = readUI32();
         long firstDirectorySectorLocation = readUI32();
         long transactionSignatureNumber = readUI32();
@@ -187,11 +186,11 @@ public class ComDoc implements AutoCloseable {
         long numMiniFatSectors = readUI32();
         long firstDifatSectorLocation = readUI32();
         long numDifatSectors = readUI32();
-        
+
         List<Long> difat = new ArrayList<>();
         for (int i = 0; i < 109; i++) {
             difat.add(readUI32());
-        }        
+        }
         if (majorVersion == 4) {
             skipZeroBytes(3584, "Rest of header sector should be zero");
         }
@@ -202,61 +201,60 @@ public class ComDoc implements AutoCloseable {
         if (majorVersion == 4) {
             sectorLength = 4096;
         }
-        
+
         long difatSectorLocation = firstDifatSectorLocation;
-        
-        while(difatSectorLocation != ENDOFCHAIN) {
+
+        while (difatSectorLocation != ENDOFCHAIN) {
             raf.seek((1 + difatSectorLocation) * sectorLength);
             for (int i = 0; i < sectorLength - 4; i += 4) {
                 difat.add(readUI32());
             }
             difatSectorLocation = readUI32();
         }
-        
+
         fat = new HashMap<>();
         long fatPos = 0;
-        for (long fatSect:difat) {
+        for (long fatSect : difat) {
             if (fatSect <= MAXREGSECT) {
                 raf.seek((1 + fatSect) * sectorLength);
                 for (int i = 0; i < sectorLength; i += 4) {
                     fat.put(fatPos, readUI32());
                     fatPos++;
-                }   
+                }
             }
         }
-        
-        
+
         minifat = new HashMap<>();
         long miniFatSectorLocation = firstMiniFatSectorLocation;
         long miniFatPos = 0;
-        while(miniFatSectorLocation != ENDOFCHAIN) {
+        while (miniFatSectorLocation != ENDOFCHAIN) {
             raf.seek((1 + miniFatSectorLocation) * sectorLength);
-            for (int i = 0; i < sectorLength; i += 4) {               
+            for (int i = 0; i < sectorLength; i += 4) {
                 minifat.put(miniFatPos, readUI32());
                 miniFatPos++;
             }
             miniFatSectorLocation = fat.get(miniFatSectorLocation);
         }
-        
+
         long directorySector = firstDirectorySectorLocation;
-        
+
         directoryEntries = new ArrayList<>();
         long streamId = 0;
         while (directorySector != ENDOFCHAIN) {
             raf.seek((1 + directorySector) * sectorLength);
-            
+
             for (int i = 0; i < sectorLength; i += 128) {
                 byte[] nameBytes = readBytes(64);
                 int nameLen = readUI16();
-                String name = nameLen == 0 ? "" : new String(nameBytes,0,nameLen - 2, "UTF-16LE");
-                
+                String name = nameLen == 0 ? "" : new String(nameBytes, 0, nameLen - 2, "UTF-16LE");
+
                 int objectType = readEx();
-                if(!Arrays.asList(TYPE_UNKNOWN, TYPE_STORAGE_OBJECT, TYPE_STREAM_OBJECT, TYPE_ROOT_STORAGE_OBJECT).contains(objectType)) {
-                    throw new IOException("Invalid object type: "+objectType);
+                if (!Arrays.asList(TYPE_UNKNOWN, TYPE_STORAGE_OBJECT, TYPE_STREAM_OBJECT, TYPE_ROOT_STORAGE_OBJECT).contains(objectType)) {
+                    throw new IOException("Invalid object type: " + objectType);
                 }
                 int colorFlag = readEx();
-                if(!Arrays.asList(COLOR_RED, COLOR_BLACK).contains(colorFlag)) {
-                    throw new IOException("Invalid color flag: "+colorFlag);
+                if (!Arrays.asList(COLOR_RED, COLOR_BLACK).contains(colorFlag)) {
+                    throw new IOException("Invalid color flag: " + colorFlag);
                 }
 
                 long leftSiblingId = readUI32();
@@ -276,22 +274,22 @@ public class ComDoc implements AutoCloseable {
                     miniStreamStartingSector = startingSectorLocation;
                     miniStreamSize = streamSize;
                 }
-                directoryEntries.add(dirEntry);                
+                directoryEntries.add(dirEntry);
                 streamId++;
-            }            
+            }
             directorySector = fat.get(directorySector);
-        }             
-    }        
-    
+        }
+    }
+
     private InputStream getMiniStream(long sector, long totalSize) {
         int miniSectorLength = 64;
-        return new InputStream() {           
+        return new InputStream() {
             int rsectorPos = 0;
-            long rsector = sector;      
-            long readPos = 0L;                             
-            
+            long rsector = sector;
+            long readPos = 0L;
+
             @Override
-            public int read() throws IOException {   
+            public int read() throws IOException {
                 if (readPos >= totalSize) {
                     return -1;
                 }
@@ -304,7 +302,7 @@ public class ComDoc implements AutoCloseable {
                 }
                 if (rsector == ENDOFCHAIN) {
                     return -1;
-                }                
+                }
                 InputStream miniIs = getLargeStream(miniStreamStartingSector, miniStreamSize);
                 miniIs.skip(rsector * miniSectorLength + rsectorPos);
                 rsectorPos++;
@@ -313,11 +311,11 @@ public class ComDoc implements AutoCloseable {
             }
         };
     }
-    
+
     private InputStream getLargeStream(long sector, long totalSize) {
-        return new InputStream() {            
+        return new InputStream() {
             int rsectorPos = 0;
-            long rsector = sector;      
+            long rsector = sector;
             long readPos = 0L;
 
             @Override
@@ -339,7 +337,7 @@ public class ComDoc implements AutoCloseable {
                     rsectorPos++;
                 }
                 return n;
-            }                      
+            }
 
             @Override
             public int read(byte[] b, int off, int len) throws IOException {
@@ -365,7 +363,7 @@ public class ComDoc implements AutoCloseable {
                     realReadLen = (int) (totalSize - readPos);
                     readAll = true;
                 }
-                raf.seek((1 + rsector)*sectorLength + rsectorPos);
+                raf.seek((1 + rsector) * sectorLength + rsectorPos);
                 raf.readFully(b, off, realReadLen);
                 rsectorPos += realReadLen;
                 readPos += realReadLen;
@@ -374,10 +372,10 @@ public class ComDoc implements AutoCloseable {
                     ret += read(b, off + realReadLen, len - realReadLen);
                 }
                 return ret;
-            }                                   
-            
+            }
+
             @Override
-            public int read() throws IOException {   
+            public int read() throws IOException {
                 if (readPos >= totalSize) {
                     return -1;
                 }
@@ -391,29 +389,28 @@ public class ComDoc implements AutoCloseable {
                 if (rsector == ENDOFCHAIN) {
                     return -1;
                 }
-                raf.seek((1 + rsector)*sectorLength + rsectorPos);
-                rsectorPos++;                
+                raf.seek((1 + rsector) * sectorLength + rsectorPos);
+                rsectorPos++;
                 readPos++;
-                return raf.read();                                
+                return raf.read();
             }
-        };        
+        };
     }
-    
+
     public InputStream getEntryStream(DirectoryEntry entry) {
         if (entry.streamSize < miniStreamCutoffSize) {
             return getMiniStream(entry.startingSectorLocation, entry.streamSize);
         }
         return getLargeStream(entry.startingSectorLocation, entry.streamSize);
     }
-    
-    
+
     @Override
-    public void close() throws IOException {        
+    public void close() throws IOException {
         raf.close();
     }
 
     public List<DirectoryEntry> getDirectoryEntries() {
         return directoryEntries;
     }
-    
+
 }

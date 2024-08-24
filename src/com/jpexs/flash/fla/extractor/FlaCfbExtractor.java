@@ -18,8 +18,8 @@
  */
 package com.jpexs.flash.fla.extractor;
 
-import com.jpexs.comdoc.ComDoc;
-import com.jpexs.comdoc.DirectoryEntry;
+import com.jpexs.cfb.CompoundFileBinary;
+import com.jpexs.cfb.DirectoryEntry;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -32,11 +32,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Extracts FLA files in ComDoc format to directory
+ * Extracts FLA files in CompoundFileBinary format to directory
  *
  * @author JPEXS
  */
-public class FlaComDocExtractor {
+public class FlaCfbExtractor {
 
     private static File propFile = new File("./config.properties");
     private static Properties props = null;
@@ -51,7 +51,7 @@ public class FlaComDocExtractor {
             try (FileInputStream fis = new FileInputStream(propFile)) {
                 props.load(fis);
             } catch (IOException ex) {
-                Logger.getLogger(FlaComDocExtractor.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(FlaCfbExtractor.class.getName()).log(Level.SEVERE, null, ex);
                 System.exit(1);
             }
         }
@@ -83,12 +83,12 @@ public class FlaComDocExtractor {
             }
 
         })) {
-            ComDoc cfb = new ComDoc(file);
+            CompoundFileBinary cfb = new CompoundFileBinary(file);
             String outDir = inputDir + file.getName().replace(".fla", "") + "/";
             new File(outDir).mkdir();
             for (DirectoryEntry de : cfb.getDirectoryEntries()) {
                 System.out.println("" + de);
-                if (de.objectType == ComDoc.TYPE_STREAM_OBJECT) {
+                if (de.objectType == CompoundFileBinary.TYPE_STREAM_OBJECT) {
                     InputStream is = cfb.getEntryStream(de);
                     String outFile = outDir + de.getFilename();
                     FileOutputStream fos = new FileOutputStream(outFile);

@@ -18,7 +18,7 @@
  */
 package com.jpexs.flash.fla.convertor;
 
-import com.jpexs.flash.fla.extractor.FlaComDocExtractor;
+import com.jpexs.flash.fla.extractor.FlaCfbExtractor;
 import java.awt.Color;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -43,6 +43,7 @@ import org.xml.sax.SAXException;
 
 /**
  * Parses CS5 XFL file and produces CS4 page file.
+ *
  * @author JPEXS
  */
 public class XflToCs4Converter {
@@ -295,8 +296,8 @@ public class XflToCs4Converter {
     }
 
     public static void main(String[] args) throws ParserConfigurationException, SAXException, IOException {
-        FlaComDocExtractor.initLog();
-        File dir = new File(FlaComDocExtractor.getProperty("convert.xfl.dir"));
+        FlaCfbExtractor.initLog();
+        File dir = new File(FlaCfbExtractor.getProperty("convert.xfl.dir"));
         File domDocumentFile = dir.toPath().resolve("DOMDocument.xml").toFile();
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -304,7 +305,7 @@ public class XflToCs4Converter {
 
         Document doc = docBuilder.parse(domDocumentFile);
 
-        String file = FlaComDocExtractor.getProperty("convert.xfl.output.file");
+        String file = FlaCfbExtractor.getProperty("convert.xfl.output.file");
         FileOutputStream fos = new FileOutputStream(file);
         FlaCs4Writer fg = new FlaCs4Writer(fos);
         fg.writePageHeader();
@@ -320,9 +321,7 @@ public class XflToCs4Converter {
                 List<Node> layers = getAllSubNodesByName(layersNode, "DOMLayer");
 
                 Map<Integer, Integer> layerIndexToRevLayerIndex = new HashMap<>();
-                Stack<Integer> openedLayers = new Stack<>();
-                int reverseLayerIndex = 0;
-
+                Stack<Integer> openedLayers = new Stack<>();                
                 Map<Integer, Integer> layerToFolderEndCount = new HashMap<>();
                 Map<Integer, Integer> folderToEndLayer = new HashMap<>();
 

@@ -29,6 +29,7 @@ import java.util.logging.Logger;
 
 /**
  * Writes page file of Flash CS4 FLA file.
+ *
  * @author JPEXS
  */
 public class FlaCs4Writer {
