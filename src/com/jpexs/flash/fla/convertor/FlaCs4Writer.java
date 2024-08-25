@@ -565,17 +565,16 @@ public class FlaCs4Writer {
         long dLong = (long) Math.round(d);
         long txLong = (long) Math.round(tx);
         long tyLong = (long) Math.round(ty);
-        
+
         os.write(new byte[]{
             (byte) (aLong & 0xFF), (byte) ((aLong >> 8) & 0xFF), (byte) ((aLong >> 16) & 0xFF), (byte) ((aLong >> 24) & 0xFF),
             (byte) (bLong & 0xFF), (byte) ((bLong >> 8) & 0xFF), (byte) ((bLong >> 16) & 0xFF), (byte) ((bLong >> 24) & 0xFF),
             (byte) (cLong & 0xFF), (byte) ((cLong >> 8) & 0xFF), (byte) ((cLong >> 16) & 0xFF), (byte) ((cLong >> 24) & 0xFF),
             (byte) (dLong & 0xFF), (byte) ((dLong >> 8) & 0xFF), (byte) ((dLong >> 16) & 0xFF), (byte) ((dLong >> 24) & 0xFF),
             (byte) (txLong & 0xFF), (byte) ((txLong >> 8) & 0xFF), (byte) ((txLong >> 16) & 0xFF), (byte) ((txLong >> 24) & 0xFF),
-            (byte) (tyLong & 0xFF), (byte) ((tyLong >> 8) & 0xFF), (byte) ((tyLong >> 16) & 0xFF), (byte) ((tyLong >> 24) & 0xFF),            
-        });
+            (byte) (tyLong & 0xFF), (byte) ((tyLong >> 8) & 0xFF), (byte) ((tyLong >> 16) & 0xFF), (byte) ((tyLong >> 24) & 0xFF),});
     }
-    
+
     public void writeBitmapFill(
             int type,
             double a,
@@ -585,13 +584,13 @@ public class FlaCs4Writer {
             double tx,
             double ty,
             int bitmapId
-    ) throws IOException {       
+    ) throws IOException {
         os.write(new byte[]{
             (byte) 0xFF, 0x00, 0x00, (byte) 0xFF,
             (byte) type,
             0x00});
         writeMatrix(a, b, c, d, tx, ty);
-        os.write(new byte[] {
+        os.write(new byte[]{
             (byte) bitmapId, 0x00
         });
     }
@@ -609,7 +608,7 @@ public class FlaCs4Writer {
             double tx,
             double ty,
             double focalRatio
-    ) throws IOException {        
+    ) throws IOException {
 
         os.write(new byte[]{
             0x00, 0x00, 0x00, 0x00 /*this is sometimes 0xFF*/, (byte) type, 0x00});

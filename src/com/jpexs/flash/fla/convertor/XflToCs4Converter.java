@@ -42,7 +42,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 /**
- * Parses CS5 XFL file and produces CS4 page file.
+ * Parses CS5 XFL file and produces CS4 page file. WIP
  *
  * @author JPEXS
  */

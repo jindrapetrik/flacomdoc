@@ -27,6 +27,8 @@ import java.util.Date;
  */
 public class DirectoryEntry {
 
+    public long fileOffset;
+
     public long streamId;
     public String name;
     public int objectType;
@@ -41,7 +43,8 @@ public class DirectoryEntry {
     public long startingSectorLocation;
     public long streamSize;
 
-    public DirectoryEntry(long streamId, String name, int objectType, int colorFlag, long leftSiblingId, long rightSiblingId, long childId, byte[] clsId, long stateBits, Date creationTime, Date modifiedTime, long startingSectorLocation, long streamSize) {
+    public DirectoryEntry(long fileOffset, long streamId, String name, int objectType, int colorFlag, long leftSiblingId, long rightSiblingId, long childId, byte[] clsId, long stateBits, Date creationTime, Date modifiedTime, long startingSectorLocation, long streamSize) {
+        this.fileOffset = fileOffset;
         this.streamId = streamId;
         this.name = name;
         this.objectType = objectType;
@@ -106,5 +109,13 @@ public class DirectoryEntry {
             return "NOSTREAM";
         }
         return "" + streamId;
+    }
+
+    public int compareTo(DirectoryEntry entry) {
+        int lenDelta = name.length() - entry.name.length();
+        if (lenDelta != 0) {
+            return lenDelta;
+        }
+        return name.toUpperCase().compareTo(entry.name.toUpperCase());
     }
 }
