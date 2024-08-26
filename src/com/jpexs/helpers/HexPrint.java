@@ -117,6 +117,7 @@ public class HexPrint extends JFrame {
      * @param s
      */
     private static void convert2(String s) {
+        s = s.replaceAll("[\r\n ]+", "");
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < s.length(); i += 2) {
             String v = s.substring(i, i + 2);
@@ -130,5 +131,10 @@ public class HexPrint extends JFrame {
             }
         }
         System.out.println(sb);
+    }
+
+    public static void main(String[] args) {
+        String t = "12 34 56";
+        convert2(t);
     }
 }

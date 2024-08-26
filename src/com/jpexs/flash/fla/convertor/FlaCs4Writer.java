@@ -18,7 +18,10 @@
  */
 package com.jpexs.flash.fla.convertor;
 
+import com.jpexs.flash.fla.convertor.coloreffects.ColorEffectInterface;
+import com.jpexs.flash.fla.convertor.coloreffects.NoColorEffect;
 import java.awt.Color;
+import java.awt.geom.Point2D;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Random;
@@ -134,6 +137,100 @@ public class FlaCs4Writer {
 
     public void writeKeyFrameSeparator() throws IOException {
         os.write(new byte[]{0x05, (byte) 0x80});
+    }
+
+    public void writeSymbolInstanceSeparator() throws IOException {
+        os.write(new byte[]{0x07, (byte) 0x80});
+    }
+
+    public void writeSymbolInstance(
+            double a,
+            double b,
+            double c,
+            double d,
+            double tx,
+            double ty,
+            double centerPoint3DX,
+            double centerPoint3DY,
+            double transformationPointX,
+            double transformationPointY,
+            String instanceName,
+            ColorEffectInterface colorEffect
+    ) throws IOException {
+
+        long centerPoint3DXLong = Math.round(centerPoint3DX * 20);
+        long centerPoint3DYLong = Math.round(centerPoint3DY * 20);
+
+        Matrix m = new Matrix(a, b, c, d, tx, ty);
+        Point2D transformationPoint = new Point2D.Double(transformationPointX, transformationPointY);
+        Point2D transformationPointTransformed = m.transform(transformationPoint);
+
+        long tptX = Math.round(transformationPointTransformed.getX() * 20);
+        long tptY = Math.round(transformationPointTransformed.getY() * 20);
+
+        os.write(new byte[]{0x05, 0x00, 0x00, 0x00,
+            (byte) (tptX & 0xFF), (byte) ((tptX >> 8) & 0xFF), (byte) ((tptX >> 16) & 0xFF), (byte) ((tptX >> 24) & 0xFF),
+            (byte) (tptY & 0xFF), (byte) ((tptY >> 8) & 0xFF), (byte) ((tptY >> 16) & 0xFF), (byte) ((tptY >> 24) & 0xFF),
+            0x00, 0x00, 0x16
+        });
+        writeMatrix(a, b, c, d, tx, ty);
+
+        os.write(new byte[]{
+            0x00, 0x00, 0x02, 0x00, 0x01,});
+
+        if (colorEffect == null) {
+            colorEffect = new NoColorEffect();
+        }
+
+        int redMultiplier = colorEffect.getRedMultiplier();
+        int greenMultiplier = colorEffect.getGreenMultiplier();
+        int blueMultiplier = colorEffect.getBlueMultiplier();
+        int alphaMultiplier = colorEffect.getAlphaMultiplier();
+        int redOffset = colorEffect.getRedOffset();
+        int greenOffset = colorEffect.getGreenOffset();
+        int blueOffset = colorEffect.getBlueOffset();
+        int alphaOffset = colorEffect.getAlphaOffset();
+        Color effectColor = colorEffect.getValueColor();
+
+        os.write(new byte[]{
+            (byte) (alphaMultiplier & 0xFF), (byte) ((alphaMultiplier >> 8) & 0xFF), (byte) (alphaOffset & 0xFF), (byte) ((alphaOffset >> 8) & 0xFF),
+            (byte) (redMultiplier & 0xFF), (byte) ((redMultiplier >> 8) & 0xFF), (byte) (redOffset & 0xFF), (byte) ((redOffset >> 8) & 0xFF),
+            (byte) (greenMultiplier & 0xFF), (byte) ((greenMultiplier >> 8) & 0xFF), (byte) (greenOffset & 0xFF), (byte) ((greenOffset >> 8) & 0xFF),
+            (byte) (blueMultiplier & 0xFF), (byte) ((blueMultiplier >> 8) & 0xFF), (byte) (blueOffset & 0xFF), (byte) ((blueOffset >> 8) & 0xFF),
+            (byte) colorEffect.getType(), (byte) 0x00, (byte) colorEffect.getValuePercent(), (byte) 0x00,
+            (byte) effectColor.getRed(), (byte) effectColor.getGreen(), (byte) effectColor.getBlue(), (byte) effectColor.getAlpha()
+        });
+
+        os.write(new byte[]{
+            (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, 0x00, //some string
+            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x3F, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            (byte) 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,});
+
+        os.write(new byte[]{
+            (byte) (centerPoint3DXLong & 0xFF), (byte) ((centerPoint3DXLong >> 8) & 0xFF), (byte) ((centerPoint3DXLong >> 16) & 0xFF), (byte) ((centerPoint3DXLong >> 24) & 0xFF),
+            (byte) (centerPoint3DYLong & 0xFF), (byte) ((centerPoint3DYLong >> 8) & 0xFF), (byte) ((centerPoint3DYLong >> 16) & 0xFF), (byte) ((centerPoint3DYLong >> 24) & 0xFF)
+        });
+
+        os.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+            0x00,
+            (byte) 0xFF, 0x22,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, 0x00, //some string
+            (byte) 0xFF, (byte) 0xFE, (byte) 0xFF});
+
+        writeLenUnicodeString(instanceName);
+
+        os.write(new byte[]{0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+            (byte) 0xFF, (byte) 0xFE, (byte) 0xFF}
+        );
+        String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='1'>\n</component>\n";
+        writeLenUnicodeString(componentTxt);
     }
 
     public void beginShape() {
@@ -724,7 +821,8 @@ public class FlaCs4Writer {
 
     public void writeKeyFrameBegin() throws IOException {
         os.write(new byte[]{
-            0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x00, 0x00, 0x00, (byte) 0x80, 0x00, 0x00, 0x06, 0x00, 0x00,
+            0x05, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x00, 0x00, 0x00, (byte) 0x80, 0x00, 0x00, 0x06, 0x00, 0x00,
             0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05});
     }
