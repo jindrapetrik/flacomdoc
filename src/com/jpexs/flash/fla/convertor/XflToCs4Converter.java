@@ -374,6 +374,7 @@ public class XflToCs4Converter {
                 Node frame = frames.item(f);
                 if ("DOMFrame".equals(frame.getNodeName())) {
                     fg.writeKeyFrameBegin();
+                    fg.writeKeyFrameMiddle();
                     fg.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
                     int keyMode = FlaCs4Writer.KEYMODE_STANDARD;
                     Node keyModeAttr = frame.getAttributes().getNamedItem("keyMode");
@@ -569,6 +570,9 @@ public class XflToCs4Converter {
                             }
                             Node frame = frames.get(f);
                             fg.writeKeyFrameBegin();
+
+                            //TODO: Symbol instances here
+                            fg.writeKeyFrameMiddle();
                             Node elementsNode = getSubNodeByName(frame, "elements");
                             if (elementsNode != null) {
                                 NodeList elements = elementsNode.getChildNodes();

@@ -103,6 +103,11 @@ public class FlaCs4Writer {
         writeLenAsciiString("CPicLayer");
         os.write(new byte[]{0x05, 0x00, (byte) 0xFF, (byte) 0xFF, 0x01, 0x00});
         writeLenAsciiString("CPicFrame");
+        os.write(new byte[]{0x05, 0x00, (byte) 0xFF, (byte) 0xFF, 0x01, 0x00});
+        writeLenAsciiString("CPicSprite");
+        //this seems to be some kind of list of required classes,
+        //each "require" is placed on the place where it is first used
+        //like when you use SymbolInstance in frame 2 and not in frame 1, then it is required later
     }
 
     /**
@@ -140,7 +145,7 @@ public class FlaCs4Writer {
     }
 
     public void writeSymbolInstanceSeparator() throws IOException {
-        os.write(new byte[]{0x07, (byte) 0x80});
+        os.write(new byte[]{0x07, (byte) 0x80, 0x05, 0x00});
     }
 
     public void writeSymbolInstance(
@@ -167,16 +172,24 @@ public class FlaCs4Writer {
 
         long tptX = Math.round(transformationPointTransformed.getX() * 20);
         long tptY = Math.round(transformationPointTransformed.getY() * 20);
-
-        os.write(new byte[]{0x05, 0x00, 0x00, 0x00,
+        /*
+        keyframe begin:
+        0x00, 0x00, 
+        0x00, 0x00, 0x00, (byte) 0x80,
+        0x00, 0x00, 0x00, (byte) 0x80, 
+        0x00, 0x00, 0x06,  - is this some kind of type identifier?
+        
+        ...
+         */
+        os.write(new byte[]{
+            0x00, 0x00,
             (byte) (tptX & 0xFF), (byte) ((tptX >> 8) & 0xFF), (byte) ((tptX >> 16) & 0xFF), (byte) ((tptX >> 24) & 0xFF),
             (byte) (tptY & 0xFF), (byte) ((tptY >> 8) & 0xFF), (byte) ((tptY >> 16) & 0xFF), (byte) ((tptY >> 24) & 0xFF),
             0x00, 0x00, 0x16
         });
         writeMatrix(a, b, c, d, tx, ty);
 
-        os.write(new byte[]{
-            0x00, 0x00, 0x02, 0x00, 0x01,});
+        os.write(new byte[]{0x00, 0x00, 0x02, 0x00, 0x01,});
 
         if (colorEffect == null) {
             colorEffect = new NoColorEffect();
@@ -821,7 +834,11 @@ public class FlaCs4Writer {
 
     public void writeKeyFrameBegin() throws IOException {
         os.write(new byte[]{
-            0x05, 0x00,
+            0x05, 0x00,});
+    }
+
+    public void writeKeyFrameMiddle() throws IOException {
+        os.write(new byte[]{
             0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x00, 0x00, 0x00, (byte) 0x80, 0x00, 0x00, 0x06, 0x00, 0x00,
             0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05});
@@ -846,6 +863,7 @@ public class FlaCs4Writer {
     public void writeKeyFrame(int frameLen, int keyMode) throws IOException {
 
         writeKeyFrameBegin();
+        writeKeyFrameMiddle();
         int numEdges = 0;
         int numFillStyles = 0;
         int numStrokeStyles = 0;
