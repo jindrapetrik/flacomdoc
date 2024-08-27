@@ -563,7 +563,6 @@ public class XflToCs4Converter {
                                 List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
 
                                 //Find index in library
-                                //FIXME: This somehow does not work
                                 int libraryItemIndex = -1;
                                 for (int e = 0; e < includes.size(); e++) {
                                     Element include = includes.get(e);
@@ -576,7 +575,7 @@ public class XflToCs4Converter {
                                         nameNoXml = nameNoXml.substring(0, nameNoXml.length() - 4);
                                     }
                                     if (nameNoXml.equals(libraryItemName)) {
-                                        libraryItemIndex = e;
+                                        libraryItemIndex = 3 + e; //FIXME: Kind of magic - need to really determine the symbol file
                                         break;
                                     }
                                 }

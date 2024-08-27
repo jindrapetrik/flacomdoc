@@ -241,10 +241,10 @@ public class FlaCs4Writer {
 
         os.write(new byte[]{0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
-            (byte) index, 0x00, 0x00, 0x00, //this should probably be long value
+            0x00 /*something*/, 0x00, 0x00, 0x00, 
             (byte) 0xFF, (byte) 0xFE, (byte) 0xFF}
         );
-        String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + (totalCount - index) + "'>\n</component>\n";
+        String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + (index + 1) + "'>\n</component>\n";
         writeLenUnicodeString(componentTxt);
     }
 
