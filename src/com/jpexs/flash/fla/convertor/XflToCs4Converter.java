@@ -273,7 +273,7 @@ public class XflToCs4Converter {
         }
     }
 
-    private static int getStrokeTypeParameter(Node node, String attributeName, List<String> allowedValues, String defaultValue) {
+    private static int getAttributeAsInt(Node node, String attributeName, List<String> allowedValues, String defaultValue) {
         Node attr = node.getAttributes().getNamedItem(attributeName);
         if (attr != null) {
             int index = allowedValues.indexOf(attr.getTextContent());
@@ -686,7 +686,38 @@ public class XflToCs4Converter {
                                     }
                                 }
 
-                                fg.writeSymbolInstance(placeMatrix, centerPoint3DX, centerPoint3DY, transformationPointX, transformationPointY, instanceName, colorEffect, libraryItemIndex, symbolInstanceIndex, symbolInstances.size());
+                                //TODO: attribute "symbolType" aka "instance behavior"
+                                //Order in CS5: normal, layer, darken, multiply, lighten, screen, overlay, hardlight, add, subtract, difference, invert, alpha, erase
+                                int blendMode = getAttributeAsInt(symbolInstance, "blendMode",
+                                        Arrays.asList(
+                                                "",
+                                                "normal",
+                                                "layer",
+                                                "multiply",
+                                                "screen",
+                                                "lighten",
+                                                "darken",
+                                                "difference",
+                                                "add",
+                                                "subtract",
+                                                "invert",
+                                                "alpha",
+                                                "erase",
+                                                "overlay",
+                                                "hardlight"
+                                        ), "normal");
+
+                                fg.writeSymbolInstance(
+                                        placeMatrix,
+                                        centerPoint3DX,
+                                        centerPoint3DY,
+                                        transformationPointX,
+                                        transformationPointY,
+                                        instanceName,
+                                        colorEffect,
+                                        libraryItemIndex,
+                                        symbolInstanceIndex,
+                                        blendMode);
                             }
                             //TODO: Symbol instances here
                             fg.writeKeyFrameMiddle();
@@ -857,25 +888,25 @@ public class XflToCs4Converter {
                                                     styleParam2 = (int) (0x10 * Math.round(dotSpace * 10) + 0x02);
                                                     break;
                                                 case "RaggedStroke":
-                                                    int pattern = getStrokeTypeParameter(strokeStyleVal, "pattern", Arrays.asList("solid", "simple", "random", "dotted", "random dotted", "triple dotted", "random tripple dotted"), "simple");
-                                                    int waveHeight = getStrokeTypeParameter(strokeStyleVal, "waveHeight", Arrays.asList("flat", "wavy", "very wavy", "wild"), "wavy");
-                                                    int waveLength = getStrokeTypeParameter(strokeStyleVal, "waveLength", Arrays.asList("very short", "short", "medium", "long"), "short");
+                                                    int pattern = getAttributeAsInt(strokeStyleVal, "pattern", Arrays.asList("solid", "simple", "random", "dotted", "random dotted", "triple dotted", "random tripple dotted"), "simple");
+                                                    int waveHeight = getAttributeAsInt(strokeStyleVal, "waveHeight", Arrays.asList("flat", "wavy", "very wavy", "wild"), "wavy");
+                                                    int waveLength = getAttributeAsInt(strokeStyleVal, "waveLength", Arrays.asList("very short", "short", "medium", "long"), "short");
                                                     styleParam2 = 0x08 * pattern + 0x40 * waveHeight + 0x100 * waveLength + 0x03;
                                                     break;
                                                 case "StippleStroke":
-                                                    int dotSize = getStrokeTypeParameter(strokeStyleVal, "dotSize", Arrays.asList("tiny", "small", "medium", "large"), "small");
-                                                    int variation = getStrokeTypeParameter(strokeStyleVal, "variation", Arrays.asList("one size", "small variation", "varied sizes", "random sizes"), "varied sizes");
-                                                    int density = getStrokeTypeParameter(strokeStyleVal, "density", Arrays.asList("very dense", "dense", "sparse", "very sparse"), "sparse");
+                                                    int dotSize = getAttributeAsInt(strokeStyleVal, "dotSize", Arrays.asList("tiny", "small", "medium", "large"), "small");
+                                                    int variation = getAttributeAsInt(strokeStyleVal, "variation", Arrays.asList("one size", "small variation", "varied sizes", "random sizes"), "varied sizes");
+                                                    int density = getAttributeAsInt(strokeStyleVal, "density", Arrays.asList("very dense", "dense", "sparse", "very sparse"), "sparse");
 
                                                     styleParam2 = 0x08 * dotSize + 0x20 * variation + 0x80 * density + 0x04;
                                                     break;
                                                 case "HatchedStroke":
-                                                    int hatchThickness = getStrokeTypeParameter(strokeStyleVal, "hatchThickness", Arrays.asList("hairline", "thin", "medium", "thick"), "hairline");
-                                                    int space = getStrokeTypeParameter(strokeStyleVal, "space", Arrays.asList("very close", "close", "distant", "very distant"), "distant");
-                                                    int jiggle = getStrokeTypeParameter(strokeStyleVal, "jiggle", Arrays.asList("none", "bounce", "loose", "wild"), "none");
-                                                    int rotate = getStrokeTypeParameter(strokeStyleVal, "rotate", Arrays.asList("none", "slight", "medium", "free"), "none");
-                                                    int curve = getStrokeTypeParameter(strokeStyleVal, "curve", Arrays.asList("straight", "slight curve", "medium curve", "very curved"), "straight");
-                                                    int length = getStrokeTypeParameter(strokeStyleVal, "length", Arrays.asList("equal", "slight variation", "medium variation", "random"), "equal");
+                                                    int hatchThickness = getAttributeAsInt(strokeStyleVal, "hatchThickness", Arrays.asList("hairline", "thin", "medium", "thick"), "hairline");
+                                                    int space = getAttributeAsInt(strokeStyleVal, "space", Arrays.asList("very close", "close", "distant", "very distant"), "distant");
+                                                    int jiggle = getAttributeAsInt(strokeStyleVal, "jiggle", Arrays.asList("none", "bounce", "loose", "wild"), "none");
+                                                    int rotate = getAttributeAsInt(strokeStyleVal, "rotate", Arrays.asList("none", "slight", "medium", "free"), "none");
+                                                    int curve = getAttributeAsInt(strokeStyleVal, "curve", Arrays.asList("straight", "slight curve", "medium curve", "very curved"), "straight");
+                                                    int length = getAttributeAsInt(strokeStyleVal, "length", Arrays.asList("equal", "slight variation", "medium variation", "random"), "equal");
 
                                                     styleParam2 = 0x08 * hatchThickness
                                                             + 0x20 * space
