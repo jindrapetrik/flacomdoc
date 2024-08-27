@@ -20,10 +20,13 @@ package com.jpexs.flash.fla.convertor;
 
 import com.jpexs.flash.fla.convertor.coloreffects.ColorEffectInterface;
 import com.jpexs.flash.fla.convertor.coloreffects.NoColorEffect;
+import com.jpexs.flash.fla.convertor.filters.DropShadowFilter;
+import com.jpexs.flash.fla.convertor.filters.FilterInterface;
 import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -148,6 +151,14 @@ public class FlaCs4Writer {
         os.write(new byte[]{0x07, (byte) 0x80, 0x05, 0x00});
     }
 
+    public void writeFloat(float val) throws IOException {
+        int v = Float.floatToIntBits(val);
+        os.write(v & 0xFF);
+        os.write((v >> 8) & 0xFF);
+        os.write((v >> 16) & 0xFF);
+        os.write((v >> 24) & 0xFF);
+    }
+
     public void writeSymbolInstance(
             Matrix placeMatrix,
             double centerPoint3DX,
@@ -158,7 +169,9 @@ public class FlaCs4Writer {
             ColorEffectInterface colorEffect,
             int librarySymbolId,
             int index,
-            int blendMode
+            int blendMode,
+            boolean cacheAsBitmap,
+            List<FilterInterface> filters
     ) throws IOException {
 
         Random rnd = new Random();
@@ -185,7 +198,7 @@ public class FlaCs4Writer {
             0x00, 0x00,
             (byte) (tptX & 0xFF), (byte) ((tptX >> 8) & 0xFF), (byte) ((tptX >> 16) & 0xFF), (byte) ((tptX >> 24) & 0xFF),
             (byte) (tptY & 0xFF), (byte) ((tptY >> 8) & 0xFF), (byte) ((tptY >> 16) & 0xFF), (byte) ((tptY >> 24) & 0xFF),
-            0x00, 0x00, 0x16
+            0x00, (byte) (cacheAsBitmap ? 1 : 0), 0x16
         });
         writeMatrix(placeMatrix);
 
@@ -217,8 +230,19 @@ public class FlaCs4Writer {
         os.write(new byte[]{
             (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, 0x00, //some string
             (byte) librarySymbolId, 0x00, 0x00, 0x00, //this is probably a long val
-            0x00, 0x00, 0x00, 0x00, (byte) blendMode,
-            0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00,});
+
+        if (!filters.isEmpty()) {
+            os.write(new byte[]{(byte) 0x01, (byte) filters.size(), (byte) 0x00, (byte) 0x00,});
+            for (FilterInterface filter : filters) {
+                filter.write(this);
+            }
+        }
+
+        os.write(new byte[]{
+            0x00, (byte) blendMode,
+            (byte)(filters.isEmpty() ? 0 : filters.size() - 1), //WTF?
+            0x00, 0x00, 0x00, (byte) 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x3F, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1037,6 +1061,10 @@ public class FlaCs4Writer {
 
     public void write(byte[] bytes) throws IOException {
         os.write(bytes);
+    }
+
+    public void write(int value) throws IOException {
+        os.write(value);
     }
 
 }
