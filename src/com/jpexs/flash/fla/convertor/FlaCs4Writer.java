@@ -149,26 +149,26 @@ public class FlaCs4Writer {
     }
 
     public void writeSymbolInstance(
-            double a,
-            double b,
-            double c,
-            double d,
-            double tx,
-            double ty,
+            Matrix placeMatrix,
             double centerPoint3DX,
             double centerPoint3DY,
             double transformationPointX,
             double transformationPointY,
             String instanceName,
-            ColorEffectInterface colorEffect
+            ColorEffectInterface colorEffect,
+            int librarySymbolId,
+            int index,
+            int totalCount
     ) throws IOException {
+
+        Random rnd = new Random();
+        int symbolInstanceId = rnd.nextInt(0x10000);
 
         long centerPoint3DXLong = Math.round(centerPoint3DX * 20);
         long centerPoint3DYLong = Math.round(centerPoint3DY * 20);
 
-        Matrix m = new Matrix(a, b, c, d, tx, ty);
         Point2D transformationPoint = new Point2D.Double(transformationPointX, transformationPointY);
-        Point2D transformationPointTransformed = m.transform(transformationPoint);
+        Point2D transformationPointTransformed = placeMatrix.transform(transformationPoint);
 
         long tptX = Math.round(transformationPointTransformed.getX() * 20);
         long tptY = Math.round(transformationPointTransformed.getY() * 20);
@@ -187,7 +187,7 @@ public class FlaCs4Writer {
             (byte) (tptY & 0xFF), (byte) ((tptY >> 8) & 0xFF), (byte) ((tptY >> 16) & 0xFF), (byte) ((tptY >> 24) & 0xFF),
             0x00, 0x00, 0x16
         });
-        writeMatrix(a, b, c, d, tx, ty);
+        writeMatrix(placeMatrix);
 
         os.write(new byte[]{0x00, 0x00, 0x02, 0x00, 0x01,});
 
@@ -216,7 +216,8 @@ public class FlaCs4Writer {
 
         os.write(new byte[]{
             (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, 0x00, //some string
-            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            (byte) librarySymbolId, 0x00, 0x00, 0x00, //this is probably a long val
+            0x00, 0x00, 0x00, 0x00, 0x01,
             0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x3F, 0x00, 0x00,
@@ -231,7 +232,7 @@ public class FlaCs4Writer {
 
         os.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
             0x00,
-            (byte) 0xFF, 0x22,
+            (byte) (symbolInstanceId & 0xFF), (byte) ((symbolInstanceId >> 8) & 0xFF),
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, 0x00, //some string
             (byte) 0xFF, (byte) 0xFE, (byte) 0xFF});
@@ -239,10 +240,11 @@ public class FlaCs4Writer {
         writeLenUnicodeString(instanceName);
 
         os.write(new byte[]{0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+            (byte) index, 0x00, 0x00, 0x00, //this should probably be long value
             (byte) 0xFF, (byte) 0xFE, (byte) 0xFF}
         );
-        String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='1'>\n</component>\n";
+        String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + (totalCount - index) + "'>\n</component>\n";
         writeLenUnicodeString(componentTxt);
     }
 
@@ -653,6 +655,10 @@ public class FlaCs4Writer {
         this.y = anchorY;
     }
 
+    public void writeMatrix(Matrix v) throws IOException {
+        writeMatrix(v.a, v.b, v.c, v.d, v.tx, v.ty);
+    }
+
     public void writeMatrix(
             double a,
             double b,
@@ -687,19 +693,14 @@ public class FlaCs4Writer {
 
     public void writeBitmapFill(
             int type,
-            double a,
-            double b,
-            double c,
-            double d,
-            double tx,
-            double ty,
+            Matrix bitmapMatrix,
             int bitmapId
     ) throws IOException {
         os.write(new byte[]{
             (byte) 0xFF, 0x00, 0x00, (byte) 0xFF,
             (byte) type,
             0x00});
-        writeMatrix(a, b, c, d, tx, ty);
+        writeMatrix(bitmapMatrix);
         os.write(new byte[]{
             (byte) bitmapId, 0x00
         });
@@ -711,18 +712,13 @@ public class FlaCs4Writer {
             int type,
             boolean linearRgb,
             int flow,
-            double a,
-            double b,
-            double c,
-            double d,
-            double tx,
-            double ty,
+            Matrix gradientMatrix,
             double focalRatio
     ) throws IOException {
 
         os.write(new byte[]{
             0x00, 0x00, 0x00, 0x00 /*this is sometimes 0xFF*/, (byte) type, 0x00});
-        writeMatrix(a, b, c, d, tx, ty);
+        writeMatrix(gradientMatrix);
         os.write(new byte[]{
             (byte) colors.length,
             (byte) Math.round(focalRatio * 256), 0x00, 0x00, 0x00, (byte) (flow + (linearRgb ? 1 : 0)), 0x00, 0x00, 0x00

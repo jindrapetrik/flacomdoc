@@ -18,6 +18,12 @@
  */
 package com.jpexs.flash.fla.convertor;
 
+import com.jpexs.flash.fla.convertor.coloreffects.AdvancedColorEffect;
+import com.jpexs.flash.fla.convertor.coloreffects.AlphaColorEffect;
+import com.jpexs.flash.fla.convertor.coloreffects.BrightnessColorEffect;
+import com.jpexs.flash.fla.convertor.coloreffects.ColorEffectInterface;
+import com.jpexs.flash.fla.convertor.coloreffects.NoColorEffect;
+import com.jpexs.flash.fla.convertor.coloreffects.TintColorEffect;
 import com.jpexs.flash.fla.extractor.FlaCfbExtractor;
 import java.awt.Color;
 import java.io.File;
@@ -59,12 +65,12 @@ public class XflToCs4Converter {
         return null;
     }
 
-    private static Node getSubNodeByName(Node n, String name) {
+    private static Element getSubElementByName(Node n, String name) {
         NodeList list = n.getChildNodes();
         for (int i = 0; i < list.getLength(); i++) {
             Node sn = list.item(i);
-            if (name.equals(sn.getNodeName())) {
-                return sn;
+            if ((sn instanceof Element) && name.equals(sn.getNodeName())) {
+                return (Element) sn;
             }
         }
         return null;
@@ -82,13 +88,13 @@ public class XflToCs4Converter {
         return ret;
     }
 
-    private static List<Node> getAllSubNodesByName(Node n, String name) {
+    private static List<Element> getAllSubElementsByName(Node n, String name) {
         NodeList list = n.getChildNodes();
-        List<Node> ret = new ArrayList<>();
+        List<Element> ret = new ArrayList<>();
         for (int i = 0; i < list.getLength(); i++) {
             Node sn = list.item(i);
-            if (name.equals(sn.getNodeName())) {
-                ret.add(sn);
+            if ((sn instanceof Element) && name.equals(sn.getNodeName())) {
+                ret.add((Element) sn);
             }
         }
         return ret;
@@ -120,6 +126,42 @@ public class XflToCs4Converter {
         throw new IllegalArgumentException("Invalid color");
     }
 
+    private static Matrix parseMatrix(Element matrixElement) {
+        if (matrixElement == null) {
+            return new Matrix();
+        }
+        matrixElement = getSubElementByName(matrixElement, "Matrix");
+        if (matrixElement == null) {
+            return new Matrix();
+        }
+        double a = 1;
+        double b = 0;
+        double c = 0;
+        double d = 1;
+        double tx = 0;
+        double ty = 0;
+
+        if (matrixElement.hasAttribute("a")) {
+            a = Double.parseDouble(matrixElement.getAttribute("a"));
+        }
+        if (matrixElement.hasAttribute("b")) {
+            b = Double.parseDouble(matrixElement.getAttribute("b"));
+        }
+        if (matrixElement.hasAttribute("c")) {
+            c = Double.parseDouble(matrixElement.getAttribute("c"));
+        }
+        if (matrixElement.hasAttribute("d")) {
+            d = Double.parseDouble(matrixElement.getAttribute("d"));
+        }
+        if (matrixElement.hasAttribute("tx")) {
+            tx = Double.parseDouble(matrixElement.getAttribute("tx"));
+        }
+        if (matrixElement.hasAttribute("ty")) {
+            ty = Double.parseDouble(matrixElement.getAttribute("ty"));
+        }
+        return new Matrix(a, b, c, d, tx, ty);
+    }
+
     private static void handleFill(Node fillStyleVal, FlaCs4Writer fg) throws IOException {
         switch (fillStyleVal.getNodeName()) {
             case "SolidColor":
@@ -128,43 +170,9 @@ public class XflToCs4Converter {
                 break;
             case "LinearGradient":
             case "RadialGradient": {
-                double a = 1;
-                double b = 0;
-                double c = 0;
-                double d = 1;
-                double tx = 0;
-                double ty = 0;
+                Matrix gradientMatrix = parseMatrix(getSubElementByName(fillStyleVal, "matrix"));
+
                 double focalPointRatio = 0;
-                Node matrix = getSubNodeByName(fillStyleVal, "matrix");
-                if (matrix != null) {
-                    matrix = getSubNodeByName(matrix, "Matrix");
-                }
-                Node aAttr = matrix.getAttributes().getNamedItem("a");
-                if (aAttr != null) {
-                    a = Double.parseDouble(aAttr.getTextContent());
-                }
-                Node bAttr = matrix.getAttributes().getNamedItem("b");
-                if (bAttr != null) {
-                    b = Double.parseDouble(bAttr.getTextContent());
-                }
-                Node cAttr = matrix.getAttributes().getNamedItem("c");
-                if (cAttr != null) {
-                    c = Double.parseDouble(cAttr.getTextContent());
-                }
-                Node dAttr = matrix.getAttributes().getNamedItem("d");
-                if (dAttr != null) {
-                    d = Double.parseDouble(dAttr.getTextContent());
-                }
-
-                Node txAttr = matrix.getAttributes().getNamedItem("tx");
-                if (txAttr != null) {
-                    tx = Double.parseDouble(txAttr.getTextContent());
-                }
-
-                Node tyAttr = matrix.getAttributes().getNamedItem("ty");
-                if (tyAttr != null) {
-                    ty = Double.parseDouble(tyAttr.getTextContent());
-                }
 
                 if ("RadialGradient".equals(fillStyleVal.getNodeName())) {
                     Node focalPointRatioAttr = fillStyleVal.getAttributes().getNamedItem("focalPointRatio");
@@ -173,7 +181,7 @@ public class XflToCs4Converter {
                     }
                 }
 
-                List<Node> gradientEntries = getAllSubNodesByName(fillStyleVal, "GradientEntry");
+                List<Element> gradientEntries = getAllSubElementsByName(fillStyleVal, "GradientEntry");
                 Color colors[] = new Color[gradientEntries.size()];
                 double ratios[] = new double[gradientEntries.size()];
                 for (int en = 0; en < gradientEntries.size(); en++) {
@@ -210,14 +218,14 @@ public class XflToCs4Converter {
                 if ("RadialGradient".equals(fillStyleVal.getNodeName())) {
                     type = FlaCs4Writer.TYPE_RADIAL_GRADIENT;
                 }
-                fg.writeGradientFill(colors, ratios, type, linearRGB, spreadMethod, a, b, c, d, tx, ty, focalPointRatio);
+                fg.writeGradientFill(colors, ratios, type, linearRGB, spreadMethod, gradientMatrix, focalPointRatio);
             }
             break;
             case "BitmapFill": {
                 Node bitmapPathAttr = fillStyleVal.getAttributes().getNamedItem("bitmapPath");
                 if (bitmapPathAttr != null) {
                     String bitmapPath = bitmapPathAttr.getTextContent(); //assuming attribute set
-                    Node mediaNode = getSubNodeByName(fillStyleVal.getOwnerDocument().getDocumentElement(), "media");
+                    Node mediaNode = getSubElementByName(fillStyleVal.getOwnerDocument().getDocumentElement(), "media");
                     if (mediaNode != null) {
                         List<Element> mediaElements = getAllSubElements(mediaNode);
                         int mediaId = 0;
@@ -227,44 +235,7 @@ public class XflToCs4Converter {
                                 String name = e.getAttribute("name");
                                 if (name != null) {
                                     if (bitmapPath.equals(name)) {
-
-                                        double a = 1;
-                                        double b = 0;
-                                        double c = 0;
-                                        double d = 1;
-                                        double tx = 0;
-                                        double ty = 0;
-
-                                        Node matrix = getSubNodeByName(fillStyleVal, "matrix");
-                                        if (matrix != null) {
-                                            matrix = getSubNodeByName(matrix, "Matrix");
-                                        }
-                                        Node aAttr = matrix.getAttributes().getNamedItem("a");
-                                        if (aAttr != null) {
-                                            a = Double.parseDouble(aAttr.getTextContent());
-                                        }
-                                        Node bAttr = matrix.getAttributes().getNamedItem("b");
-                                        if (bAttr != null) {
-                                            b = Double.parseDouble(bAttr.getTextContent());
-                                        }
-                                        Node cAttr = matrix.getAttributes().getNamedItem("c");
-                                        if (cAttr != null) {
-                                            c = Double.parseDouble(cAttr.getTextContent());
-                                        }
-                                        Node dAttr = matrix.getAttributes().getNamedItem("d");
-                                        if (dAttr != null) {
-                                            d = Double.parseDouble(dAttr.getTextContent());
-                                        }
-
-                                        Node txAttr = matrix.getAttributes().getNamedItem("tx");
-                                        if (txAttr != null) {
-                                            tx = Double.parseDouble(txAttr.getTextContent());
-                                        }
-
-                                        Node tyAttr = matrix.getAttributes().getNamedItem("ty");
-                                        if (tyAttr != null) {
-                                            ty = Double.parseDouble(tyAttr.getTextContent());
-                                        }
+                                        Matrix bitmapMatrix = parseMatrix(getSubElementByName(fillStyleVal, "matrix"));
 
                                         boolean bitmapIsClipped = false;
                                         Node bitmapIsClippedAttr = fillStyleVal.getAttributes().getNamedItem("bitmapIsClippe");
@@ -289,7 +260,7 @@ public class XflToCs4Converter {
                                             }
                                         }
 
-                                        fg.writeBitmapFill(type, a, b, c, d, tx, ty, mediaId);
+                                        fg.writeBitmapFill(type, bitmapMatrix, mediaId);
                                         break;
                                     }
                                 }
@@ -367,7 +338,7 @@ public class XflToCs4Converter {
         //fg.writeLayerSeparator();
         fg.write(new byte[]{0x03, (byte) 0x80, 0x05, 0x00});
 
-        Node folderFramesNode = getSubNodeByName(folder, "frames");
+        Node folderFramesNode = getSubElementByName(folder, "frames");
         if (folderFramesNode != null) {
             NodeList frames = folderFramesNode.getChildNodes();
             for (int f = 0; f < frames.getLength(); f++) {
@@ -416,9 +387,9 @@ public class XflToCs4Converter {
         NodeList timeLines = doc.getElementsByTagName("DOMTimeline");
         for (int i = 0; i < timeLines.getLength(); i++) {
             Node n = timeLines.item(i);
-            Node layersNode = getSubNodeByName(n, "layers");
+            Node layersNode = getSubElementByName(n, "layers");
             if (layersNode != null) {
-                List<Node> layers = getAllSubNodesByName(layersNode, "DOMLayer");
+                List<Element> layers = getAllSubElementsByName(layersNode, "DOMLayer");
 
                 Map<Integer, Integer> layerIndexToRevLayerIndex = new HashMap<>();
                 Stack<Integer> openedLayers = new Stack<>();
@@ -561,9 +532,9 @@ public class XflToCs4Converter {
 
                     nextLayerId++;
 
-                    Node framesNode = getSubNodeByName(layer, "frames");
+                    Node framesNode = getSubElementByName(layer, "frames");
                     if (framesNode != null) {
-                        List<Node> frames = getAllSubNodesByName(framesNode, "DOMFrame");
+                        List<Element> frames = getAllSubElementsByName(framesNode, "DOMFrame");
                         for (int f = 0; f < frames.size(); f++) {
                             if (f > 0) {
                                 fg.writeKeyFrameSeparator();
@@ -571,9 +542,155 @@ public class XflToCs4Converter {
                             Node frame = frames.get(f);
                             fg.writeKeyFrameBegin();
 
+                            Node elementsNode = getSubElementByName(frame, "elements");
+
+                            List<Element> symbolInstances = getAllSubElementsByName(elementsNode, "DOMSymbolInstance");
+                            for (int symbolInstanceIndex = 0; symbolInstanceIndex < symbolInstances.size(); symbolInstanceIndex++) {
+
+                                Element symbolInstance = symbolInstances.get(symbolInstanceIndex);
+
+                                if (!symbolInstance.hasAttribute("libraryItemName")) {
+                                    //nothing we can do
+                                    continue;
+                                }
+
+                                String libraryItemName = symbolInstance.getAttribute("libraryItemName");
+                                Element symbolsElement = getSubElementByName(symbolInstance.getOwnerDocument().getDocumentElement(), "symbols");
+                                if (symbolsElement == null) {
+                                    //nothing we can do                                    
+                                    continue;
+                                }
+                                List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
+
+                                //Find index in library
+                                //FIXME: This somehow does not work
+                                int libraryItemIndex = -1;
+                                for (int e = 0; e < includes.size(); e++) {
+                                    Element include = includes.get(e);
+                                    if (!include.hasAttribute("href")) {
+                                        continue;
+                                    }
+                                    String href = include.getAttribute("href");
+                                    String nameNoXml = href;
+                                    if (nameNoXml.endsWith(".xml")) {
+                                        nameNoXml = nameNoXml.substring(0, nameNoXml.length() - 4);
+                                    }
+                                    if (nameNoXml.equals(libraryItemName)) {
+                                        libraryItemIndex = e;
+                                        break;
+                                    }
+                                }
+                                if (libraryItemIndex == -1) {
+                                    //nothing we can do 
+                                    continue;
+                                }
+
+                                if (symbolInstanceIndex > 0) {
+                                    fg.writeSymbolInstanceSeparator();
+                                }
+
+                                String instanceName = "";
+                                if (symbolInstance.hasAttribute("name")) {
+                                    instanceName = symbolInstance.getAttribute("name");
+                                }
+
+                                //Note: default values are not zero - they are recalculated when not present.
+                                //It is actually needed to calculate center of the shape, I don't know how...
+                                double centerPoint3DX = 0;
+                                if (symbolInstance.hasAttribute("centerPoint3DX")) {
+                                    centerPoint3DX = Double.parseDouble(symbolInstance.getAttribute("centerPoint3DX"));
+                                }
+                                double centerPoint3DY = 0;
+                                if (symbolInstance.hasAttribute("centerPoint3DY")) {
+                                    centerPoint3DY = Double.parseDouble(symbolInstance.getAttribute("centerPoint3DY"));
+                                }
+
+                                Matrix placeMatrix = parseMatrix(getSubElementByName(symbolInstance, "matrix"));
+                                double transformationPointX = 0;
+                                double transformationPointY = 0;
+                                Element transformationPointElement = getSubElementByName(symbolInstance, "transformationPoint");
+                                if (transformationPointElement != null) {
+                                    Element pointElement = getSubElementByName(transformationPointElement, "Point");
+                                    if (pointElement.hasAttribute("x")) {
+                                        transformationPointX = Double.parseDouble(pointElement.getAttribute("x"));
+                                    }
+                                    if (pointElement.hasAttribute("y")) {
+                                        transformationPointY = Double.parseDouble(pointElement.getAttribute("y"));
+                                    }
+                                }
+
+                                ColorEffectInterface colorEffect = new NoColorEffect();
+
+                                Element colorElement = getSubElementByName(symbolInstance, "color");
+                                if (colorElement != null) {
+                                    colorElement = getSubElementByName(colorElement, "Color");
+                                    if (colorElement != null) {
+                                        if (colorElement.hasAttribute("brightness")) {
+                                            double brightness = Double.parseDouble(colorElement.getAttribute("brightness"));
+                                            colorEffect = new BrightnessColorEffect(brightness);
+                                        } else if (colorElement.hasAttribute("tintColor") || colorElement.hasAttribute("tintMultiplier")) {
+                                            Color tintColor = Color.black;
+                                            if (colorElement.hasAttribute("tintColor")) {
+                                                tintColor = parseColor(colorElement.getAttribute("tintColor"));
+                                            }
+                                            double tintMultiplier = 0;
+                                            if (colorElement.hasAttribute("tintMultiplier")) {
+                                                tintMultiplier = Double.parseDouble(colorElement.getAttribute("tintMultiplier"));
+                                            }
+                                            colorEffect = new TintColorEffect(tintMultiplier, tintColor);
+                                        } else if ( //no Alpha offset - to not be mismatched as Alpha color effect
+                                                colorElement.hasAttribute("redMultiplier")
+                                                || colorElement.hasAttribute("greenMultiplier")
+                                                || colorElement.hasAttribute("blueMultiplier")
+                                                || colorElement.hasAttribute("alphaOffset")
+                                                || colorElement.hasAttribute("redOffset")
+                                                || colorElement.hasAttribute("greenOffset")
+                                                || colorElement.hasAttribute("blueOffset")) {
+                                            double alphaMultiplier = 1.0;
+                                            double redMultiplier = 1.0;
+                                            double greenMultiplier = 1.0;
+                                            double blueMultiplier = 1.0;
+                                            int alphaOffset = 0;
+                                            int redOffset = 0;
+                                            int greenOffset = 0;
+                                            int blueOffset = 0;
+
+                                            if (colorElement.hasAttribute("alphaMultiplier")) {
+                                                alphaMultiplier = Double.parseDouble(colorElement.getAttribute("alphaMultiplier"));
+                                            }
+                                            if (colorElement.hasAttribute("redMultiplier")) {
+                                                redMultiplier = Double.parseDouble(colorElement.getAttribute("redMultiplier"));
+                                            }
+                                            if (colorElement.hasAttribute("greenMultiplier")) {
+                                                greenMultiplier = Double.parseDouble(colorElement.getAttribute("greenMultiplier"));
+                                            }
+                                            if (colorElement.hasAttribute("blueMultiplier")) {
+                                                blueMultiplier = Double.parseDouble(colorElement.getAttribute("blueMultiplier"));
+                                            }
+                                            if (colorElement.hasAttribute("alphaOffset")) {
+                                                alphaOffset = Integer.parseInt(colorElement.getAttribute("alphaOffset"));
+                                            }
+                                            if (colorElement.hasAttribute("redOffset")) {
+                                                redOffset = Integer.parseInt(colorElement.getAttribute("redOffset"));
+                                            }
+                                            if (colorElement.hasAttribute("greenOffset")) {
+                                                greenOffset = Integer.parseInt(colorElement.getAttribute("greenOffset"));
+                                            }
+                                            if (colorElement.hasAttribute("blueOffset")) {
+                                                blueOffset = Integer.parseInt(colorElement.getAttribute("blueOffset"));
+                                            }
+                                            colorEffect = new AdvancedColorEffect(alphaMultiplier, redMultiplier, greenMultiplier, blueMultiplier, alphaOffset, redOffset, greenOffset, blueOffset);
+                                        } else if (colorElement.hasAttribute("alphaMultiplier")) {
+                                            double alphaMultiplier = Double.parseDouble(colorElement.getAttribute("alphaMultiplier"));
+                                            colorEffect = new AlphaColorEffect(alphaMultiplier);
+                                        }
+                                    }
+                                }
+
+                                fg.writeSymbolInstance(placeMatrix, centerPoint3DX, centerPoint3DY, transformationPointX, transformationPointY, instanceName, colorEffect, libraryItemIndex, symbolInstanceIndex, symbolInstances.size());
+                            }
                             //TODO: Symbol instances here
                             fg.writeKeyFrameMiddle();
-                            Node elementsNode = getSubNodeByName(frame, "elements");
                             if (elementsNode != null) {
                                 NodeList elements = elementsNode.getChildNodes();
                                 boolean emptyFrame = true;
@@ -581,10 +698,10 @@ public class XflToCs4Converter {
                                     Node element = elements.item(e);
                                     if ("DOMShape".equals(element.getNodeName())) {
                                         emptyFrame = false;
-                                        Node fillsNode = getSubNodeByName(element, "fills");
-                                        List<Node> fillStyles = new ArrayList<>();
+                                        Node fillsNode = getSubElementByName(element, "fills");
+                                        List<Element> fillStyles = new ArrayList<>();
                                         if (fillsNode != null) {
-                                            fillStyles = getAllSubNodesByName(fillsNode, "FillStyle");
+                                            fillStyles = getAllSubElementsByName(fillsNode, "FillStyle");
                                         }
 
                                         Comparator<Node> indexComparator = new Comparator<>() {
@@ -605,17 +722,17 @@ public class XflToCs4Converter {
                                         };
 
                                         fillStyles.sort(indexComparator);
-                                        Node strokesNode = getSubNodeByName(element, "strokes");
-                                        List<Node> strokeStyles = new ArrayList<>();
+                                        Node strokesNode = getSubElementByName(element, "strokes");
+                                        List<Element> strokeStyles = new ArrayList<>();
                                         if (strokesNode != null) {
-                                            strokeStyles = getAllSubNodesByName(strokesNode, "StrokeStyle");
+                                            strokeStyles = getAllSubElementsByName(strokesNode, "StrokeStyle");
                                         }
                                         strokeStyles.sort(indexComparator);
 
-                                        Node edgesNode = getSubNodeByName(element, "edges");
-                                        List<Node> edges = new ArrayList<>();
+                                        Node edgesNode = getSubElementByName(element, "edges");
+                                        List<Element> edges = new ArrayList<>();
                                         if (edgesNode != null) {
-                                            edges = getAllSubNodesByName(edgesNode, "Edge");
+                                            edges = getAllSubElementsByName(edgesNode, "Edge");
                                         }
 
                                         int totalEdgeCount = 0;
@@ -778,7 +895,7 @@ public class XflToCs4Converter {
                                                 }
                                             }
 
-                                            Node fill = getSubNodeByName(strokeStyleVal, "fill");
+                                            Node fill = getSubElementByName(strokeStyleVal, "fill");
                                             if (fill != null) {
                                                 Node fillStyleVal = getFirstSubElement(fill);
                                                 Color baseColor = Color.black;
