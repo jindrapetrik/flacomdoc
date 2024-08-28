@@ -24,6 +24,7 @@ import com.jpexs.flash.fla.convertor.coloreffects.BrightnessColorEffect;
 import com.jpexs.flash.fla.convertor.coloreffects.ColorEffectInterface;
 import com.jpexs.flash.fla.convertor.coloreffects.NoColorEffect;
 import com.jpexs.flash.fla.convertor.coloreffects.TintColorEffect;
+import com.jpexs.flash.fla.convertor.filters.AdjustColorFilter;
 import com.jpexs.flash.fla.convertor.filters.BevelFilter;
 import com.jpexs.flash.fla.convertor.filters.BlurFilter;
 import com.jpexs.flash.fla.convertor.filters.DropShadowFilter;
@@ -949,6 +950,28 @@ public class XflToCs4Converter {
                                                     filterList.add(new GradientBevelFilter(blurX, blurY, strength, quality, angle, distance, knockout, type, gradientEntries, enabled));
                                                 }
 
+                                            }
+                                            break;
+                                            case "AdjustColorFilter": {
+                                                //brightness="-50" contrast="75" saturation="50" hue="180"
+                                                float brightness = 0;
+                                                float contrast = 0;
+                                                float saturation = 0;
+                                                float hue = 0;
+                                                if (filter.hasAttribute("brightness")) {
+                                                    brightness = Float.parseFloat(filter.getAttribute("brightness"));
+                                                }
+                                                if (filter.hasAttribute("contrast")) {
+                                                    contrast = Float.parseFloat(filter.getAttribute("contrast"));
+                                                }
+                                                if (filter.hasAttribute("saturation")) {
+                                                    saturation = Float.parseFloat(filter.getAttribute("saturation"));
+                                                }
+                                                if (filter.hasAttribute("hue")) {
+                                                    hue = Float.parseFloat(filter.getAttribute("hue"));
+                                                }
+                                                
+                                                filterList.add(new AdjustColorFilter(brightness, contrast, saturation, hue, enabled));
                                             }
                                             break;
                                         }
