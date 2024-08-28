@@ -26,46 +26,37 @@ import java.io.IOException;
  *
  * @author JPEXS
  */
-public class DropShadowFilter implements FilterInterface {
+public class GlowFilter implements FilterInterface {
 
     private float blurX = 5;
     private float blurY = 5;
-    private float strength = 1;
-    private int quality = 1; //1 = low, 2 = medium, 3 = high
-    private float angle = 45;
-    private float distance = 5;
-    private boolean knockout = false;
+    private Color color = Color.red;
     private boolean inner = false;
-    private boolean hideObject = false;
-    private Color color = Color.black;
+    private boolean knockout = false;
+    private int quality = 1;
+    private float strength = 1;
     private boolean enabled = true;
 
-    public DropShadowFilter() {
+    public GlowFilter() {
     }
-    
-    public DropShadowFilter(
+
+    public GlowFilter(
             float blurX,
             float blurY,
-            float strength,
-            int quality,
-            float angle,
-            float distance,
-            boolean knockout,
-            boolean inner,
-            boolean hideObject,
             Color color,
+            boolean inner,
+            boolean knockout,
+            int quality,
+            float strenght,
             boolean enabled
     ) {
         this.blurX = blurX;
         this.blurY = blurY;
-        this.strength = strength;
-        this.quality = quality;
-        this.angle = angle;
-        this.distance = distance;
-        this.knockout = knockout;
-        this.inner = inner;
-        this.hideObject = hideObject;
         this.color = color;
+        this.inner = inner;
+        this.knockout = knockout;
+        this.quality = quality;
+        this.strength = strenght;
         this.enabled = enabled;
     }
 
@@ -77,36 +68,24 @@ public class DropShadowFilter implements FilterInterface {
         return blurY;
     }
 
-    public float getStrength() {
-        return strength;
-    }
-
-    public int getQuality() {
-        return quality;
-    }
-
-    public float getAngle() {
-        return angle;
-    }
-
-    public float getDistance() {
-        return distance;
-    }
-
-    public boolean isKnockout() {
-        return knockout;
+    public Color getColor() {
+        return color;
     }
 
     public boolean isInner() {
         return inner;
     }
 
-    public boolean isHideObject() {
-        return hideObject;
+    public boolean isKnockout() {
+        return knockout;
     }
 
-    public Color getColor() {
-        return color;
+    public int getQuality() {
+        return quality;
+    }
+
+    public float getStrenght() {
+        return strength;
     }
 
     public boolean isEnabled() {
@@ -116,29 +95,25 @@ public class DropShadowFilter implements FilterInterface {
     @Override
     public void write(FlaCs4Writer os) throws IOException {
         os.write(new byte[]{
-            (byte) 0x00, (byte) 0x00, 
+            (byte) 0x00, (byte) 0x02, (byte) 0x03,
             (byte) 0x04, (byte) 0x01,
             (byte) (enabled ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
-            (byte) color.getRed(), (byte) color.getGreen(), (byte) color.getBlue(), (byte) color.getAlpha(),});
-
-        os.writeFloat(distance);
-
+            (byte) color.getRed(), (byte) color.getGreen(), (byte) color.getBlue(), (byte) color.getAlpha(),
+            (byte) 0x00, (byte) 0x00, (byte) 0xA0, (byte) 0x40, //5f
+        });
         os.writeFloat(blurX);
         os.writeFloat(blurY);
 
-        os.writeFloat((float) (angle * Math.PI / 180));
-
+        int strengthPercent = (int) Math.round(strength * 100);
         os.write(new byte[]{
+            (byte) 0xDB, (byte) 0x0F, (byte) 0x49, (byte) 0x3F, //45 deg
             (byte) (inner ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
             (byte) (knockout ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
-            (byte) quality, (byte) 0x00, (byte) 0x00, (byte) 0x00,});
+            (byte) quality, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) (strengthPercent & 0xFF), (byte) ((strengthPercent >> 8) & 0xFF), (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00
 
-        int strengthPercent = (int) Math.round(strength * 100);
-        
-        os.write(new byte[]{
-            (byte) (strengthPercent & 0xFF),(byte) ((strengthPercent >> 8) & 0xFF), (byte) 0x00, (byte) 0x00,
-            (byte) (hideObject ? 1 : 0),
-            (byte) 0x00, (byte) 0x00
         });
     }
+
 }

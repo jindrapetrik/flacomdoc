@@ -57,15 +57,20 @@ public class BlurFilter implements FilterInterface {
     @Override
     public void write(FlaCs4Writer os) throws IOException {
         os.write(new byte[]{
-            (byte) 0x00, (byte) 0x01, (byte) 0x03, (byte) 0x04,
-            (byte) 0x01, (byte) (enabled ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
-            (byte) 0xFF, (byte) 0x00, (byte) 0x00, (byte) 0xA0, (byte) 0x40,});
+            (byte) 0x00, (byte) 0x01, (byte) 0x03,
+            (byte) 0x04, (byte) 0x01, 
+            (byte) (enabled ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
+            (byte) 0xFF,
+            (byte) 0x00, (byte) 0x00, (byte) 0xA0, (byte) 0x40, //5f
+        });
         os.writeFloat(blurX);
         os.writeFloat(blurY);
-        os.write(new byte[]{(byte) 0xDB, (byte) 0x0F, (byte) 0x49,
-            (byte) 0x3F, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-            (byte) 0x00, (byte) quality, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x64, (byte) 0x00, (byte) 0x00,
-            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00
+        os.write(new byte[]{
+            (byte) 0xDB, (byte) 0x0F, (byte) 0x49, (byte) 0x3F, //45 deg
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) quality, (byte) 0x00, (byte) 0x00, (byte) 0x00, 
+            (byte) 0x64, (byte) 0x00, (byte) 0x00, (byte) 0x00, 
+            (byte) 0x00, (byte) 0x00, (byte) 0x00
         });
 
     }
