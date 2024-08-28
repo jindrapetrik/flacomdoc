@@ -29,6 +29,8 @@ import com.jpexs.flash.fla.convertor.filters.BlurFilter;
 import com.jpexs.flash.fla.convertor.filters.DropShadowFilter;
 import com.jpexs.flash.fla.convertor.filters.FilterInterface;
 import com.jpexs.flash.fla.convertor.filters.GlowFilter;
+import com.jpexs.flash.fla.convertor.filters.GradientEntry;
+import com.jpexs.flash.fla.convertor.filters.GradientGlowFilter;
 import com.jpexs.flash.fla.extractor.FlaCfbExtractor;
 import java.awt.Color;
 import java.io.File;
@@ -379,6 +381,20 @@ public class XflToCs4Converter {
         fg.createFolder(folderName, isSelected, hiddenLayer, lockedLayer, color, showOutlines, open, isEmpty, folderParentLayerIndex == -1 ? -1 : layerIndexToRevLayerIndex.get(folderParentLayerIndex));
     }
 
+    private static List<GradientEntry> parseGradientEntries(Element element) {
+        List<GradientEntry> ret = new ArrayList<>();
+        List<Element> entries = getAllSubElementsByName(element, "GradientEntry");
+        for (Element entry : entries) {
+            Color color = parseColorWithAlpha(entry);
+            float ratio = 0;
+            if (entry.hasAttribute("ratio")) {
+                ratio = Float.parseFloat(entry.getAttribute("ratio"));
+            }
+            ret.add(new GradientEntry(ratio, color));
+        }
+        return ret;
+    }
+    
     public static void main(String[] args) throws ParserConfigurationException, SAXException, IOException {
         FlaCfbExtractor.initLog();
         File dir = new File(FlaCfbExtractor.getProperty("convert.xfl.dir"));
@@ -876,6 +892,56 @@ public class XflToCs4Converter {
                                                 }
 
                                                 filterList.add(new BevelFilter(blurX, blurY, strength, quality, shadowColor, highlightColor, angle, distance, knockout, type, enabled));
+                                            }
+                                            break;
+                                            case "GradientGlowFilter": {
+                                                float blurX = 5;
+                                                float blurY = 5;
+                                                float strength = 1;
+                                                int quality = 1;
+                                                float angle = 45;
+                                                float distance = 5;
+                                                boolean knockout = false;
+                                                int type = GradientGlowFilter.TYPE_OUTER;
+                                                List<GradientEntry> gradientEntries = new ArrayList<>();
+                                                                                                
+                                                if (filter.hasAttribute("blurX")) {
+                                                    blurX = Float.parseFloat(filter.getAttribute("blurX"));
+                                                }
+                                                if (filter.hasAttribute("blurY")) {
+                                                    blurY = Float.parseFloat(filter.getAttribute("blurY"));
+                                                }
+                                                if (filter.hasAttribute("strength")) {
+                                                    strength = Float.parseFloat(filter.getAttribute("strength"));
+                                                }
+                                                if (filter.hasAttribute("quality")) {
+                                                    quality = Integer.parseInt(filter.getAttribute("quality"));
+                                                }
+                                                if (filter.hasAttribute("angle")) {
+                                                    angle = Float.parseFloat(filter.getAttribute("angle"));
+                                                }
+                                                if (filter.hasAttribute("distance")) {
+                                                    distance = Float.parseFloat(filter.getAttribute("distance"));
+                                                }
+                                                if (filter.hasAttribute("knockout")) {
+                                                    knockout = "true".equals(filter.getAttribute("knockout"));
+                                                }      
+                                                if (filter.hasAttribute("type")) {
+                                                    switch (filter.getAttribute("type")) {
+                                                        case "inner":
+                                                            type = GradientGlowFilter.TYPE_INNER;
+                                                            break;
+                                                        case "outer":
+                                                            type = GradientGlowFilter.TYPE_OUTER;
+                                                            break;
+                                                        case "full":
+                                                            type = GradientGlowFilter.TYPE_FULL;
+                                                            break;
+                                                    }
+                                                }
+                                                gradientEntries = parseGradientEntries(filter);
+                                                
+                                                filterList.add(new GradientGlowFilter(blurX, blurY, strength, quality, angle, distance, knockout, type, gradientEntries, enabled));
                                             }
                                             break;
                                         }

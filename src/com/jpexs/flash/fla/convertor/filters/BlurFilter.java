@@ -57,7 +57,7 @@ public class BlurFilter implements FilterInterface {
     @Override
     public void write(FlaCs4Writer os) throws IOException {
         os.write(new byte[]{
-            (byte) 0x00, (byte) 0x01, (byte) 0x03,
+            (byte) 0x01, (byte) 0x03,
             (byte) 0x04, (byte) 0x01, 
             (byte) (enabled ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
             (byte) 0xFF,
@@ -71,7 +71,7 @@ public class BlurFilter implements FilterInterface {
             (byte) 0x00, (byte) quality, (byte) 0x00, (byte) 0x00, (byte) 0x00, 
             (byte) 0x64, (byte) 0x00, 
             (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-            (byte) 0x00
+            (byte) 0x00, (byte) 0x00
         });
 
     }

@@ -19,54 +19,53 @@
 package com.jpexs.flash.fla.convertor.filters;
 
 import com.jpexs.flash.fla.convertor.FlaCs4Writer;
-import java.awt.Color;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
  * @author JPEXS
  */
-public class BevelFilter implements FilterInterface {
+public class GradientGlowFilter implements FilterInterface {
 
     private float blurX = 5;
     private float blurY = 5;
     private float strength = 1;
     private int quality = 1;
-    private Color shadowColor = Color.black;
-    private Color highlightColor = Color.white;
     private float angle = 45;
     private float distance = 5;
     private boolean knockout = false;
-    private int type = TYPE_INNER;
+    private int type = TYPE_OUTER;
+    private List<GradientEntry> gradientEntries = new ArrayList<>();
     private boolean enabled = true;
+    
 
     public static final int TYPE_INNER = 1;
     public static final int TYPE_OUTER = 2;
     public static final int TYPE_FULL = 3;
 
-    public BevelFilter(
+    public GradientGlowFilter(
             float blurX,
             float blurY,
             float strength,
             int quality,
-            Color shadowColor,
-            Color highlightColor,
             float angle,
             float distance,
             boolean knockout,
             int type,
+            List<GradientEntry> gradientEntries,
             boolean enabled
     ) {
         this.blurX = blurX;
         this.blurY = blurY;
         this.strength = strength;
         this.quality = quality;
-        this.shadowColor = shadowColor;
-        this.highlightColor = highlightColor;
         this.angle = angle;
         this.distance = distance;
         this.knockout = knockout;
         this.type = type;
+        this.gradientEntries = gradientEntries;
         this.enabled = enabled;
     }
 
@@ -86,14 +85,6 @@ public class BevelFilter implements FilterInterface {
         return quality;
     }
 
-    public Color getShadowColor() {
-        return shadowColor;
-    }
-
-    public Color getHighlightColor() {
-        return highlightColor;
-    }
-
     public float getAngle() {
         return angle;
     }
@@ -110,28 +101,48 @@ public class BevelFilter implements FilterInterface {
         return type;
     }
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+    
+    
+    
+
+    public List<GradientEntry> getGradientEntries() {
+        return gradientEntries;
+    }
+
     @Override
     public void write(FlaCs4Writer os) throws IOException {
+        
+        int strengthPercent = (int) Math.round(strength * 100);
+        
         os.write(new byte[]{
-            (byte) 0x03, (byte) 0x03,
+            (byte) 0x04, (byte) 0x01, 
             (byte) 0x04, (byte) 0x01,
-            (byte) (enabled ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
-            (byte) shadowColor.getRed(), (byte) shadowColor.getGreen(), (byte) shadowColor.getBlue(), (byte) shadowColor.getAlpha(),});
+            (byte) (enabled ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00, 
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xFF, });
+        
         os.writeFloat(distance);
         os.writeFloat(blurX);
         os.writeFloat(blurY);
         os.writeFloat((float) (angle * Math.PI / 180));
-
-        int strengthPercent = (int) Math.round(strength * 100);
-        os.write(new byte[]{
+        
+        os.write(new byte[]{            
             (byte) (type == TYPE_INNER ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
-            (byte) (knockout ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
-            (byte) quality, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) (knockout ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00, 
+            (byte) quality, (byte) 0x00, (byte) 0x00, (byte) 0x00, 
             (byte) (strengthPercent & 0xFF), (byte) ((strengthPercent >> 8) & 0xFF), (byte) 0x00, (byte) 0x00,
             (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-            (byte) highlightColor.getRed(), (byte) highlightColor.getGreen(), (byte) highlightColor.getBlue(), (byte) highlightColor.getAlpha(),
-            (byte) (type == TYPE_FULL ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00
-        });
+            (byte) gradientEntries.size(), (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) (type == TYPE_FULL ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,});
+        
+        for (GradientEntry entry : gradientEntries) {
+            os.write(new byte[] {
+                (byte) (Math.round(entry.getRatio() * 255)), (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                (byte) entry.getColor().getRed(), (byte) entry.getColor().getGreen(), (byte) entry.getColor().getBlue(), (byte) entry.getColor().getAlpha()
+            });
+        }        
     }
-
 }
