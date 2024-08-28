@@ -20,7 +20,6 @@ package com.jpexs.flash.fla.convertor;
 
 import com.jpexs.flash.fla.convertor.coloreffects.ColorEffectInterface;
 import com.jpexs.flash.fla.convertor.coloreffects.NoColorEffect;
-import com.jpexs.flash.fla.convertor.filters.DropShadowFilter;
 import com.jpexs.flash.fla.convertor.filters.FilterInterface;
 import java.awt.Color;
 import java.awt.geom.Point2D;

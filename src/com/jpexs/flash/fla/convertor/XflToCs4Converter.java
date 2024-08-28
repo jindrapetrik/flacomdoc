@@ -719,6 +719,10 @@ public class XflToCs4Converter {
                                 if (filtersElement != null) {
                                     List<Element> filters = getAllSubElements(filtersElement);
                                     for (Element filter : filters) {
+                                        boolean enabled = true;
+                                        if (filter.hasAttribute("isEnabled")) {
+                                            enabled = !"false".equals(filter.getAttribute("isEnabled"));
+                                        }
                                         switch (filter.getNodeName()) {
                                             case "DropShadowFilter":
                                                 float blurX = 5;
@@ -762,7 +766,7 @@ public class XflToCs4Converter {
                                                 if (filter.hasAttribute("color") || filter.hasAttribute("alpha")) {
                                                     color = parseColorWithAlpha(filter);
                                                 }
-                                                filterList.add(new DropShadowFilter(blurX, blurY, strength, quality, angle, distance, knockout, inner, hideObject, color));
+                                                filterList.add(new DropShadowFilter(blurX, blurY, strength, quality, angle, distance, knockout, inner, hideObject, color, enabled));
                                                 break;
                                         }
                                     }
