@@ -29,6 +29,7 @@ import com.jpexs.flash.fla.convertor.filters.BlurFilter;
 import com.jpexs.flash.fla.convertor.filters.DropShadowFilter;
 import com.jpexs.flash.fla.convertor.filters.FilterInterface;
 import com.jpexs.flash.fla.convertor.filters.GlowFilter;
+import com.jpexs.flash.fla.convertor.filters.GradientBevelFilter;
 import com.jpexs.flash.fla.convertor.filters.GradientEntry;
 import com.jpexs.flash.fla.convertor.filters.GradientGlowFilter;
 import com.jpexs.flash.fla.extractor.FlaCfbExtractor;
@@ -394,7 +395,7 @@ public class XflToCs4Converter {
         }
         return ret;
     }
-    
+
     public static void main(String[] args) throws ParserConfigurationException, SAXException, IOException {
         FlaCfbExtractor.initLog();
         File dir = new File(FlaCfbExtractor.getProperty("convert.xfl.dir"));
@@ -894,7 +895,8 @@ public class XflToCs4Converter {
                                                 filterList.add(new BevelFilter(blurX, blurY, strength, quality, shadowColor, highlightColor, angle, distance, knockout, type, enabled));
                                             }
                                             break;
-                                            case "GradientGlowFilter": {
+                                            case "GradientGlowFilter":
+                                            case "GradientBevelFilter": {
                                                 float blurX = 5;
                                                 float blurY = 5;
                                                 float strength = 1;
@@ -902,9 +904,9 @@ public class XflToCs4Converter {
                                                 float angle = 45;
                                                 float distance = 5;
                                                 boolean knockout = false;
-                                                int type = GradientGlowFilter.TYPE_OUTER;
+                                                int type = "GradientGlowFilter".equals(filter.getNodeName()) ? GradientGlowFilter.TYPE_OUTER : GradientBevelFilter.TYPE_INNER;
                                                 List<GradientEntry> gradientEntries = new ArrayList<>();
-                                                                                                
+
                                                 if (filter.hasAttribute("blurX")) {
                                                     blurX = Float.parseFloat(filter.getAttribute("blurX"));
                                                 }
@@ -925,7 +927,7 @@ public class XflToCs4Converter {
                                                 }
                                                 if (filter.hasAttribute("knockout")) {
                                                     knockout = "true".equals(filter.getAttribute("knockout"));
-                                                }      
+                                                }
                                                 if (filter.hasAttribute("type")) {
                                                     switch (filter.getAttribute("type")) {
                                                         case "inner":
@@ -940,8 +942,13 @@ public class XflToCs4Converter {
                                                     }
                                                 }
                                                 gradientEntries = parseGradientEntries(filter);
-                                                
-                                                filterList.add(new GradientGlowFilter(blurX, blurY, strength, quality, angle, distance, knockout, type, gradientEntries, enabled));
+
+                                                if ("GradientGlowFilter".equals(filter.getNodeName())) {
+                                                    filterList.add(new GradientGlowFilter(blurX, blurY, strength, quality, angle, distance, knockout, type, gradientEntries, enabled));
+                                                } else {
+                                                    filterList.add(new GradientBevelFilter(blurX, blurY, strength, quality, angle, distance, knockout, type, gradientEntries, enabled));
+                                                }
+
                                             }
                                             break;
                                         }

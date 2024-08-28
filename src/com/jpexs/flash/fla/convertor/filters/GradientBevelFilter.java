@@ -27,7 +27,7 @@ import java.util.List;
  *
  * @author JPEXS
  */
-public class GradientGlowFilter implements FilterInterface {
+public class GradientBevelFilter implements FilterInterface {
 
     private float blurX = 5;
     private float blurY = 5;
@@ -44,7 +44,7 @@ public class GradientGlowFilter implements FilterInterface {
     public static final int TYPE_OUTER = 2;
     public static final int TYPE_FULL = 3;
 
-    public GradientGlowFilter(
+    public GradientBevelFilter(
             float blurX,
             float blurY,
             float strength,
@@ -114,7 +114,8 @@ public class GradientGlowFilter implements FilterInterface {
         int strengthPercent = (int) Math.round(strength * 100);
 
         os.write(new byte[]{
-            (byte) 0x04, (byte) 0x01,
+            (byte) 0x07,
+            (byte) 0x01, (byte) 0x01,
             (byte) 0x04, (byte) 0x01,
             (byte) (enabled ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
             (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xFF,});
@@ -132,7 +133,8 @@ public class GradientGlowFilter implements FilterInterface {
             (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
             (byte) gradientEntries.size(), (byte) 0x00, (byte) 0x00, (byte) 0x00,
             (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-            (byte) (type == TYPE_FULL ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,});
+            (byte) (type == TYPE_FULL ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
+        });
 
         for (GradientEntry entry : gradientEntries) {
             os.write(new byte[]{

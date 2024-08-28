@@ -26,5 +26,6 @@ import java.io.IOException;
  * @author JPEXS
  */
 public interface FilterInterface {
+
     public void write(FlaCs4Writer writer) throws IOException;
 }

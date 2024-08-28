@@ -25,6 +25,7 @@ import java.awt.Color;
  * @author JPEXS
  */
 public class GradientEntry {
+
     private final float ratio;
     private final Color color;
 
@@ -40,6 +41,5 @@ public class GradientEntry {
     public Color getColor() {
         return color;
     }
-    
-    
+
 }

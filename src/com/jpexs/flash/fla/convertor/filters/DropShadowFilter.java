@@ -42,7 +42,7 @@ public class DropShadowFilter implements FilterInterface {
 
     public DropShadowFilter() {
     }
-    
+
     public DropShadowFilter(
             float blurX,
             float blurY,
@@ -116,7 +116,7 @@ public class DropShadowFilter implements FilterInterface {
     @Override
     public void write(FlaCs4Writer os) throws IOException {
         os.write(new byte[]{
-            (byte) 0x00, 
+            (byte) 0x00,
             (byte) 0x04, (byte) 0x01,
             (byte) (enabled ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
             (byte) color.getRed(), (byte) color.getGreen(), (byte) color.getBlue(), (byte) color.getAlpha(),});
@@ -134,9 +134,9 @@ public class DropShadowFilter implements FilterInterface {
             (byte) quality, (byte) 0x00, (byte) 0x00, (byte) 0x00,});
 
         int strengthPercent = (int) Math.round(strength * 100);
-        
+
         os.write(new byte[]{
-            (byte) (strengthPercent & 0xFF),(byte) ((strengthPercent >> 8) & 0xFF), (byte) 0x00, (byte) 0x00,
+            (byte) (strengthPercent & 0xFF), (byte) ((strengthPercent >> 8) & 0xFF), (byte) 0x00, (byte) 0x00,
             (byte) (hideObject ? 1 : 0),
             (byte) 0x00, (byte) 0x00, (byte) 0x00
         });
