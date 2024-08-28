@@ -69,8 +69,9 @@ public class BlurFilter implements FilterInterface {
             (byte) 0xDB, (byte) 0x0F, (byte) 0x49, (byte) 0x3F, //45 deg
             (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
             (byte) 0x00, (byte) quality, (byte) 0x00, (byte) 0x00, (byte) 0x00, 
-            (byte) 0x64, (byte) 0x00, (byte) 0x00, (byte) 0x00, 
-            (byte) 0x00, (byte) 0x00, (byte) 0x00
+            (byte) 0x64, (byte) 0x00, 
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) 0x00
         });
 
     }

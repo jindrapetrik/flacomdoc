@@ -26,37 +26,47 @@ import java.io.IOException;
  *
  * @author JPEXS
  */
-public class GlowFilter implements FilterInterface {
+public class BevelFilter implements FilterInterface {
 
     private float blurX = 5;
     private float blurY = 5;
-    private Color color = Color.red;
-    private boolean inner = false;
-    private boolean knockout = false;
-    private int quality = 1;
     private float strength = 1;
+    private int quality = 1;
+    private Color shadowColor = Color.black;
+    private Color highlightColor = Color.white;
+    private float angle = 45;
+    private float distance = 5;
+    private boolean knockout = false;
+    private int type = TYPE_INNER;
     private boolean enabled = true;
 
-    public GlowFilter() {
-    }
+    public static final int TYPE_INNER = 1;
+    public static final int TYPE_OUTER = 2;
+    public static final int TYPE_FULL = 3;
 
-    public GlowFilter(
+    public BevelFilter(
             float blurX,
             float blurY,
-            Color color,
-            boolean inner,
-            boolean knockout,
+            float strength,
             int quality,
-            float strenght,
+            Color shadowColor,
+            Color highlightColor,
+            float angle,
+            float distance,
+            boolean knockout,
+            int type,
             boolean enabled
     ) {
         this.blurX = blurX;
         this.blurY = blurY;
-        this.color = color;
-        this.inner = inner;
-        this.knockout = knockout;
+        this.strength = strength;
         this.quality = quality;
-        this.strength = strenght;
+        this.shadowColor = shadowColor;
+        this.highlightColor = highlightColor;
+        this.angle = angle;
+        this.distance = distance;
+        this.knockout = knockout;
+        this.type = type;
         this.enabled = enabled;
     }
 
@@ -68,51 +78,60 @@ public class GlowFilter implements FilterInterface {
         return blurY;
     }
 
-    public Color getColor() {
-        return color;
-    }
-
-    public boolean isInner() {
-        return inner;
-    }
-
-    public boolean isKnockout() {
-        return knockout;
+    public float getStrength() {
+        return strength;
     }
 
     public int getQuality() {
         return quality;
     }
 
-    public float getStrenght() {
-        return strength;
+    public Color getShadowColor() {
+        return shadowColor;
     }
 
-    public boolean isEnabled() {
-        return enabled;
+    public Color getHighlightColor() {
+        return highlightColor;
+    }
+
+    public float getAngle() {
+        return angle;
+    }
+
+    public float getDistance() {
+        return distance;
+    }
+
+    public boolean isKnockout() {
+        return knockout;
+    }
+
+    public int getType() {
+        return type;
     }
 
     @Override
     public void write(FlaCs4Writer os) throws IOException {
         os.write(new byte[]{
-            (byte) 0x00, (byte) 0x02, (byte) 0x03,
+            (byte) 0x00, (byte) 0x03, (byte) 0x03,
             (byte) 0x04, (byte) 0x01,
             (byte) (enabled ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
-            (byte) color.getRed(), (byte) color.getGreen(), (byte) color.getBlue(), (byte) color.getAlpha(),
-            (byte) 0x00, (byte) 0x00, (byte) 0xA0, (byte) 0x40, //5f
-        });
+            (byte) shadowColor.getRed(), (byte) shadowColor.getGreen(), (byte) shadowColor.getBlue(), (byte) shadowColor.getAlpha(),});
+        os.writeFloat(distance);
         os.writeFloat(blurX);
         os.writeFloat(blurY);
+        os.writeFloat((float) (angle * Math.PI / 180));
 
         int strengthPercent = (int) Math.round(strength * 100);
         os.write(new byte[]{
-            (byte) 0xDB, (byte) 0x0F, (byte) 0x49, (byte) 0x3F, //45 deg
-            (byte) (inner ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) (type == TYPE_INNER ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
             (byte) (knockout ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
             (byte) quality, (byte) 0x00, (byte) 0x00, (byte) 0x00,
             (byte) (strengthPercent & 0xFF), (byte) ((strengthPercent >> 8) & 0xFF), (byte) 0x00, (byte) 0x00,
-            (byte) 0x00, (byte) 0x00,
-            (byte) 0x00
+            (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+            (byte) highlightColor.getRed(), (byte) highlightColor.getGreen(), (byte) highlightColor.getBlue(), (byte) highlightColor.getAlpha(),
+            (byte) (type == TYPE_FULL ? 1 : 0),
+            (byte) 0x00, (byte) 0x00
         });
     }
 

@@ -24,6 +24,7 @@ import com.jpexs.flash.fla.convertor.coloreffects.BrightnessColorEffect;
 import com.jpexs.flash.fla.convertor.coloreffects.ColorEffectInterface;
 import com.jpexs.flash.fla.convertor.coloreffects.NoColorEffect;
 import com.jpexs.flash.fla.convertor.coloreffects.TintColorEffect;
+import com.jpexs.flash.fla.convertor.filters.BevelFilter;
 import com.jpexs.flash.fla.convertor.filters.BlurFilter;
 import com.jpexs.flash.fla.convertor.filters.DropShadowFilter;
 import com.jpexs.flash.fla.convertor.filters.FilterInterface;
@@ -105,15 +106,20 @@ public class XflToCs4Converter {
     }
 
     private static Color parseColorWithAlpha(Node node) {
-        return parseColorWithAlpha(node, Color.black);
+        return parseColorWithAlpha(node, Color.black, "color", "alpha");
     }
+
     private static Color parseColorWithAlpha(Node node, Color defaultColor) {
+        return parseColorWithAlpha(node, defaultColor, "color", "alpha");
+    }
+
+    private static Color parseColorWithAlpha(Node node, Color defaultColor, String colorAttributeName, String alphaAttributeName) {
         Color color = defaultColor;
-        Node colorAttr = node.getAttributes().getNamedItem("color");
+        Node colorAttr = node.getAttributes().getNamedItem(colorAttributeName);
         if (colorAttr != null) {
             color = parseColor(colorAttr.getTextContent());
         }
-        Node alphaAttr = node.getAttributes().getNamedItem("alpha");
+        Node alphaAttr = node.getAttributes().getNamedItem(alphaAttributeName);
         if (alphaAttr != null) {
             double alphaD = Double.parseDouble(alphaAttr.getTextContent());
             int alpha255 = (int) Math.round(alphaD * 255);
@@ -788,7 +794,7 @@ public class XflToCs4Converter {
                                                 filterList.add(new BlurFilter(blurX, blurY, quality, enabled));
                                             }
                                             break;
-                                            case "GlowFilter": {                                                
+                                            case "GlowFilter": {
                                                 float blurX = 5;
                                                 float blurY = 5;
                                                 Color color = Color.red;
@@ -796,13 +802,13 @@ public class XflToCs4Converter {
                                                 boolean knockout = false;
                                                 int quality = 1;
                                                 float strength = 1;
-                                                
+
                                                 if (filter.hasAttribute("blurX")) {
                                                     blurX = Float.parseFloat(filter.getAttribute("blurX"));
                                                 }
                                                 if (filter.hasAttribute("blurY")) {
                                                     blurY = Float.parseFloat(filter.getAttribute("blurY"));
-                                                }                                                
+                                                }
                                                 if (filter.hasAttribute("strength")) {
                                                     strength = Float.parseFloat(filter.getAttribute("strength"));
                                                 }
@@ -816,8 +822,60 @@ public class XflToCs4Converter {
                                                 if (filter.hasAttribute("quality")) {
                                                     quality = Integer.parseInt(filter.getAttribute("quality"));
                                                 }
-                                                
-                                                filterList.add(new GlowFilter(blurX, blurY, color, inner, knockout, quality, strength, enabled));                                                
+
+                                                filterList.add(new GlowFilter(blurX, blurY, color, inner, knockout, quality, strength, enabled));
+                                            }
+                                            break;
+                                            case "BevelFilter": {
+                                                float blurX = 5;
+                                                float blurY = 5;
+                                                float strength = 1;
+                                                int quality = 1;
+                                                Color shadowColor = Color.black;
+                                                Color highlightColor = Color.white;
+                                                float angle = 45;
+                                                float distance = 5;
+                                                boolean knockout = false;
+                                                int type = BevelFilter.TYPE_INNER;
+
+                                                if (filter.hasAttribute("blurX")) {
+                                                    blurX = Float.parseFloat(filter.getAttribute("blurX"));
+                                                }
+                                                if (filter.hasAttribute("blurY")) {
+                                                    blurY = Float.parseFloat(filter.getAttribute("blurY"));
+                                                }
+                                                if (filter.hasAttribute("strength")) {
+                                                    strength = Float.parseFloat(filter.getAttribute("strength"));
+                                                }
+                                                if (filter.hasAttribute("quality")) {
+                                                    quality = Integer.parseInt(filter.getAttribute("quality"));
+                                                }
+                                                shadowColor = parseColorWithAlpha(filter, shadowColor, "shadowColor", "shadowAlpha");
+                                                highlightColor = parseColorWithAlpha(filter, highlightColor, "highlightColor", "highlightAlpha");
+                                                if (filter.hasAttribute("angle")) {
+                                                    angle = Float.parseFloat(filter.getAttribute("angle"));
+                                                }
+                                                if (filter.hasAttribute("distance")) {
+                                                    distance = Float.parseFloat(filter.getAttribute("distance"));
+                                                }
+                                                if (filter.hasAttribute("knockout")) {
+                                                    knockout = "true".equals(filter.getAttribute("knockout"));
+                                                }
+                                                if (filter.hasAttribute("type")) {
+                                                    switch (filter.getAttribute("type")) {
+                                                        case "inner":
+                                                            type = BevelFilter.TYPE_INNER;
+                                                            break;
+                                                        case "outer":
+                                                            type = BevelFilter.TYPE_OUTER;
+                                                            break;
+                                                        case "full":
+                                                            type = BevelFilter.TYPE_FULL;
+                                                            break;
+                                                    }
+                                                }
+
+                                                filterList.add(new BevelFilter(blurX, blurY, strength, quality, shadowColor, highlightColor, angle, distance, knockout, type, enabled));
                                             }
                                             break;
                                         }
