@@ -73,12 +73,12 @@ public class NoColorEffect implements ColorEffectInterface {
 
     @Override
     public int getValuePercent() {
-        return 100;
+        return 0;
     }
 
     @Override
     public Color getValueColor() {
-        return new Color(0, 0, 0);
+        return new Color(0xFF, 0xFF, 0xFF);
     }
 
 }

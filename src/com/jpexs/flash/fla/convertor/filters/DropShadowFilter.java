@@ -38,8 +38,11 @@ public class DropShadowFilter implements FilterInterface {
     private boolean inner = false;
     private boolean hideObject = false;
     private Color color = Color.black;
-    private boolean enabled;
+    private boolean enabled = true;
 
+    public DropShadowFilter() {
+    }
+    
     public DropShadowFilter(
             float blurX,
             float blurY,
@@ -51,7 +54,7 @@ public class DropShadowFilter implements FilterInterface {
             boolean inner,
             boolean hideObject,
             Color color,
-            boolean enabled            
+            boolean enabled
     ) {
         this.blurX = blurX;
         this.blurY = blurY;
@@ -108,15 +111,14 @@ public class DropShadowFilter implements FilterInterface {
 
     public boolean isEnabled() {
         return enabled;
-    }        
+    }
 
     @Override
     public void write(FlaCs4Writer os) throws IOException {
-        os.write(new byte[]{                        
+        os.write(new byte[]{
             (byte) 0x00, (byte) 0x00, (byte) 0x04, (byte) 0x01,
             (byte) (enabled ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
-            (byte) color.getRed(), (byte) color.getGreen(), (byte) color.getBlue(), (byte) color.getAlpha(),
-            });
+            (byte) color.getRed(), (byte) color.getGreen(), (byte) color.getBlue(), (byte) color.getAlpha(),});
 
         os.writeFloat(distance);
 

@@ -24,6 +24,7 @@ import com.jpexs.flash.fla.convertor.coloreffects.BrightnessColorEffect;
 import com.jpexs.flash.fla.convertor.coloreffects.ColorEffectInterface;
 import com.jpexs.flash.fla.convertor.coloreffects.NoColorEffect;
 import com.jpexs.flash.fla.convertor.coloreffects.TintColorEffect;
+import com.jpexs.flash.fla.convertor.filters.BlurFilter;
 import com.jpexs.flash.fla.convertor.filters.DropShadowFilter;
 import com.jpexs.flash.fla.convertor.filters.FilterInterface;
 import com.jpexs.flash.fla.extractor.FlaCfbExtractor;
@@ -725,48 +726,67 @@ public class XflToCs4Converter {
                                         }
                                         switch (filter.getNodeName()) {
                                             case "DropShadowFilter":
-                                                float blurX = 5;
-                                                float blurY = 5;
-                                                double strength = 1;
-                                                int quality = 1; //low
-                                                float angle = 45;
-                                                float distance = 5;
-                                                boolean knockout = false;
-                                                boolean inner = false;
-                                                boolean hideObject = false;
-                                                Color color = Color.black;
-                                                
-                                                if (filter.hasAttribute("blurX")) {
-                                                    blurX = Float.parseFloat(filter.getAttribute("blurX"));
-                                                }                                                    
-                                                if (filter.hasAttribute("blurY")) {
-                                                    blurY = Float.parseFloat(filter.getAttribute("blurY"));
-                                                }  
-                                                if (filter.hasAttribute("strength")) {
-                                                    strength = Double.parseDouble(filter.getAttribute("strength"));
+                                                {
+                                                    float blurX = 5;
+                                                    float blurY = 5;
+                                                    double strength = 1;
+                                                    int quality = 1; //low
+                                                    float angle = 45;
+                                                    float distance = 5;
+                                                    boolean knockout = false;
+                                                    boolean inner = false;
+                                                    boolean hideObject = false;
+                                                    Color color = Color.black;
+
+                                                    if (filter.hasAttribute("blurX")) {
+                                                        blurX = Float.parseFloat(filter.getAttribute("blurX"));
+                                                    }                                                    
+                                                    if (filter.hasAttribute("blurY")) {
+                                                        blurY = Float.parseFloat(filter.getAttribute("blurY"));
+                                                    }  
+                                                    if (filter.hasAttribute("strength")) {
+                                                        strength = Double.parseDouble(filter.getAttribute("strength"));
+                                                    }
+                                                    if (filter.hasAttribute("quality")) {
+                                                        quality = Integer.parseInt(filter.getAttribute("quality"));
+                                                    }
+                                                    if (filter.hasAttribute("angle")) {
+                                                        angle = Float.parseFloat(filter.getAttribute("angle"));
+                                                    }
+                                                    if (filter.hasAttribute("distance")) {
+                                                        distance = Float.parseFloat(filter.getAttribute("distance"));
+                                                    }
+                                                    if (filter.hasAttribute("knockout")) {
+                                                        knockout = "true".equals(filter.getAttribute("knockout"));
+                                                    }
+                                                    if (filter.hasAttribute("inner")) {
+                                                        inner = "true".equals(filter.getAttribute("inner"));
+                                                    }
+                                                    if (filter.hasAttribute("hideObject")) {
+                                                        hideObject = "true".equals(filter.getAttribute("hideObject"));
+                                                    }
+                                                    if (filter.hasAttribute("color") || filter.hasAttribute("alpha")) {
+                                                        color = parseColorWithAlpha(filter);
+                                                    }
+                                                    filterList.add(new DropShadowFilter(blurX, blurY, strength, quality, angle, distance, knockout, inner, hideObject, color, enabled));
                                                 }
-                                                if (filter.hasAttribute("quality")) {
-                                                    quality = Integer.parseInt(filter.getAttribute("quality"));
+                                                break;
+                                            case "BlurFilter":
+                                                {
+                                                    float blurX = 5;
+                                                    float blurY = 5;
+                                                    int quality = 1;
+                                                    if (filter.hasAttribute("blurX")) {
+                                                        blurX = Float.parseFloat(filter.getAttribute("blurX"));
+                                                    }                                                    
+                                                    if (filter.hasAttribute("blurY")) {
+                                                        blurY = Float.parseFloat(filter.getAttribute("blurY"));
+                                                    }
+                                                    if (filter.hasAttribute("quality")) {
+                                                        quality = Integer.parseInt(filter.getAttribute("quality"));
+                                                    }
+                                                    filterList.add(new BlurFilter(blurX, blurY, quality, enabled));
                                                 }
-                                                if (filter.hasAttribute("angle")) {
-                                                    angle = Float.parseFloat(filter.getAttribute("angle"));
-                                                }
-                                                if (filter.hasAttribute("distance")) {
-                                                    distance = Float.parseFloat(filter.getAttribute("distance"));
-                                                }
-                                                if (filter.hasAttribute("knockout")) {
-                                                    knockout = "true".equals(filter.getAttribute("knockout"));
-                                                }
-                                                if (filter.hasAttribute("inner")) {
-                                                    inner = "true".equals(filter.getAttribute("inner"));
-                                                }
-                                                if (filter.hasAttribute("hideObject")) {
-                                                    hideObject = "true".equals(filter.getAttribute("hideObject"));
-                                                }
-                                                if (filter.hasAttribute("color") || filter.hasAttribute("alpha")) {
-                                                    color = parseColorWithAlpha(filter);
-                                                }
-                                                filterList.add(new DropShadowFilter(blurX, blurY, strength, quality, angle, distance, knockout, inner, hideObject, color, enabled));
                                                 break;
                                         }
                                     }
