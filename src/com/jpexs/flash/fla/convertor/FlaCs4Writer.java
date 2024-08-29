@@ -80,6 +80,14 @@ public class FlaCs4Writer {
     public static final int TYPE_NON_SMOOTHED_BITMAP = 0x42;
     public static final int TYPE_NON_SMOOTHED_CLIPPED_BITMAP = 0x43;
 
+    public static final int SYMBOLTYPE_SPRITE = 0;
+    public static final int SYMBOLTYPE_BUTTON = 1;
+    public static final int SYMBOLTYPE_GRAPHIC = 2;
+
+    public static final int LOOPMODE_LOOP = 1;
+    public static final int LOOPMODE_PLAY_ONCE = 2;
+    public static final int LOOPMODE_SINGLE_FRAME = 3;
+
     private String x = "0";
     private String y = "0";
     private int strokeStyle = 0;
@@ -172,8 +180,10 @@ public class FlaCs4Writer {
             int blendMode,
             boolean cacheAsBitmap,
             List<FilterInterface> filters,
-            boolean button,
-            boolean trackAsMenu
+            int symbolType,
+            boolean trackAsMenu,
+            int loop,
+            int firstFrame
     ) throws IOException {
 
         Random rnd = new Random();
@@ -204,9 +214,26 @@ public class FlaCs4Writer {
         });
         writeMatrix(placeMatrix);
 
-        os.write(new byte[]{0x00, 0x00,
-            (byte) (button ? 0x00 : 0x02),
-            0x00, 0x01,});
+        os.write(new byte[]{(byte) (firstFrame & 0xFF), (byte) ((firstFrame >> 8) & 0xFF),});
+        if (symbolType == SYMBOLTYPE_SPRITE) {
+            os.write(0x02);
+        } else if (symbolType == SYMBOLTYPE_BUTTON) {
+            os.write(0x00);
+        } else if (symbolType == SYMBOLTYPE_GRAPHIC) {
+            switch (loop) {
+                case LOOPMODE_LOOP:
+                    os.write(0x00);
+                    break;
+                case LOOPMODE_PLAY_ONCE:
+                    os.write(0x01);
+                    break;
+                case LOOPMODE_SINGLE_FRAME:
+                    os.write(0x02);
+                    break;
+            }
+        }
+
+        os.write(new byte[]{0x00, 0x01,});
 
         if (colorEffect == null) {
             colorEffect = new NoColorEffect();
@@ -233,7 +260,7 @@ public class FlaCs4Writer {
 
         os.write(new byte[]{
             (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, 0x00, //some string
-            (byte) librarySymbolId, 0x00, 0x00, 0x00, //this is probably a long val
+            (byte) librarySymbolId, 0x00, 0x00, 0x00, //FIXME? this is probably a long val
             0x00, 0x00, 0x00,});
 
         if (!filters.isEmpty()) {
@@ -256,7 +283,7 @@ public class FlaCs4Writer {
             (byte) 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,});
 
-        if (button) {
+        if (symbolType != SYMBOLTYPE_SPRITE) {
             os.write(new byte[]{
                 0x00, 0x00, 0x00, (byte) 0x80,
                 0x00, 0x00, 0x00, (byte) 0x80,});
@@ -267,31 +294,37 @@ public class FlaCs4Writer {
             });
         }
 
-        os.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) (button ? 0x0B : 0x08), 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+        os.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00,});
+
+        if (symbolType == SYMBOLTYPE_GRAPHIC) {
+            return;
+        }
+
+        os.write(new byte[]{(byte) (symbolType == SYMBOLTYPE_BUTTON ? 0x0B : 0x08), 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
             0x00,
             (byte) (symbolInstanceId & 0xFF), (byte) ((symbolInstanceId >> 8) & 0xFF),
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, 0x00,}); //some string
-        if (button) {
+        if (symbolType == SYMBOLTYPE_BUTTON) {
             os.write((int) (trackAsMenu ? 1 : 0));
         }
         os.write(new byte[]{(byte) 0xFF, (byte) 0xFE, (byte) 0xFF});
 
         writeLenUnicodeString(instanceName);
 
-        if (button) {
+        if (symbolType == SYMBOLTYPE_BUTTON) {
             os.write(new byte[]{0x00, 0x00, 0x00, 0x00});
             return;
         }
         os.write(new byte[]{0x02, 0x00, 0x00, 0x00, 0x00,
-            (byte) (button ? 0x00 : 0x01),
+            0x01,
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x01,
             0x00 /*something*/, 0x00, 0x00, 0x00,
             (byte) 0xFF, (byte) 0xFE, (byte) 0xFF}
         );
-        String componentTxt = button ? "" :"<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + (index + 1) + "'>\n</component>\n";
+        String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + (index + 1) + "'>\n</component>\n";
         writeLenUnicodeString(componentTxt);
     }
 
@@ -1023,7 +1056,7 @@ public class FlaCs4Writer {
                 true,
                 false,
                 parentLayerIndex,
-                true                
+                true
         );
     }
 

@@ -646,20 +646,52 @@ public class XflToCs4Converter {
                                     continue;
                                 }
 
-                                String symbolType = "sprite"; //is this string a default?
+                                
+                                int symbolType =  FlaCs4Writer.SYMBOLTYPE_SPRITE;
+                                
                                 if (symbolInstance.hasAttribute("symbolType")) {
-                                    symbolType = symbolInstance.getAttribute("symbolType");
+                                    switch (symbolInstance.getAttribute("symbolType")) {
+                                        case "sprite": //?? is this correct default value ??
+                                            symbolType = FlaCs4Writer.SYMBOLTYPE_SPRITE;
+                                            break;
+                                        case "button":
+                                            symbolType = FlaCs4Writer.SYMBOLTYPE_BUTTON;
+                                            break;
+                                        case "graphic":
+                                            symbolType = FlaCs4Writer.SYMBOLTYPE_GRAPHIC;
+                                            break;
+                                    }
                                 }
                                 
-                                boolean button = false;
+                                
                                 boolean trackAsMenu = false;
-                                if ("button".equals(symbolType)) {
+                                int loop = FlaCs4Writer.LOOPMODE_LOOP;
+                                int firstFrame = 0; //zero-based
+                                
+                                if (symbolType == FlaCs4Writer.SYMBOLTYPE_BUTTON) {
                                     require("CPicButton", fg, requiredList);
-                                    button = true;
                                     if (symbolInstance.hasAttribute("trackAsMenu")) {
                                         trackAsMenu = "true".equals(symbolInstance.getAttribute("trackAsMenu"));
-                                    }
+                                    }                                    
+                                } else if (symbolType == FlaCs4Writer.SYMBOLTYPE_GRAPHIC) {
+                                    require("CPicSymbol", fg, requiredList);
                                     
+                                    if (symbolInstance.hasAttribute("loop")) {
+                                        switch (symbolInstance.getAttribute("loop")) {
+                                            case "loop":
+                                                loop = FlaCs4Writer.LOOPMODE_LOOP;
+                                                break;
+                                            case "play once":
+                                                loop = FlaCs4Writer.LOOPMODE_PLAY_ONCE;
+                                                break;
+                                            case "single frame":
+                                                loop = FlaCs4Writer.LOOPMODE_SINGLE_FRAME;
+                                                break;
+                                        }
+                                    }
+                                    if (symbolInstance.hasAttribute("firstFrame")) {
+                                        firstFrame = Integer.parseInt(symbolInstance.getAttribute("firstFrame"));
+                                    }
                                 } else {
                                     require("CPicSprite", fg, requiredList);
                                 }
@@ -669,7 +701,7 @@ public class XflToCs4Converter {
                                 }
 
                                 String instanceName = "";
-                                if (symbolInstance.hasAttribute("name")) {
+                                if (symbolType != FlaCs4Writer.SYMBOLTYPE_GRAPHIC && symbolInstance.hasAttribute("name")) {
                                     instanceName = symbolInstance.getAttribute("name");
                                 }
 
@@ -1040,8 +1072,10 @@ public class XflToCs4Converter {
                                         blendMode,
                                         cacheAsBitmap,
                                         filterList,
-                                        button,
-                                        trackAsMenu
+                                        symbolType,
+                                        trackAsMenu,                                        
+                                        loop,
+                                        firstFrame
                                 );
                             }
                             fg.writeKeyFrameMiddle();
