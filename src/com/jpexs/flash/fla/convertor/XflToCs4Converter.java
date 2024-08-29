@@ -301,7 +301,7 @@ public class XflToCs4Converter {
         return allowedValues.indexOf(defaultValue);
     }
 
-    private static void handleFolder(Node folder, FlaCs4Writer fg, Map<Integer, Integer> layerIndexToRevLayerIndex, boolean isEmpty) throws IOException {
+    private static void handleFolder(Element folder, FlaCs4Writer fg, Map<Integer, Integer> layerIndexToRevLayerIndex, boolean isEmpty) throws IOException {
         String folderName = "Folder";
         Node layerNameAttr = folder.getAttributes().getNamedItem("name");
         if (layerNameAttr != null) {
@@ -357,30 +357,36 @@ public class XflToCs4Converter {
 
         Node folderFramesNode = getSubElementByName(folder, "frames");
         if (folderFramesNode != null) {
-            NodeList frames = folderFramesNode.getChildNodes();
-            for (int f = 0; f < frames.getLength(); f++) {
-                Node frame = frames.item(f);
-                if ("DOMFrame".equals(frame.getNodeName())) {
-                    fg.writeKeyFrameBegin();
-                    fg.writeKeyFrameMiddle();
-                    fg.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
-                    int keyMode = FlaCs4Writer.KEYMODE_STANDARD;
-                    Node keyModeAttr = frame.getAttributes().getNamedItem("keyMode");
-                    if (keyModeAttr != null) {
-                        keyMode = Integer.parseInt(keyModeAttr.getTextContent());
-                    }
-
-                    int duration = 1;
-                    Node durationAttr = frame.getAttributes().getNamedItem("duration");
-                    if (durationAttr != null) {
-                        duration = Integer.parseInt(durationAttr.getTextContent());
-                    }
-
-                    fg.writeKeyFrameEnd(duration, keyMode);
+            List<Element> frames = getAllSubElementsByName(folderFramesNode, "DOMFrame");
+            for (int f = 0; f < frames.size(); f++) {
+                Element frame = frames.get(f);
+                if (f > 0) {
+                    fg.writeKeyFrameSeparator();
                 }
+                fg.writeKeyFrameMiddle();
+                fg.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
+                int keyMode = FlaCs4Writer.KEYMODE_STANDARD;
+                Node keyModeAttr = frame.getAttributes().getNamedItem("keyMode");
+                if (keyModeAttr != null) {
+                    keyMode = Integer.parseInt(keyModeAttr.getTextContent());
+                }
+
+                int duration = 1;
+                Node durationAttr = frame.getAttributes().getNamedItem("duration");
+                if (durationAttr != null) {
+                    duration = Integer.parseInt(durationAttr.getTextContent());
+                }
+
+                fg.writeKeyFrameEnd(duration, keyMode);                
             }
         }
-        fg.createFolder(folderName, isSelected, hiddenLayer, lockedLayer, color, showOutlines, open, isEmpty, folderParentLayerIndex == -1 ? -1 : layerIndexToRevLayerIndex.get(folderParentLayerIndex));
+        
+        boolean autoNamed = true;
+        if (folder.hasAttribute("autoNamed")) {
+            autoNamed = !"false".equals(folder.getAttribute("autoNamed"));
+        }
+        
+        fg.createFolder(folderName, isSelected, hiddenLayer, lockedLayer, color, showOutlines, open, isEmpty, folderParentLayerIndex == -1 ? -1 : layerIndexToRevLayerIndex.get(folderParentLayerIndex), autoNamed);
     }
 
     private static List<GradientEntry> parseGradientEntries(Element element) {
@@ -395,6 +401,14 @@ public class XflToCs4Converter {
             ret.add(new GradientEntry(ratio, color));
         }
         return ret;
+    }
+    
+    private static void require(String newRequired, FlaCs4Writer os, List<String> requiredList) throws IOException {
+        if (requiredList.contains(newRequired)) {
+            return;
+        }       
+        os.writeRequire(newRequired);
+        requiredList.add(newRequired);        
     }
 
     public static void main(String[] args) throws ParserConfigurationException, SAXException, IOException {
@@ -411,6 +425,8 @@ public class XflToCs4Converter {
         FileOutputStream fos = new FileOutputStream(file);
         FlaCs4Writer fg = new FlaCs4Writer(fos);
         fg.writePageHeader();
+        
+        List<String> requiredList = new ArrayList<>();
 
         int nextLayerId = 1;
         int nextFolderId = 1;
@@ -428,6 +444,7 @@ public class XflToCs4Converter {
                 Map<Integer, Integer> folderToEndLayer = new HashMap<>();
 
                 for (int layerIndex = 0; layerIndex < layers.size(); layerIndex++) {
+                    require("CPicLayer", fg, requiredList);
                     Node layer = layers.get(layerIndex);
                     boolean isFolder = false;
                     Node layerTypeAttr = layer.getAttributes().getNamedItem("layerType");
@@ -520,8 +537,13 @@ public class XflToCs4Converter {
                 Stack<Integer> openedParentLayers = new Stack<>();
 
                 for (int layerIndex = layers.size() - 1; layerIndex >= 0; layerIndex--) {
-                    Node layer = layers.get(layerIndex);
-
+                    Element layer = layers.get(layerIndex);
+                    
+                    boolean autoNamed = true;
+                    if (layer.hasAttribute("autoNamed")) {
+                        autoNamed = !"false".equals(layer.getAttribute("autoNamed"));
+                    }
+                    
                     boolean isFolder = false;
                     Node layerTypeAttr = layer.getAttributes().getNamedItem("layerType");
                     if (layerTypeAttr != null) {
@@ -556,23 +578,32 @@ public class XflToCs4Converter {
 
                         continue;
                     }
+                    
 
                     if (layerIndex < layers.size() - 1) {
                         fg.writeLayerSeparator();
                     }
-
+                    
                     nextLayerId++;
 
                     Node framesNode = getSubElementByName(layer, "frames");
-                    if (framesNode != null) {
-                        List<Element> frames = getAllSubElementsByName(framesNode, "DOMFrame");
+                    if (framesNode == null) {
+                        if (layerIndex < layers.size() - 1) {
+                            fg.writeLayerSeparatorNonEmptyLayer();
+                        }
+                    } else {
+                        List<Element> frames = getAllSubElementsByName(framesNode, "DOMFrame");                        
+                        if (!frames.isEmpty()) {
+                            if (layerIndex < layers.size() - 1) {
+                                fg.writeLayerSeparatorNonEmptyLayer();
+                            }
+                        }
                         for (int f = 0; f < frames.size(); f++) {
+                            require("CPicFrame", fg, requiredList);
                             if (f > 0) {
                                 fg.writeKeyFrameSeparator();
                             }
-                            Node frame = frames.get(f);
-                            fg.writeKeyFrameBegin();
-
+                            Node frame = frames.get(f);                            
                             Node elementsNode = getSubElementByName(frame, "elements");
 
                             List<Element> symbolInstances = getAllSubElementsByName(elementsNode, "DOMSymbolInstance");
@@ -615,6 +646,24 @@ public class XflToCs4Converter {
                                     continue;
                                 }
 
+                                String symbolType = "sprite"; //is this string a default?
+                                if (symbolInstance.hasAttribute("symbolType")) {
+                                    symbolType = symbolInstance.getAttribute("symbolType");
+                                }
+                                
+                                boolean button = false;
+                                boolean trackAsMenu = false;
+                                if ("button".equals(symbolType)) {
+                                    require("CPicButton", fg, requiredList);
+                                    button = true;
+                                    if (symbolInstance.hasAttribute("trackAsMenu")) {
+                                        trackAsMenu = "true".equals(symbolInstance.getAttribute("trackAsMenu"));
+                                    }
+                                    
+                                } else {
+                                    require("CPicSprite", fg, requiredList);
+                                }
+                                
                                 if (symbolInstanceIndex > 0) {
                                     fg.writeSymbolInstanceSeparator();
                                 }
@@ -990,7 +1039,9 @@ public class XflToCs4Converter {
                                         symbolInstanceIndex,
                                         blendMode,
                                         cacheAsBitmap,
-                                        filterList
+                                        filterList,
+                                        button,
+                                        trackAsMenu
                                 );
                             }
                             fg.writeKeyFrameMiddle();
@@ -1308,13 +1359,13 @@ public class XflToCs4Converter {
                     if (parentLayerIndex > -1) {
                         int reverseParentLayerIndex = layerIndexToRevLayerIndex.get(parentLayerIndex);
                         if (openedParentLayers.contains(parentLayerIndex)) {
-                            fg.writeLayerEnd2(reverseParentLayerIndex);
+                            fg.writeLayerEnd2(reverseParentLayerIndex, autoNamed);
                             if (parentLayerIndex == layerIndex - 1) {
                                 fg.writeEndParentLayer(reverseParentLayerIndex);
                                 openedParentLayers.pop();
                             }
                         } else {
-                            Node folder = layers.get(parentLayerIndex);
+                            Element folder = layers.get(parentLayerIndex);
                             handleFolder(folder, fg, layerIndexToRevLayerIndex, false);
                             if (parentLayerIndex == layerIndex - 1) {
                                 fg.write(new byte[]{(byte) (7 + reverseParentLayerIndex), 0x00});
@@ -1323,7 +1374,7 @@ public class XflToCs4Converter {
                             }
                         }
                     } else {
-                        fg.writeLayerEnd2(-1);
+                        fg.writeLayerEnd2(-1, autoNamed);
                     }
                 }
             }

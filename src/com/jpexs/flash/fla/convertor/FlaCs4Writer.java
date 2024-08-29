@@ -99,17 +99,8 @@ public class FlaCs4Writer {
     }
 
     public void writePageHeader() throws IOException {
-        os.write(new byte[]{0x01, (byte) 0xFF, (byte) 0xFF, 0x01, 0x00});
-        writeLenAsciiString("CPicPage");
-        os.write(new byte[]{0x05, 0x00, (byte) 0xFF, (byte) 0xFF, 0x01, 0x00});
-        writeLenAsciiString("CPicLayer");
-        os.write(new byte[]{0x05, 0x00, (byte) 0xFF, (byte) 0xFF, 0x01, 0x00});
-        writeLenAsciiString("CPicFrame");
-        os.write(new byte[]{0x05, 0x00, (byte) 0xFF, (byte) 0xFF, 0x01, 0x00});
-        writeLenAsciiString("CPicSprite");
-        //this seems to be some kind of list of required classes,
-        //each "require" is placed on the place where it is first used
-        //like when you use SymbolInstance in frame 2 and not in frame 1, then it is required later
+        os.write(new byte[]{0x01});
+        writeRequire("CPicPage");
     }
 
     /**
@@ -126,7 +117,11 @@ public class FlaCs4Writer {
     }
 
     public void writeLayerSeparator() throws IOException {
-        os.write(new byte[]{0x03, (byte) 0x80, 0x05, 0x00, 0x05, (byte) 0x80});
+        os.write(new byte[]{0x03, (byte) 0x80, 0x05, 0x00,});
+    }
+
+    public void writeLayerSeparatorNonEmptyLayer() throws IOException {
+        os.write(new byte[]{0x05, (byte) 0x80, 0x05, 0x00});
     }
 
     public void writeBasicLayer(int layerNum) throws IOException {
@@ -142,8 +137,14 @@ public class FlaCs4Writer {
                 true);
     }
 
+    public void writeRequire(String required) throws IOException {
+        os.write(new byte[]{(byte) 0xFF, (byte) 0xFF, 0x01, 0x00});
+        writeLenAsciiString(required);
+        os.write(new byte[]{0x05, 0x00});
+    }
+
     public void writeKeyFrameSeparator() throws IOException {
-        os.write(new byte[]{0x05, (byte) 0x80});
+        os.write(new byte[]{0x05, (byte) 0x80, 0x05, 0x00});
     }
 
     public void writeSymbolInstanceSeparator() throws IOException {
@@ -170,7 +171,9 @@ public class FlaCs4Writer {
             int index,
             int blendMode,
             boolean cacheAsBitmap,
-            List<FilterInterface> filters
+            List<FilterInterface> filters,
+            boolean button,
+            boolean trackAsMenu
     ) throws IOException {
 
         Random rnd = new Random();
@@ -201,7 +204,9 @@ public class FlaCs4Writer {
         });
         writeMatrix(placeMatrix);
 
-        os.write(new byte[]{0x00, 0x00, 0x02, 0x00, 0x01,});
+        os.write(new byte[]{0x00, 0x00,
+            (byte) (button ? 0x00 : 0x02),
+            0x00, 0x01,});
 
         if (colorEffect == null) {
             colorEffect = new NoColorEffect();
@@ -251,26 +256,42 @@ public class FlaCs4Writer {
             (byte) 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,});
 
-        os.write(new byte[]{
-            (byte) (centerPoint3DXLong & 0xFF), (byte) ((centerPoint3DXLong >> 8) & 0xFF), (byte) ((centerPoint3DXLong >> 16) & 0xFF), (byte) ((centerPoint3DXLong >> 24) & 0xFF),
-            (byte) (centerPoint3DYLong & 0xFF), (byte) ((centerPoint3DYLong >> 8) & 0xFF), (byte) ((centerPoint3DYLong >> 16) & 0xFF), (byte) ((centerPoint3DYLong >> 24) & 0xFF)
-        });
+        if (button) {
+            os.write(new byte[]{
+                0x00, 0x00, 0x00, (byte) 0x80,
+                0x00, 0x00, 0x00, (byte) 0x80,});
+        } else {
+            os.write(new byte[]{
+                (byte) (centerPoint3DXLong & 0xFF), (byte) ((centerPoint3DXLong >> 8) & 0xFF), (byte) ((centerPoint3DXLong >> 16) & 0xFF), (byte) ((centerPoint3DXLong >> 24) & 0xFF),
+                (byte) (centerPoint3DYLong & 0xFF), (byte) ((centerPoint3DYLong >> 8) & 0xFF), (byte) ((centerPoint3DYLong >> 16) & 0xFF), (byte) ((centerPoint3DYLong >> 24) & 0xFF)
+            });
+        }
 
-        os.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+        os.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) (button ? 0x0B : 0x08), 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
             0x00,
             (byte) (symbolInstanceId & 0xFF), (byte) ((symbolInstanceId >> 8) & 0xFF),
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, 0x00, //some string
-            (byte) 0xFF, (byte) 0xFE, (byte) 0xFF});
+            (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, 0x00,}); //some string
+        if (button) {
+            os.write((int) (trackAsMenu ? 1 : 0));
+        }
+        os.write(new byte[]{(byte) 0xFF, (byte) 0xFE, (byte) 0xFF});
 
         writeLenUnicodeString(instanceName);
 
-        os.write(new byte[]{0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+        if (button) {
+            os.write(new byte[]{0x00, 0x00, 0x00, 0x00});
+            return;
+        }
+        os.write(new byte[]{0x02, 0x00, 0x00, 0x00, 0x00,
+            (byte) (button ? 0x00 : 0x01),
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x01,
             0x00 /*something*/, 0x00, 0x00, 0x00,
             (byte) 0xFF, (byte) 0xFE, (byte) 0xFF}
         );
-        String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + (index + 1) + "'>\n</component>\n";
+        String componentTxt = button ? "" :"<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + (index + 1) + "'>\n</component>\n";
         writeLenUnicodeString(componentTxt);
     }
 
@@ -854,11 +875,6 @@ public class FlaCs4Writer {
         writeSolidFill(lineColor);
     }
 
-    public void writeKeyFrameBegin() throws IOException {
-        os.write(new byte[]{
-            0x05, 0x00,});
-    }
-
     public void writeKeyFrameMiddle() throws IOException {
         os.write(new byte[]{
             0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x00, 0x00, 0x00, (byte) 0x80, 0x00, 0x00, 0x06, 0x00, 0x00,
@@ -884,7 +900,6 @@ public class FlaCs4Writer {
 
     public void writeKeyFrame(int frameLen, int keyMode) throws IOException {
 
-        writeKeyFrameBegin();
         writeKeyFrameMiddle();
         int numEdges = 0;
         int numFillStyles = 0;
@@ -948,7 +963,7 @@ public class FlaCs4Writer {
         os.write(0x00);
     }
 
-    public void writeLayerEnd2(int parentLayerIndex) throws IOException {
+    public void writeLayerEnd2(int parentLayerIndex, boolean autoNamed) throws IOException {
         if (parentLayerIndex > -1) {
             os.write(7 + parentLayerIndex);
         } else {
@@ -956,8 +971,7 @@ public class FlaCs4Writer {
         }
         os.write(0x00);
         os.write(new byte[]{0x01});
-        //os.write(originalLayerName ? 1 : 0);
-        os.write(0x01);
+        os.write(autoNamed ? 1 : 0);
         os.write(0x00);
     }
 
@@ -988,7 +1002,8 @@ public class FlaCs4Writer {
                 false,
                 true,
                 true,
-                parentLayerIndex
+                parentLayerIndex,
+                true
         );
     }
 
@@ -1007,7 +1022,8 @@ public class FlaCs4Writer {
                 false,
                 true,
                 false,
-                parentLayerIndex
+                parentLayerIndex,
+                true                
         );
     }
 
@@ -1020,7 +1036,8 @@ public class FlaCs4Writer {
             boolean showOutlines,
             boolean expanded,
             boolean empty,
-            int parentLayerIndex
+            int parentLayerIndex,
+            boolean autoNamed
     ) throws IOException {
         //0x03, (byte) 0x80, 0x05, 0x00,
         os.write(new byte[]{
@@ -1046,7 +1063,7 @@ public class FlaCs4Writer {
         }
         os.write(0x00);
         os.write(expanded ? 1 : 0);
-        os.write(0x01);
+        os.write(autoNamed ? 1 : 0);
 
         os.write(0x00);
         if (!empty) {
