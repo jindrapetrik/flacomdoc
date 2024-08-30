@@ -106,11 +106,6 @@ public class FlaCs4Writer {
         this.os = os;
     }
 
-    public void writePageHeader() throws IOException {
-        os.write(new byte[]{0x01});
-        writeRequire("CPicPage");
-    }
-
     /**
      *
      * @param nextLayerId 1-based
@@ -124,14 +119,6 @@ public class FlaCs4Writer {
             (byte) 0x80, 0x00, 0x00, 0x07, (byte) nextLayerId, 0x00, (byte) nextFolderId, 0x00, (byte) activeFrame, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,});
     }
 
-    public void writeLayerSeparator() throws IOException {
-        os.write(new byte[]{0x03, (byte) 0x80, 0x05, 0x00,});
-    }
-
-    public void writeLayerSeparatorNonEmptyLayer() throws IOException {
-        os.write(new byte[]{0x05, (byte) 0x80, 0x05, 0x00});
-    }
-
     public void writeBasicLayer(int layerNum) throws IOException {
         Random rnd = new Random();
         writeLayer(1,
@@ -143,20 +130,6 @@ public class FlaCs4Writer {
                 new Color(rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256)),
                 false,
                 true);
-    }
-
-    public void writeRequire(String required) throws IOException {
-        os.write(new byte[]{(byte) 0xFF, (byte) 0xFF, 0x01, 0x00});
-        writeLenAsciiString(required);
-        os.write(new byte[]{0x05, 0x00});
-    }
-
-    public void writeKeyFrameSeparator() throws IOException {
-        os.write(new byte[]{0x05, (byte) 0x80, 0x05, 0x00});
-    }
-
-    public void writeSymbolInstanceSeparator() throws IOException {
-        os.write(new byte[]{0x07, (byte) 0x80, 0x05, 0x00});
     }
 
     public void writeFloat(float val) throws IOException {
@@ -176,18 +149,18 @@ public class FlaCs4Writer {
             String instanceName,
             ColorEffectInterface colorEffect,
             int librarySymbolId,
-            int index,
+            int oldCopiedComponentPath,
             int blendMode,
             boolean cacheAsBitmap,
             List<FilterInterface> filters,
             int symbolType,
             boolean trackAsMenu,
             int loop,
-            int firstFrame
+            int firstFrame,
+            String actionScript
     ) throws IOException {
 
-        Random rnd = new Random();
-        int symbolInstanceId = rnd.nextInt(0x10000);
+        int symbolInstanceId = generateRandomId();
 
         long centerPoint3DXLong = Math.round(centerPoint3DX * 20);
         long centerPoint3DYLong = Math.round(centerPoint3DY * 20);
@@ -207,7 +180,7 @@ public class FlaCs4Writer {
         ...
          */
         os.write(new byte[]{
-            0x00, 0x00,
+            (byte) (actionScript.isEmpty() ? 0x00 : 0x02), 0x00, 0x00,
             (byte) (tptX & 0xFF), (byte) ((tptX >> 8) & 0xFF), (byte) ((tptX >> 16) & 0xFF), (byte) ((tptX >> 24) & 0xFF),
             (byte) (tptY & 0xFF), (byte) ((tptY >> 8) & 0xFF), (byte) ((tptY >> 16) & 0xFF), (byte) ((tptY >> 24) & 0xFF),
             0x00, (byte) (cacheAsBitmap ? 1 : 0), 0x16
@@ -304,7 +277,8 @@ public class FlaCs4Writer {
             0x00,
             (byte) (symbolInstanceId & 0xFF), (byte) ((symbolInstanceId >> 8) & 0xFF),
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, 0x00,}); //some string
+            (byte) 0xFF, (byte) 0xFE, (byte) 0xFF,});
+        writeLenUnicodeString(actionScript);
         if (symbolType == SYMBOLTYPE_BUTTON) {
             os.write((int) (trackAsMenu ? 1 : 0));
         }
@@ -324,7 +298,7 @@ public class FlaCs4Writer {
             0x00 /*something*/, 0x00, 0x00, 0x00,
             (byte) 0xFF, (byte) 0xFE, (byte) 0xFF}
         );
-        String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + (index + 1) + "'>\n</component>\n";
+        String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + oldCopiedComponentPath + "'>\n</component>\n";
         writeLenUnicodeString(componentTxt);
     }
 
@@ -915,9 +889,14 @@ public class FlaCs4Writer {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05});
     }
 
-    public void writeKeyFrameEnd(int duration, int keyMode) throws IOException {
-        Random rnd = new Random();
-        int frameId = rnd.nextInt(0x10000);
+    private int generateRandomId() {
+        return ('X' << 8) + 'X';
+        //Random rnd = new Random();
+        //return rnd.nextInt(0x10000);
+    }
+
+    public void writeKeyFrameEnd(int duration, int keyMode, String actionScript) throws IOException {
+        int frameId = generateRandomId();
 
         os.write(new byte[]{
             0x00, 0x00, 0x00, 0x00, 0x00,
@@ -925,8 +904,10 @@ public class FlaCs4Writer {
             0x00, (byte) (keyMode & 0xFF), (byte) ((keyMode >> 8) & 0xFF), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0xFF,
             (byte) 0xFF, (byte) 0xFF, 0x3F, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, 0x00, 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
             0x00, (byte) ((frameId >> 8) & 0xFF), (byte) (frameId & 0xFF),
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0xFF, (byte) 0xFE, (byte) 0xFF,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            (byte) 0xFF, (byte) 0xFE, (byte) 0xFF,});
+        writeLenUnicodeString(actionScript);
+        os.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,});
     }
@@ -943,7 +924,7 @@ public class FlaCs4Writer {
         //place fillstyles here        
         os.write(new byte[]{(byte) numStrokeStyles, 0x00});
         //place stroke styles here
-        writeKeyFrameEnd(frameLen, keyMode);
+        writeKeyFrameEnd(frameLen, keyMode, "");
     }
 
     public void writeLayer(

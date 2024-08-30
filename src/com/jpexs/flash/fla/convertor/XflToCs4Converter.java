@@ -301,7 +301,7 @@ public class XflToCs4Converter {
         return allowedValues.indexOf(defaultValue);
     }
 
-    private static void handleFolder(Element folder, FlaCs4Writer fg, Map<Integer, Integer> layerIndexToRevLayerIndex, boolean isEmpty) throws IOException {
+    private static void handleFolder(Element folder, FlaCs4Writer fg, Map<Integer, Integer> layerIndexToRevLayerIndex, boolean isEmpty, List<String> requiredList) throws IOException {
         String folderName = "Folder";
         Node layerNameAttr = folder.getAttributes().getNamedItem("name");
         if (layerNameAttr != null) {
@@ -353,16 +353,14 @@ public class XflToCs4Converter {
             folderParentLayerIndex = Integer.parseInt(folderParentLayerIndexAttr.getTextContent());
         }
         //fg.writeLayerSeparator();
-        fg.write(new byte[]{0x03, (byte) 0x80, 0x05, 0x00});
+        fg.write(0x00);
 
         Node folderFramesNode = getSubElementByName(folder, "frames");
         if (folderFramesNode != null) {
             List<Element> frames = getAllSubElementsByName(folderFramesNode, "DOMFrame");
             for (int f = 0; f < frames.size(); f++) {
                 Element frame = frames.get(f);
-                if (f > 0) {
-                    fg.writeKeyFrameSeparator();
-                }
+                useClass("CPicFrame", fg, requiredList);
                 fg.writeKeyFrameMiddle();
                 fg.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
                 int keyMode = FlaCs4Writer.KEYMODE_STANDARD;
@@ -377,15 +375,15 @@ public class XflToCs4Converter {
                     duration = Integer.parseInt(durationAttr.getTextContent());
                 }
 
-                fg.writeKeyFrameEnd(duration, keyMode);                
+                fg.writeKeyFrameEnd(duration, keyMode, "");
             }
         }
-        
+
         boolean autoNamed = true;
         if (folder.hasAttribute("autoNamed")) {
             autoNamed = !"false".equals(folder.getAttribute("autoNamed"));
         }
-        
+
         fg.createFolder(folderName, isSelected, hiddenLayer, lockedLayer, color, showOutlines, open, isEmpty, folderParentLayerIndex == -1 ? -1 : layerIndexToRevLayerIndex.get(folderParentLayerIndex), autoNamed);
     }
 
@@ -402,13 +400,17 @@ public class XflToCs4Converter {
         }
         return ret;
     }
-    
-    private static void require(String newRequired, FlaCs4Writer os, List<String> requiredList) throws IOException {
-        if (requiredList.contains(newRequired)) {
-            return;
-        }       
-        os.writeRequire(newRequired);
-        requiredList.add(newRequired);        
+
+    private static void useClass(String className, FlaCs4Writer os, List<String> definedClasses) throws IOException {
+        if (definedClasses.contains(className)) {
+            os.write(1 + 2 * definedClasses.indexOf(className));
+            os.write(0x80);
+        } else {
+            os.write(new byte[]{(byte) 0xFF, (byte) 0xFF, 0x01, 0x00});
+            os.writeLenAsciiString(className);
+            definedClasses.add(className);
+        }
+        os.write(new byte[]{0x05,});
     }
 
     public static void main(String[] args) throws ParserConfigurationException, SAXException, IOException {
@@ -424,12 +426,16 @@ public class XflToCs4Converter {
         String file = FlaCfbExtractor.getProperty("convert.xfl.output.file");
         FileOutputStream fos = new FileOutputStream(file);
         FlaCs4Writer fg = new FlaCs4Writer(fos);
-        fg.writePageHeader();
-        
-        List<String> requiredList = new ArrayList<>();
+
+        List<String> definedClasses = new ArrayList<>();
+
+        fg.write(new byte[]{0x01});
+        useClass("CPicPage", fg, definedClasses);
+        fg.write(0x00);
 
         int nextLayerId = 1;
         int nextFolderId = 1;
+        int totalFramesCount = 0;
 
         NodeList timeLines = doc.getElementsByTagName("DOMTimeline");
         for (int i = 0; i < timeLines.getLength(); i++) {
@@ -444,7 +450,6 @@ public class XflToCs4Converter {
                 Map<Integer, Integer> folderToEndLayer = new HashMap<>();
 
                 for (int layerIndex = 0; layerIndex < layers.size(); layerIndex++) {
-                    require("CPicLayer", fg, requiredList);
                     Node layer = layers.get(layerIndex);
                     boolean isFolder = false;
                     Node layerTypeAttr = layer.getAttributes().getNamedItem("layerType");
@@ -536,14 +541,20 @@ public class XflToCs4Converter {
 
                 Stack<Integer> openedParentLayers = new Stack<>();
 
+                int copiedComponentPath = 0;
                 for (int layerIndex = layers.size() - 1; layerIndex >= 0; layerIndex--) {
                     Element layer = layers.get(layerIndex);
-                    
+                    useClass("CPicLayer", fg, definedClasses);
+                    /*if (layerIndex < layers.size() - 1) {
+                        fg.writeLayerSeparator();
+                    }*/
+                    fg.write(0x00);
+
                     boolean autoNamed = true;
                     if (layer.hasAttribute("autoNamed")) {
                         autoNamed = !"false".equals(layer.getAttribute("autoNamed"));
                     }
-                    
+
                     boolean isFolder = false;
                     Node layerTypeAttr = layer.getAttributes().getNamedItem("layerType");
                     if (layerTypeAttr != null) {
@@ -573,37 +584,26 @@ public class XflToCs4Converter {
                             }
                         }
                         if (folderEmpty) {
-                            handleFolder(layer, fg, layerIndexToRevLayerIndex, true);
+                            handleFolder(layer, fg, layerIndexToRevLayerIndex, true, definedClasses);
                         }
 
                         continue;
                     }
-                    
 
-                    if (layerIndex < layers.size() - 1) {
-                        fg.writeLayerSeparator();
-                    }
-                    
                     nextLayerId++;
 
                     Node framesNode = getSubElementByName(layer, "frames");
                     if (framesNode == null) {
-                        if (layerIndex < layers.size() - 1) {
-                            fg.writeLayerSeparatorNonEmptyLayer();
-                        }
                     } else {
-                        List<Element> frames = getAllSubElementsByName(framesNode, "DOMFrame");                        
-                        if (!frames.isEmpty()) {
-                            if (layerIndex < layers.size() - 1) {
-                                fg.writeLayerSeparatorNonEmptyLayer();
-                            }
-                        }
+                        List<Element> frames = getAllSubElementsByName(framesNode, "DOMFrame");
                         for (int f = 0; f < frames.size(); f++) {
-                            require("CPicFrame", fg, requiredList);
-                            if (f > 0) {
+                            useClass("CPicFrame", fg, definedClasses);
+                            /*if (totalFramesCount > 0) {
                                 fg.writeKeyFrameSeparator();
-                            }
-                            Node frame = frames.get(f);                            
+                            }*/
+                            fg.write(0x00);
+                            totalFramesCount++;
+                            Node frame = frames.get(f);
                             Node elementsNode = getSubElementByName(frame, "elements");
 
                             List<Element> symbolInstances = getAllSubElementsByName(elementsNode, "DOMSymbolInstance");
@@ -637,7 +637,9 @@ public class XflToCs4Converter {
                                         nameNoXml = nameNoXml.substring(0, nameNoXml.length() - 4);
                                     }
                                     if (nameNoXml.equals(libraryItemName)) {
-                                        libraryItemIndex = 3 + e; //FIXME: Kind of magic - need to really determine the symbol file
+                                        //libraryItemIndex = e;
+                                        //FIXME: Need to really determine the symbol file
+                                        libraryItemIndex = 'X';
                                         break;
                                     }
                                 }
@@ -646,9 +648,8 @@ public class XflToCs4Converter {
                                     continue;
                                 }
 
-                                
-                                int symbolType =  FlaCs4Writer.SYMBOLTYPE_SPRITE;
-                                
+                                int symbolType = FlaCs4Writer.SYMBOLTYPE_SPRITE;
+
                                 if (symbolInstance.hasAttribute("symbolType")) {
                                     switch (symbolInstance.getAttribute("symbolType")) {
                                         case "sprite": //?? is this correct default value ??
@@ -662,20 +663,19 @@ public class XflToCs4Converter {
                                             break;
                                     }
                                 }
-                                
-                                
+
                                 boolean trackAsMenu = false;
                                 int loop = FlaCs4Writer.LOOPMODE_LOOP;
                                 int firstFrame = 0; //zero-based
-                                
+
                                 if (symbolType == FlaCs4Writer.SYMBOLTYPE_BUTTON) {
-                                    require("CPicButton", fg, requiredList);
+                                    useClass("CPicButton", fg, definedClasses);
                                     if (symbolInstance.hasAttribute("trackAsMenu")) {
                                         trackAsMenu = "true".equals(symbolInstance.getAttribute("trackAsMenu"));
-                                    }                                    
+                                    }
                                 } else if (symbolType == FlaCs4Writer.SYMBOLTYPE_GRAPHIC) {
-                                    require("CPicSymbol", fg, requiredList);
-                                    
+                                    useClass("CPicSymbol", fg, definedClasses);
+
                                     if (symbolInstance.hasAttribute("loop")) {
                                         switch (symbolInstance.getAttribute("loop")) {
                                             case "loop":
@@ -693,13 +693,12 @@ public class XflToCs4Converter {
                                         firstFrame = Integer.parseInt(symbolInstance.getAttribute("firstFrame"));
                                     }
                                 } else {
-                                    require("CPicSprite", fg, requiredList);
-                                }
-                                
-                                if (symbolInstanceIndex > 0) {
-                                    fg.writeSymbolInstanceSeparator();
+                                    useClass("CPicSprite", fg, definedClasses);
                                 }
 
+                                /*if (totalSymbolInstancesCount > 0) {
+                                    fg.writeSymbolInstanceSeparator();
+                                } */
                                 String instanceName = "";
                                 if (symbolType != FlaCs4Writer.SYMBOLTYPE_GRAPHIC && symbolInstance.hasAttribute("name")) {
                                     instanceName = symbolInstance.getAttribute("name");
@@ -1051,7 +1050,7 @@ public class XflToCs4Converter {
                                                 if (filter.hasAttribute("hue")) {
                                                     hue = Float.parseFloat(filter.getAttribute("hue"));
                                                 }
-                                                
+
                                                 filterList.add(new AdjustColorFilter(brightness, contrast, saturation, hue, enabled));
                                             }
                                             break;
@@ -1059,6 +1058,19 @@ public class XflToCs4Converter {
                                     }
                                 }
 
+                                String actionScript = "";
+
+                                Element actionscriptElement = getSubElementByName(symbolInstance, "Actionscript");
+                                if (actionscriptElement != null) {
+                                    Element scriptElement = getSubElementByName(actionscriptElement, "script");
+                                    if (scriptElement != null) {
+                                        actionScript = scriptElement.getTextContent();
+                                    }
+                                }
+
+                                if (symbolType == FlaCs4Writer.SYMBOLTYPE_SPRITE) {
+                                    copiedComponentPath++;
+                                }
                                 fg.writeSymbolInstance(
                                         placeMatrix,
                                         centerPoint3DX,
@@ -1068,15 +1080,17 @@ public class XflToCs4Converter {
                                         instanceName,
                                         colorEffect,
                                         libraryItemIndex,
-                                        symbolInstanceIndex,
+                                        symbolType == FlaCs4Writer.SYMBOLTYPE_SPRITE ? copiedComponentPath : 0,
                                         blendMode,
                                         cacheAsBitmap,
                                         filterList,
                                         symbolType,
-                                        trackAsMenu,                                        
+                                        trackAsMenu,
                                         loop,
-                                        firstFrame
+                                        firstFrame,
+                                        actionScript
                                 );
+
                             }
                             fg.writeKeyFrameMiddle();
                             if (elementsNode != null) {
@@ -1337,7 +1351,17 @@ public class XflToCs4Converter {
                                     duration = Integer.parseInt(durationAttr.getTextContent());
                                 }
 
-                                fg.writeKeyFrameEnd(duration, keyMode);
+                                String actionScript = "";
+
+                                Element actionscriptElement = getSubElementByName(frame, "Actionscript");
+                                if (actionscriptElement != null) {
+                                    Element scriptElement = getSubElementByName(actionscriptElement, "script");
+                                    if (scriptElement != null) {
+                                        actionScript = scriptElement.getTextContent();
+                                    }
+                                }
+
+                                fg.writeKeyFrameEnd(duration, keyMode, actionScript);
                             }
                         }
                     }
@@ -1400,7 +1424,8 @@ public class XflToCs4Converter {
                             }
                         } else {
                             Element folder = layers.get(parentLayerIndex);
-                            handleFolder(folder, fg, layerIndexToRevLayerIndex, false);
+                            useClass("CPicLayer", fg, definedClasses);
+                            handleFolder(folder, fg, layerIndexToRevLayerIndex, false, definedClasses);
                             if (parentLayerIndex == layerIndex - 1) {
                                 fg.write(new byte[]{(byte) (7 + reverseParentLayerIndex), 0x00});
                             } else {
