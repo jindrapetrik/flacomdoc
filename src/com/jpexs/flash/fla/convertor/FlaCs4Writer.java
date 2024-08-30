@@ -88,6 +88,10 @@ public class FlaCs4Writer {
     public static final int LOOPMODE_PLAY_ONCE = 2;
     public static final int LOOPMODE_SINGLE_FRAME = 3;
 
+    public static final int LAYERTYPE_LAYER = 0;
+    public static final int LAYERTYPE_GUIDE = 1;
+    public static final int LAYERTYPE_FOLDER = 3;
+
     private String x = "0";
     private String y = "0";
     private int strokeStyle = 0;
@@ -129,7 +133,7 @@ public class FlaCs4Writer {
                 false,
                 new Color(rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256)),
                 false,
-                true);
+                LAYERTYPE_LAYER);
     }
 
     public void writeFloat(float val) throws IOException {
@@ -295,7 +299,7 @@ public class FlaCs4Writer {
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x01,
-            0x00 /*something*/, 0x00, 0x00, 0x00,
+            0x00 /*something, but it resets after resaving FLA*/, 0x00, 0x00, 0x00,
             (byte) 0xFF, (byte) 0xFE, (byte) 0xFF}
         );
         String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + oldCopiedComponentPath + "'>\n</component>\n";
@@ -936,7 +940,7 @@ public class FlaCs4Writer {
             boolean lockedLayer,
             Color layerColor,
             boolean showOutlines,
-            boolean originalLayerName
+            int layerType
     ) throws IOException {
 
         /*writeKeyFrame(1, KEYMODE_STANDARD);
@@ -945,7 +949,7 @@ public class FlaCs4Writer {
         writeKeyFrameSeparator();
         writeKeyFrame(1, KEYMODE_STANDARD);*/
         writeKeyFrame(1, KEYMODE_STANDARD);
-        writeLayerEnd(layerName, selectedLayer, hiddenLayer, lockedLayer, layerColor, showOutlines, originalLayerName);
+        writeLayerEnd(layerName, selectedLayer, hiddenLayer, lockedLayer, layerColor, showOutlines, layerType);
 
     }
 
@@ -956,11 +960,11 @@ public class FlaCs4Writer {
             boolean lockedLayer,
             Color layerColor,
             boolean showOutlines,
-            boolean originalLayerName
+            int layerType
     ) throws IOException {
         os.write(new byte[]{
-            0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x00, 0x00, 0x00, (byte) 0x80,
-            0x00, 0x00, 0x0D, (byte) 0xFF, (byte) 0xFE, (byte) 0xFF
+            0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x00, 0x00, 0x00, (byte) 0x80, 0x00,
+            0x00, 0x0D, (byte) 0xFF, (byte) 0xFE, (byte) 0xFF
         });
 
         writeLenUnicodeString(layerName);
@@ -974,17 +978,17 @@ public class FlaCs4Writer {
         os.write(0xFF);
         os.write(showOutlines ? 1 : 0);
         os.write(new byte[]{0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00});
-        os.write(0x00);
+        os.write(layerType);
     }
 
-    public void writeLayerEnd2(int parentLayerIndex, boolean autoNamed) throws IOException {
+    public void writeLayerEnd2(int parentLayerIndex, boolean open, boolean autoNamed) throws IOException {
         if (parentLayerIndex > -1) {
             os.write(7 + parentLayerIndex);
         } else {
             os.write(0x00);
         }
         os.write(0x00);
-        os.write(new byte[]{0x01});
+        os.write(open ? 1 : 0);
         os.write(autoNamed ? 1 : 0);
         os.write(0x00);
     }
@@ -999,92 +1003,6 @@ public class FlaCs4Writer {
         os.write(sbytes.length);
         os.write(0);
         os.write(sbytes);
-    }
-
-    public void createBasicEmptyFolder(int folderIndex) throws IOException {
-        createBasicEmptyFolder(folderIndex, -1);
-    }
-
-    public void createBasicEmptyFolder(int folderIndex, int parentLayerIndex) throws IOException {
-        Random rnd = new Random();
-        createFolder(
-                "Folder " + folderIndex,
-                false,
-                false,
-                false,
-                new Color(rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256)),
-                false,
-                true,
-                true,
-                parentLayerIndex,
-                true
-        );
-    }
-
-    public void createBasicFolder(int folderIndex) throws IOException {
-        createBasicFolder(folderIndex, -1);
-    }
-
-    public void createBasicFolder(int folderIndex, int parentLayerIndex) throws IOException {
-        Random rnd = new Random();
-        createFolder(
-                "Folder " + folderIndex,
-                false,
-                false,
-                false,
-                new Color(rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256)),
-                false,
-                true,
-                false,
-                parentLayerIndex,
-                true
-        );
-    }
-
-    public void createFolder(
-            String folderName,
-            boolean selectedLayer,
-            boolean hiddenLayer,
-            boolean lockedLayer,
-            Color layerColor,
-            boolean showOutlines,
-            boolean expanded,
-            boolean empty,
-            int parentLayerIndex,
-            boolean autoNamed
-    ) throws IOException {
-        //0x03, (byte) 0x80, 0x05, 0x00,
-        os.write(new byte[]{
-            0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x00, 0x00, 0x00, (byte) 0x80, 0x00,
-            0x00, 0x0D, (byte) 0xFF, (byte) 0xFE, (byte) 0xFF
-        });
-        writeLenUnicodeString(folderName);
-        os.write(selectedLayer ? 1 : 0);
-        os.write(hiddenLayer ? 1 : 0);
-        os.write(lockedLayer ? 1 : 0);
-        os.write(new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF});
-        os.write(layerColor.getRed());
-        os.write(layerColor.getGreen());
-        os.write(layerColor.getBlue());
-        os.write(0xFF);
-        os.write(showOutlines ? 1 : 0);
-
-        os.write(new byte[]{0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x03});
-        if (parentLayerIndex > -1) {
-            os.write(7 + parentLayerIndex);
-        } else {
-            os.write(0x00);
-        }
-        os.write(0x00);
-        os.write(expanded ? 1 : 0);
-        os.write(autoNamed ? 1 : 0);
-
-        os.write(0x00);
-        if (!empty) {
-            os.write(0x01);
-            os.write(0x01);
-            os.write(0x00);
-        }
     }
 
     public void writeEndParentLayer(int parentLayerIndex) throws IOException {
