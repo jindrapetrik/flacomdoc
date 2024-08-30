@@ -118,9 +118,9 @@ public class FlaCs4Writer {
      * @throws IOException
      */
     public void writePageFooter(int nextLayerId, int nextFolderId, int activeFrame) throws IOException {
-        os.write(new byte[]{
-            0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x00, 0x00, 0x00,
-            (byte) 0x80, 0x00, 0x00, 0x07, (byte) nextLayerId, 0x00, (byte) nextFolderId, 0x00, (byte) activeFrame, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,});
+        write(
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
+                0x80, 0x00, 0x00, 0x07, nextLayerId, 0x00, nextFolderId, 0x00, activeFrame, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
     }
 
     public void writeBasicLayer(int layerNum) throws IOException {
@@ -138,10 +138,10 @@ public class FlaCs4Writer {
 
     public void writeFloat(float val) throws IOException {
         int v = Float.floatToIntBits(val);
-        os.write(v & 0xFF);
-        os.write((v >> 8) & 0xFF);
-        os.write((v >> 16) & 0xFF);
-        os.write((v >> 24) & 0xFF);
+        write(v & 0xFF);
+        write((v >> 8) & 0xFF);
+        write((v >> 16) & 0xFF);
+        write((v >> 24) & 0xFF);
     }
 
     public void writeSymbolInstance(
@@ -177,40 +177,40 @@ public class FlaCs4Writer {
         /*
         keyframe begin:
         0x00, 0x00, 
-        0x00, 0x00, 0x00, (byte) 0x80,
-        0x00, 0x00, 0x00, (byte) 0x80, 
+        0x00, 0x00, 0x00,  0x80,
+        0x00, 0x00, 0x00,  0x80, 
         0x00, 0x00, 0x06,  - is this some kind of type identifier?
         
         ...
          */
-        os.write(new byte[]{
-            (byte) (actionScript.isEmpty() ? 0x00 : 0x02), 0x00, 0x00,
-            (byte) (tptX & 0xFF), (byte) ((tptX >> 8) & 0xFF), (byte) ((tptX >> 16) & 0xFF), (byte) ((tptX >> 24) & 0xFF),
-            (byte) (tptY & 0xFF), (byte) ((tptY >> 8) & 0xFF), (byte) ((tptY >> 16) & 0xFF), (byte) ((tptY >> 24) & 0xFF),
-            0x00, (byte) (cacheAsBitmap ? 1 : 0), 0x16
-        });
+        write(
+                (actionScript.isEmpty() ? 0x00 : 0x02), 0x00, 0x00,
+                (int) (tptX & 0xFF), (int) ((tptX >> 8) & 0xFF), (int) ((tptX >> 16) & 0xFF), (int) ((tptX >> 24) & 0xFF),
+                (int) (tptY & 0xFF), (int) ((tptY >> 8) & 0xFF), (int) ((tptY >> 16) & 0xFF), (int) ((tptY >> 24) & 0xFF),
+                0x00, (cacheAsBitmap ? 1 : 0), 0x16
+        );
         writeMatrix(placeMatrix);
 
-        os.write(new byte[]{(byte) (firstFrame & 0xFF), (byte) ((firstFrame >> 8) & 0xFF),});
+        write((firstFrame & 0xFF), ((firstFrame >> 8) & 0xFF));
         if (symbolType == SYMBOLTYPE_SPRITE) {
-            os.write(0x02);
+            write(0x02);
         } else if (symbolType == SYMBOLTYPE_BUTTON) {
-            os.write(0x00);
+            write(0x00);
         } else if (symbolType == SYMBOLTYPE_GRAPHIC) {
             switch (loop) {
                 case LOOPMODE_LOOP:
-                    os.write(0x00);
+                    write(0x00);
                     break;
                 case LOOPMODE_PLAY_ONCE:
-                    os.write(0x01);
+                    write(0x01);
                     break;
                 case LOOPMODE_SINGLE_FRAME:
-                    os.write(0x02);
+                    write(0x02);
                     break;
             }
         }
 
-        os.write(new byte[]{0x00, 0x01,});
+        write(0x00, 0x01);
 
         if (colorEffect == null) {
             colorEffect = new NoColorEffect();
@@ -226,81 +226,82 @@ public class FlaCs4Writer {
         int alphaOffset = colorEffect.getAlphaOffset();
         Color effectColor = colorEffect.getValueColor();
 
-        os.write(new byte[]{
-            (byte) (alphaMultiplier & 0xFF), (byte) ((alphaMultiplier >> 8) & 0xFF), (byte) (alphaOffset & 0xFF), (byte) ((alphaOffset >> 8) & 0xFF),
-            (byte) (redMultiplier & 0xFF), (byte) ((redMultiplier >> 8) & 0xFF), (byte) (redOffset & 0xFF), (byte) ((redOffset >> 8) & 0xFF),
-            (byte) (greenMultiplier & 0xFF), (byte) ((greenMultiplier >> 8) & 0xFF), (byte) (greenOffset & 0xFF), (byte) ((greenOffset >> 8) & 0xFF),
-            (byte) (blueMultiplier & 0xFF), (byte) ((blueMultiplier >> 8) & 0xFF), (byte) (blueOffset & 0xFF), (byte) ((blueOffset >> 8) & 0xFF),
-            (byte) colorEffect.getType(), (byte) 0x00, (byte) colorEffect.getValuePercent(), (byte) 0x00,
-            (byte) effectColor.getRed(), (byte) effectColor.getGreen(), (byte) effectColor.getBlue(), (byte) effectColor.getAlpha()
-        });
+        write(
+                (alphaMultiplier & 0xFF), ((alphaMultiplier >> 8) & 0xFF), (alphaOffset & 0xFF), ((alphaOffset >> 8) & 0xFF),
+                (redMultiplier & 0xFF), ((redMultiplier >> 8) & 0xFF), (redOffset & 0xFF), ((redOffset >> 8) & 0xFF),
+                (greenMultiplier & 0xFF), ((greenMultiplier >> 8) & 0xFF), (greenOffset & 0xFF), ((greenOffset >> 8) & 0xFF),
+                (blueMultiplier & 0xFF), ((blueMultiplier >> 8) & 0xFF), (blueOffset & 0xFF), ((blueOffset >> 8) & 0xFF),
+                colorEffect.getType(), 0x00, colorEffect.getValuePercent(), 0x00,
+                effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), effectColor.getAlpha()
+        );
 
-        os.write(new byte[]{
-            (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, 0x00, //some string
-            (byte) librarySymbolId, 0x00, 0x00, 0x00, //FIXME? this is probably a long val
-            0x00, 0x00, 0x00,});
+        write(
+                0xFF, 0xFE, 0xFF, 0x00, //some string
+                librarySymbolId, 0x00, 0x00, 0x00, //FIXME? this is probably a long val
+                0x00, 0x00, 0x00
+        );
 
         if (!filters.isEmpty()) {
-            os.write(new byte[]{(byte) 0x01,
-                (byte) filters.size(), (byte) 0x00, (byte) 0x00, 0x00});
+            write(0x01,
+                    filters.size(), 0x00, 0x00, 0x00);
             for (FilterInterface filter : filters) {
                 filter.write(this);
             }
         } else {
-            os.write(0x00);
+            write(0x00);
         }
 
-        os.write(new byte[]{
-            (byte) blendMode,
-            (byte) (filters.isEmpty() ? 0 : filters.size() - 1), //WTF?
-            0x00, 0x00, 0x00, (byte) 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x3F, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            (byte) 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,});
+        write(
+                blendMode,
+                (filters.isEmpty() ? 0 : filters.size() - 1), //WTF?
+                0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
         if (symbolType != SYMBOLTYPE_SPRITE) {
-            os.write(new byte[]{
-                0x00, 0x00, 0x00, (byte) 0x80,
-                0x00, 0x00, 0x00, (byte) 0x80,});
+            write(
+                    0x00, 0x00, 0x00, 0x80,
+                    0x00, 0x00, 0x00, 0x80);
         } else {
-            os.write(new byte[]{
-                (byte) (centerPoint3DXLong & 0xFF), (byte) ((centerPoint3DXLong >> 8) & 0xFF), (byte) ((centerPoint3DXLong >> 16) & 0xFF), (byte) ((centerPoint3DXLong >> 24) & 0xFF),
-                (byte) (centerPoint3DYLong & 0xFF), (byte) ((centerPoint3DYLong >> 8) & 0xFF), (byte) ((centerPoint3DYLong >> 16) & 0xFF), (byte) ((centerPoint3DYLong >> 24) & 0xFF)
-            });
+            write(
+                    (int) (centerPoint3DXLong & 0xFF), (int) ((centerPoint3DXLong >> 8) & 0xFF), (int) ((centerPoint3DXLong >> 16) & 0xFF), (int) ((centerPoint3DXLong >> 24) & 0xFF),
+                    (int) (centerPoint3DYLong & 0xFF), (int) ((centerPoint3DYLong >> 8) & 0xFF), (int) ((centerPoint3DYLong >> 16) & 0xFF), (int) ((centerPoint3DYLong >> 24) & 0xFF)
+            );
         }
 
-        os.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00,});
+        write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
         if (symbolType == SYMBOLTYPE_GRAPHIC) {
             return;
         }
 
-        os.write(new byte[]{(byte) (symbolType == SYMBOLTYPE_BUTTON ? 0x0B : 0x08), 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-            0x00,
-            (byte) (symbolInstanceId & 0xFF), (byte) ((symbolInstanceId >> 8) & 0xFF),
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            (byte) 0xFF, (byte) 0xFE, (byte) 0xFF,});
+        write((symbolType == SYMBOLTYPE_BUTTON ? 0x0B : 0x08), 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+                0x00,
+                (symbolInstanceId & 0xFF), ((symbolInstanceId >> 8) & 0xFF),
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0xFF, 0xFE, 0xFF);
         writeLenUnicodeString(actionScript);
         if (symbolType == SYMBOLTYPE_BUTTON) {
-            os.write((int) (trackAsMenu ? 1 : 0));
+            write((int) (trackAsMenu ? 1 : 0));
         }
-        os.write(new byte[]{(byte) 0xFF, (byte) 0xFE, (byte) 0xFF});
+        write(0xFF, 0xFE, 0xFF);
 
         writeLenUnicodeString(instanceName);
 
         if (symbolType == SYMBOLTYPE_BUTTON) {
-            os.write(new byte[]{0x00, 0x00, 0x00, 0x00});
+            write(0x00, 0x00, 0x00, 0x00);
             return;
         }
-        os.write(new byte[]{0x02, 0x00, 0x00, 0x00, 0x00,
-            0x01,
-            0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x01,
-            0x00 /*something, but it resets after resaving FLA*/, 0x00, 0x00, 0x00,
-            (byte) 0xFF, (byte) 0xFE, (byte) 0xFF}
+        write(0x02, 0x00, 0x00, 0x00, 0x00,
+                0x01,
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x01,
+                0x00 /*something, but it resets after resaving FLA*/, 0x00, 0x00, 0x00,
+                0xFF, 0xFE, 0xFF
         );
         String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + oldCopiedComponentPath + "'>\n</component>\n";
         writeLenUnicodeString(componentTxt);
@@ -489,12 +490,12 @@ public class FlaCs4Writer {
             type |= FLAG_EDGE_HAS_STYLES;
         }
         logger.log(Level.FINE, "writing type 0x{0} ({1}{2}{3})", new Object[]{String.format("%02X", type), stylesChanged ? "style + " : "", fromX != null && fromY != null && !(fromX.equals("0") && fromY.equals("0")) ? "move + " : "", controlX != null ? "curve" : "straight"});
-        os.write(type);
+        write(type);
         if (stylesChanged) {
             logger.log(Level.FINE, "writing style 0x{0} 0x{1} 0x{2}", new Object[]{String.format("%02X", strokeStyle), String.format("%02X", fillStyle0), String.format("%02X", fillStyle1)});
-            os.write(strokeStyle);
-            os.write(fillStyle0);
-            os.write(fillStyle1);
+            write(strokeStyle);
+            write(fillStyle0);
+            write(fillStyle1);
             stylesChanged = false;
         }
         if (fromX != null && fromY != null && !(fromX.equals("0") && fromY.equals("0"))) {
@@ -508,7 +509,7 @@ public class FlaCs4Writer {
         }
         if (controlX == null) {
             logger.fine("writing end 0x00");
-            os.write(0x00);
+            write(0x00);
         }
         moved = false;
     }
@@ -590,10 +591,10 @@ public class FlaCs4Writer {
                 && integerY >= Byte.MIN_VALUE
                 && integerY <= Byte.MAX_VALUE) {
             logger.log(Level.FINE, "writing as byte 0x00 0X{0} 0x00 0x{1} ({2,number,#}, {3,number,#})", new Object[]{String.format("%02X", integerX & 0xFF), String.format("%02X", integerY & 0xFF), integerX, integerY});
-            os.write(fractX);
-            os.write((byte) integerX);
-            os.write(fractY);
-            os.write((byte) integerY);
+            write(fractX);
+            write(integerX);
+            write(fractY);
+            write(integerY);
             return;
         }
 
@@ -611,11 +612,11 @@ public class FlaCs4Writer {
             integerX = (int) Math.floor(vx * 2);
             integerY = (int) Math.floor(vy * 2);
 
-            os.write(integerX & 0xFF);
-            os.write((integerX >> 8) & 0xFF);
+            write(integerX & 0xFF);
+            write((integerX >> 8) & 0xFF);
 
-            os.write(integerY & 0xFF);
-            os.write((integerY >> 8) & 0xFF);
+            write(integerY & 0xFF);
+            write((integerY >> 8) & 0xFF);
 
             return;
         }
@@ -633,15 +634,15 @@ public class FlaCs4Writer {
 
         logger.log(Level.FINE, "writing as fract 0x{0} 0x{1} 0x{2} 0x{3} 0x{4} 0x{5} 0x{6} 0x{7} ({8,number,#}.{9,number,#},{10,number,#}.{11,number,#} )", new Object[]{String.format("%02X", fractX), String.format("%02X", integerX & 0xFF), String.format("%02X", (integerX >> 8) & 0xFF), String.format("%02X", (integerX >> 16) & 0xFF), String.format("%02X", fractY), String.format("%02X", integerY & 0xFF), String.format("%02X", (integerY >> 8) & 0xFF), String.format("%02X", (integerY >> 16) & 0xFF), integerX, fractX, integerY, fractY});
 
-        os.write(fractX);
-        os.write(integerX & 0xFF);
-        os.write((integerX >> 8) & 0xFF);
-        os.write((integerX >> 16) & 0xFF);
+        write(fractX);
+        write(integerX & 0xFF);
+        write((integerX >> 8) & 0xFF);
+        write((integerX >> 16) & 0xFF);
 
-        os.write(fractY);
-        os.write(integerY & 0xFF);
-        os.write((integerY >> 8) & 0xFF);
-        os.write((integerY >> 16) & 0xFF);
+        write(fractY);
+        write(integerY & 0xFF);
+        write((integerY >> 8) & 0xFF);
+        write((integerY >> 16) & 0xFF);
     }
 
     public void moveTo(String x, String y) {
@@ -740,13 +741,13 @@ public class FlaCs4Writer {
         long txLong = (long) Math.round(tx);
         long tyLong = (long) Math.round(ty);
 
-        os.write(new byte[]{
-            (byte) (aLong & 0xFF), (byte) ((aLong >> 8) & 0xFF), (byte) ((aLong >> 16) & 0xFF), (byte) ((aLong >> 24) & 0xFF),
-            (byte) (bLong & 0xFF), (byte) ((bLong >> 8) & 0xFF), (byte) ((bLong >> 16) & 0xFF), (byte) ((bLong >> 24) & 0xFF),
-            (byte) (cLong & 0xFF), (byte) ((cLong >> 8) & 0xFF), (byte) ((cLong >> 16) & 0xFF), (byte) ((cLong >> 24) & 0xFF),
-            (byte) (dLong & 0xFF), (byte) ((dLong >> 8) & 0xFF), (byte) ((dLong >> 16) & 0xFF), (byte) ((dLong >> 24) & 0xFF),
-            (byte) (txLong & 0xFF), (byte) ((txLong >> 8) & 0xFF), (byte) ((txLong >> 16) & 0xFF), (byte) ((txLong >> 24) & 0xFF),
-            (byte) (tyLong & 0xFF), (byte) ((tyLong >> 8) & 0xFF), (byte) ((tyLong >> 16) & 0xFF), (byte) ((tyLong >> 24) & 0xFF),});
+        write(
+                (int) (aLong & 0xFF), (int) ((aLong >> 8) & 0xFF), (int) ((aLong >> 16) & 0xFF), (int) ((aLong >> 24) & 0xFF),
+                (int) (bLong & 0xFF), (int) ((bLong >> 8) & 0xFF), (int) ((bLong >> 16) & 0xFF), (int) ((bLong >> 24) & 0xFF),
+                (int) (cLong & 0xFF), (int) ((cLong >> 8) & 0xFF), (int) ((cLong >> 16) & 0xFF), (int) ((cLong >> 24) & 0xFF),
+                (int) (dLong & 0xFF), (int) ((dLong >> 8) & 0xFF), (int) ((dLong >> 16) & 0xFF), (int) ((dLong >> 24) & 0xFF),
+                (int) (txLong & 0xFF), (int) ((txLong >> 8) & 0xFF), (int) ((txLong >> 16) & 0xFF), (int) ((txLong >> 24) & 0xFF),
+                (int) (tyLong & 0xFF), (int) ((tyLong >> 8) & 0xFF), (int) ((tyLong >> 16) & 0xFF), (int) ((tyLong >> 24) & 0xFF));
     }
 
     public void writeBitmapFill(
@@ -754,14 +755,14 @@ public class FlaCs4Writer {
             Matrix bitmapMatrix,
             int bitmapId
     ) throws IOException {
-        os.write(new byte[]{
-            (byte) 0xFF, 0x00, 0x00, (byte) 0xFF,
-            (byte) type,
-            0x00});
+        write(
+                0xFF, 0x00, 0x00, 0xFF,
+                type,
+                0x00);
         writeMatrix(bitmapMatrix);
-        os.write(new byte[]{
-            (byte) bitmapId, 0x00
-        });
+        write(
+                bitmapId, 0x00
+        );
     }
 
     public void writeGradientFill(
@@ -774,23 +775,23 @@ public class FlaCs4Writer {
             double focalRatio
     ) throws IOException {
 
-        os.write(new byte[]{
-            0x00, 0x00, 0x00, 0x00 /*this is sometimes 0xFF*/, (byte) type, 0x00});
+        write(
+                0x00, 0x00, 0x00, 0x00 /*this is sometimes 0xFF*/, type, 0x00);
         writeMatrix(gradientMatrix);
-        os.write(new byte[]{
-            (byte) colors.length,
-            (byte) Math.round(focalRatio * 256), 0x00, 0x00, 0x00, (byte) (flow + (linearRgb ? 1 : 0)), 0x00, 0x00, 0x00
-        });
+        write(
+                colors.length,
+                (int) Math.round(focalRatio * 256), 0x00, 0x00, 0x00, (flow + (linearRgb ? 1 : 0)), 0x00, 0x00, 0x00
+        );
         for (int i = 0; i < colors.length; i++) {
-            os.write(new byte[]{(byte) Math.round(stopPos[i] * 255), (byte) colors[i].getRed(), (byte) colors[i].getGreen(), (byte) colors[i].getBlue(), (byte) colors[i].getAlpha()});
+            write((int) Math.round(stopPos[i] * 255), colors[i].getRed(), colors[i].getGreen(), colors[i].getBlue(), colors[i].getAlpha());
         }
     }
 
     public void writeSolidFill(Color fillColor) throws IOException {
-        os.write(new byte[]{
-            (byte) fillColor.getRed(), (byte) fillColor.getGreen(), (byte) fillColor.getBlue(), (byte) fillColor.getAlpha()});
-        os.write(0x00);
-        os.write(0x00);
+        write(
+                fillColor.getRed(), fillColor.getGreen(), fillColor.getBlue(), fillColor.getAlpha());
+        write(0x00);
+        write(0x00);
     }
 
     public void writeSolidStroke(
@@ -861,13 +862,13 @@ public class FlaCs4Writer {
          */
 
         int strokeWidthTwips = (int) Math.round(strokeWidth * 20);
-        os.write(new byte[]{
-            (byte) lineColor.getRed(), (byte) lineColor.getGreen(), (byte) lineColor.getBlue(), (byte) lineColor.getAlpha(),
-            (byte) (strokeWidthTwips & 0xFF), (byte) ((strokeWidthTwips >> 8) & 0xFF),
-            (byte) (styleParam1 & 0xFF), (byte) ((styleParam1 >> 8) & 0xFF),
-            (byte) (styleParam2 & 0xFF), (byte) ((styleParam2 >> 8) & 0xFF),
-            (byte) (pixelHinting ? 1 : 0), (byte) scaleMode, (byte) capStyle,
-            (byte) joinStyle, (byte) ((miter - Math.floor(miter)) * 256), (byte) Math.floor(miter)});
+        write(
+                lineColor.getRed(), lineColor.getGreen(), lineColor.getBlue(), lineColor.getAlpha(),
+                (strokeWidthTwips & 0xFF), ((strokeWidthTwips >> 8) & 0xFF),
+                (styleParam1 & 0xFF), ((styleParam1 >> 8) & 0xFF),
+                (styleParam2 & 0xFF), ((styleParam2 >> 8) & 0xFF),
+                (pixelHinting ? 1 : 0), scaleMode, capStyle,
+                joinStyle, (int) ((miter - Math.floor(miter)) * 256), (int) Math.floor(miter));
     }
 
     public void writeSolidStroke(
@@ -887,10 +888,10 @@ public class FlaCs4Writer {
     }
 
     public void writeKeyFrameMiddle() throws IOException {
-        os.write(new byte[]{
-            0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x00, 0x00, 0x00, (byte) 0x80, 0x00, 0x00, 0x06, 0x00, 0x00,
-            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05});
+        write(
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x06, 0x00, 0x00,
+                0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05);
     }
 
     private int generateRandomId() {
@@ -902,18 +903,18 @@ public class FlaCs4Writer {
     public void writeKeyFrameEnd(int duration, int keyMode, String actionScript) throws IOException {
         int frameId = generateRandomId();
 
-        os.write(new byte[]{
-            0x00, 0x00, 0x00, 0x00, 0x00,
-            0x1D, (byte) duration,
-            0x00, (byte) (keyMode & 0xFF), (byte) ((keyMode >> 8) & 0xFF), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0xFF,
-            (byte) 0xFF, (byte) 0xFF, 0x3F, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, 0x00, 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-            0x00, (byte) ((frameId >> 8) & 0xFF), (byte) (frameId & 0xFF),
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            (byte) 0xFF, (byte) 0xFE, (byte) 0xFF,});
+        write(
+                0x00, 0x00, 0x00, 0x00, 0x00,
+                0x1D, duration,
+                0x00, (keyMode & 0xFF), ((keyMode >> 8) & 0xFF), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
+                0xFF, 0xFF, 0x3F, 0xFF, 0xFF, 0xFF, 0xFE, 0xFF, 0x00, 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+                0x00, ((frameId >> 8) & 0xFF), (frameId & 0xFF),
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0xFF, 0xFE, 0xFF);
         writeLenUnicodeString(actionScript);
-        os.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0xFF, (byte) 0xFE, (byte) 0xFF, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,});
+        write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
     }
 
     public void writeKeyFrame(int frameLen, int keyMode) throws IOException {
@@ -923,10 +924,10 @@ public class FlaCs4Writer {
         int numFillStyles = 0;
         int numStrokeStyles = 0;
 
-        os.write(new byte[]{(byte) numEdges, 0x00, 0x00, 0x00});
-        os.write(new byte[]{(byte) numFillStyles, 0x00});
+        write(numEdges, 0x00, 0x00, 0x00);
+        write(numFillStyles, 0x00);
         //place fillstyles here        
-        os.write(new byte[]{(byte) numStrokeStyles, 0x00});
+        write(numStrokeStyles, 0x00);
         //place stroke styles here
         writeKeyFrameEnd(frameLen, keyMode, "");
     }
@@ -962,60 +963,62 @@ public class FlaCs4Writer {
             boolean showOutlines,
             int layerType
     ) throws IOException {
-        os.write(new byte[]{
-            0x00, 0x00, 0x00, 0x00, 0x00, (byte) 0x80, 0x00, 0x00, 0x00, (byte) 0x80, 0x00,
-            0x00, 0x0D, (byte) 0xFF, (byte) 0xFE, (byte) 0xFF
-        });
+        write(
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00,
+                0x00, 0x0D, 0xFF, 0xFE, 0xFF
+        );
 
         writeLenUnicodeString(layerName);
-        os.write(selectedLayer ? 1 : 0);
-        os.write(hiddenLayer ? 1 : 0);
-        os.write(lockedLayer ? 1 : 0);
-        os.write(new byte[]{(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF});
-        os.write(layerColor.getRed());
-        os.write(layerColor.getGreen());
-        os.write(layerColor.getBlue());
-        os.write(0xFF);
-        os.write(showOutlines ? 1 : 0);
-        os.write(new byte[]{0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00});
-        os.write(layerType);
+        write(selectedLayer ? 1 : 0);
+        write(hiddenLayer ? 1 : 0);
+        write(lockedLayer ? 1 : 0);
+        write(0xFF, 0xFF, 0xFF, 0xFF);
+        write(layerColor.getRed());
+        write(layerColor.getGreen());
+        write(layerColor.getBlue());
+        write(0xFF);
+        write(showOutlines ? 1 : 0);
+        write(0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+        write(layerType);
     }
 
     public void writeLayerEnd2(int parentLayerIndex, boolean open, boolean autoNamed) throws IOException {
         if (parentLayerIndex > -1) {
-            os.write(7 + parentLayerIndex);
+            write(7 + parentLayerIndex);
         } else {
-            os.write(0x00);
+            write(0x00);
         }
-        os.write(0x00);
-        os.write(open ? 1 : 0);
-        os.write(autoNamed ? 1 : 0);
-        os.write(0x00);
+        write(0x00);
+        write(open ? 1 : 0);
+        write(autoNamed ? 1 : 0);
+        write(0x00);
     }
 
     public void writeLenUnicodeString(String s) throws IOException {
-        os.write(s.length());
-        os.write(s.getBytes("UTF-16LE"));
+        write(s.length());
+        write(s.getBytes("UTF-16LE"));
     }
 
     public void writeLenAsciiString(String s) throws IOException {
         byte[] sbytes = s.getBytes("UTF-8");
-        os.write(sbytes.length);
-        os.write(0);
-        os.write(sbytes);
+        write(sbytes.length);
+        write(0);
+        write(sbytes);
     }
 
     public void writeEndParentLayer(int parentLayerIndex) throws IOException {
-        os.write(7 + parentLayerIndex);
-        os.write(0);
+        write(7 + parentLayerIndex);
+        write(0);
     }
 
     public void write(byte[] bytes) throws IOException {
         os.write(bytes);
     }
 
-    public void write(int value) throws IOException {
-        os.write(value);
+    public void write(int... values) throws IOException {
+        for (int i : values) {
+            os.write(i);
+        }
     }
 
 }

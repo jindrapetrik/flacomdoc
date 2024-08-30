@@ -37,8 +37,12 @@ import com.jpexs.flash.fla.extractor.FlaCfbExtractor;
 import com.jpexs.helpers.Reference;
 import java.awt.Color;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -352,11 +356,11 @@ public class XflToCs4Converter {
             os.write(1 + 2 * definedClasses.indexOf(className));
             os.write(0x80);
         } else {
-            os.write(new byte[]{(byte) 0xFF, (byte) 0xFF, 0x01, 0x00});
+            os.write(0xFF, 0xFF, 0x01, 0x00);
             os.writeLenAsciiString(className);
             definedClasses.add(className);
         }
-        os.write(new byte[]{0x05,});
+        os.write(0x05);
     }
 
     private static void writeLayerContents(
@@ -937,16 +941,13 @@ public class XflToCs4Converter {
                                 }
                             }
 
-                            //fg.writeKeyFrame(1, KEYMODE_STANDARD);
-                            fg.write(new byte[]{
-                                (byte) totalEdgeCount, 0x00, 0x00, 0x00
-                            });
-                            fg.write(new byte[]{(byte) fillStyles.size(), 0x00});
+                            fg.write( totalEdgeCount, 0x00, 0x00, 0x00);
+                            fg.write(fillStyles.size(), 0x00);
                             for (Node fillStyle : fillStyles) {
                                 Node fillStyleVal = getFirstSubElement(fillStyle);
                                 handleFill(fillStyleVal, fg);
                             }
-                            fg.write(new byte[]{(byte) strokeStyles.size(), 0x00});
+                            fg.write(strokeStyles.size(), 0x00);
                             for (Node strokeStyle : strokeStyles) {
                                 Node strokeStyleVal = getFirstSubElement(strokeStyle);
                                 int scaleMode = FlaCs4Writer.SCALE_MODE_NONE;
@@ -1127,7 +1128,7 @@ public class XflToCs4Converter {
                     }
 
                     if (emptyFrame) {
-                        fg.write(new byte[]{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
+                        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
                     }
                     int keyMode = FlaCs4Writer.KEYMODE_STANDARD;
                     Node keyModeAttr = frame.getAttributes().getNamedItem("keyMode");
@@ -1299,23 +1300,17 @@ public class XflToCs4Converter {
         return layerIndexToRevLayerIndex;
     }
 
-    public static void main(String[] args) throws ParserConfigurationException, SAXException, IOException {
-        FlaCfbExtractor.initLog();
-        File dir = new File(FlaCfbExtractor.getProperty("convert.xfl.dir"));
-        File domDocumentFile = dir.toPath().resolve("DOMDocument.xml").toFile();
-
+    private static void generatePageFile(InputStream is, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder = factory.newDocumentBuilder();
 
-        Document doc = docBuilder.parse(domDocumentFile);
+        Document doc = docBuilder.parse(is);
 
-        String file = FlaCfbExtractor.getProperty("convert.xfl.output.file");
-        FileOutputStream fos = new FileOutputStream(file);
-        FlaCs4Writer fg = new FlaCs4Writer(fos);
+        FlaCs4Writer fg = new FlaCs4Writer(os);
 
         List<String> definedClasses = new ArrayList<>();
 
-        fg.write(new byte[]{0x01});
+        fg.write(0x01);
         useClass("CPicPage", fg, definedClasses);
         fg.write(0x00);
 
@@ -1396,7 +1391,7 @@ public class XflToCs4Converter {
                             Element parentLayer = layers.get(parentLayerIndex);
                             handleParentLayer(parentLayer, fg, layerIndexToRevLayerIndex, false, definedClasses, copiedComponentPathRef, totalFramesCountRef);
                             if (parentLayerIndex == layerIndex - 1) {
-                                fg.write(new byte[]{(byte) (7 + reverseParentLayerIndex), 0x00});
+                                fg.write(7 + reverseParentLayerIndex, 0x00);
                             } else {
                                 openedParentLayers.push(parentLayerIndex);
                             }
@@ -1407,7 +1402,41 @@ public class XflToCs4Converter {
                 }
             }
         }
-        fg.writePageFooter(nextLayerId, nextFolderId, 0);
-        fos.close();
+        fg.writePageFooter(nextLayerId, nextFolderId, 0);        
+    }
+    
+    public static void generatePageFile(File inputFile, File outputFile) throws FileNotFoundException, IOException, SAXException, ParserConfigurationException {
+        try(FileInputStream fis = new FileInputStream(inputFile);
+            FileOutputStream fos = new FileOutputStream(outputFile)) {
+            generatePageFile(fis, fos);
+        }
+    }
+    
+    public static void generateContentsFile(InputStream domDocumentIs, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder docBuilder = factory.newDocumentBuilder();
+
+        Document doc = docBuilder.parse(domDocumentIs);
+
+        FlaCs4Writer fg = new FlaCs4Writer(os);
+        
+        
+    }
+    
+    public static void generateContentsFile(File domDocumentFile, File outputFile) throws FileNotFoundException, IOException, SAXException, ParserConfigurationException {
+        try(FileInputStream fis = new FileInputStream(domDocumentFile);
+            FileOutputStream fos = new FileOutputStream(outputFile)) {
+            generateContentsFile(fis, fos);
+        }
+    }
+    
+    public static void main(String[] args) throws ParserConfigurationException, SAXException, IOException {
+        FlaCfbExtractor.initLog();
+        File dir = new File(FlaCfbExtractor.getProperty("convert.xfl.dir"));
+        
+        File outputFile = new File(FlaCfbExtractor.getProperty("convert.xfl.output.file"));
+        File inputFile = dir.toPath().resolve("DOMDocument.xml").toFile();
+
+        generatePageFile(inputFile, outputFile);
     }
 }
