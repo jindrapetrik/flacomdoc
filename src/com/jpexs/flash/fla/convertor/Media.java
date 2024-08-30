@@ -16,30 +16,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301  USA
  */
-package com.jpexs.flash.fla.convertor.filters;
-
-import java.awt.Color;
+package com.jpexs.flash.fla.convertor;
 
 /**
  *
  * @author JPEXS
  */
-public class GradientEntry {
+public class Media {
 
-    private final float ratio;
-    private final Color color;
+    public String name;
+    public String ident;
+    public byte[] data;
+    public int width;
+    public int height;
 
-    public GradientEntry(float ratio, Color color) {
-        this.ratio = ratio;
-        this.color = color;
-    }
-
-    public float getRatio() {
-        return ratio;
-    }
-
-    public Color getColor() {
-        return color;
+    public Media(String name, String ident, byte[] data, int width, int height) {
+        this.name = name;
+        this.ident = ident;
+        this.data = data;
+        this.width = width;
+        this.height = height;
     }
 
 }

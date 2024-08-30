@@ -18,6 +18,7 @@
  */
 package com.jpexs.flash.fla.convertor.filters;
 
+import com.jpexs.flash.fla.convertor.GradientEntry;
 import com.jpexs.flash.fla.convertor.FlaCs4Writer;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -133,13 +134,12 @@ public class GradientBevelFilter implements FilterInterface {
             (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
             (byte) gradientEntries.size(), (byte) 0x00, (byte) 0x00, (byte) 0x00,
             (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-            (byte) (type == TYPE_FULL ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
-        });
+            (byte) (type == TYPE_FULL ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,});
 
         for (GradientEntry entry : gradientEntries) {
             os.write(new byte[]{
-                (byte) (Math.round(entry.getRatio() * 255)), (byte) 0x00, (byte) 0x00, (byte) 0x00,
-                (byte) entry.getColor().getRed(), (byte) entry.getColor().getGreen(), (byte) entry.getColor().getBlue(), (byte) entry.getColor().getAlpha()
+                (byte) (Math.round(entry.ratio * 255)), (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                (byte) entry.color.getRed(), (byte) entry.color.getGreen(), (byte) entry.color.getBlue(), (byte) entry.color.getAlpha()
             });
         }
     }

@@ -1002,6 +1002,11 @@ public class FlaCs4Writer {
         write(s.getBytes("UTF-16LE"));
     }
 
+    public void writeDoubleLenUnicodeString(String s) throws IOException {
+        writeUI16(s.length());
+        write(s.getBytes("UTF-16LE"));
+    }
+
     public void writeLenAsciiString(String s) throws IOException {
         byte[] sbytes = s.getBytes("UTF-8");
         write(sbytes.length);
@@ -1022,6 +1027,18 @@ public class FlaCs4Writer {
         for (int i : values) {
             os.write(i);
         }
+    }
+
+    public void writeUI16(int value) throws IOException {
+        write(value & 0xFF);
+        write((value >> 8) & 0xFF);
+    }
+
+    public void writeUI32(long value) throws IOException {
+        write((int) (value & 0xFF));
+        write((int) ((value >> 8) & 0xFF));
+        write((int) ((value >> 16) & 0xFF));
+        write((int) ((value >> 24) & 0xFF));
     }
 
 }
