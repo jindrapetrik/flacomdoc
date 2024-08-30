@@ -941,7 +941,7 @@ public class XflToCs4Converter {
                                 }
                             }
 
-                            fg.write( totalEdgeCount, 0x00, 0x00, 0x00);
+                            fg.write(totalEdgeCount, 0x00, 0x00, 0x00);
                             fg.write(fillStyles.size(), 0x00);
                             for (Node fillStyle : fillStyles) {
                                 Node fillStyleVal = getFirstSubElement(fillStyle);
@@ -1197,13 +1197,19 @@ public class XflToCs4Converter {
                 isSelected = "true".equals(isSelectedAttr.getTextContent());
             }
 
+            int heightMultiplier = 1;
+            if (layer.hasAttribute("heightMultiplier")) {
+                heightMultiplier = Integer.parseInt(layer.getAttribute("heightMultiplier"));
+            }
+
             fg.writeLayerEnd(layerName,
                     isSelected,
                     hiddenLayer,
                     lockedLayer,
                     color,
                     showOutlines,
-                    layerType);
+                    layerType,
+                    heightMultiplier);
         }
     }
 
@@ -1402,16 +1408,15 @@ public class XflToCs4Converter {
                 }
             }
         }
-        fg.writePageFooter(nextLayerId, nextFolderId, 0);        
+        fg.writePageFooter(nextLayerId, nextFolderId, 0);
     }
-    
+
     public static void generatePageFile(File inputFile, File outputFile) throws FileNotFoundException, IOException, SAXException, ParserConfigurationException {
-        try(FileInputStream fis = new FileInputStream(inputFile);
-            FileOutputStream fos = new FileOutputStream(outputFile)) {
+        try (FileInputStream fis = new FileInputStream(inputFile); FileOutputStream fos = new FileOutputStream(outputFile)) {
             generatePageFile(fis, fos);
         }
     }
-    
+
     public static void generateContentsFile(InputStream domDocumentIs, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder = factory.newDocumentBuilder();
@@ -1419,21 +1424,19 @@ public class XflToCs4Converter {
         Document doc = docBuilder.parse(domDocumentIs);
 
         FlaCs4Writer fg = new FlaCs4Writer(os);
-        
-        
+
     }
-    
+
     public static void generateContentsFile(File domDocumentFile, File outputFile) throws FileNotFoundException, IOException, SAXException, ParserConfigurationException {
-        try(FileInputStream fis = new FileInputStream(domDocumentFile);
-            FileOutputStream fos = new FileOutputStream(outputFile)) {
+        try (FileInputStream fis = new FileInputStream(domDocumentFile); FileOutputStream fos = new FileOutputStream(outputFile)) {
             generateContentsFile(fis, fos);
         }
     }
-    
+
     public static void main(String[] args) throws ParserConfigurationException, SAXException, IOException {
         FlaCfbExtractor.initLog();
         File dir = new File(FlaCfbExtractor.getProperty("convert.xfl.dir"));
-        
+
         File outputFile = new File(FlaCfbExtractor.getProperty("convert.xfl.output.file"));
         File inputFile = dir.toPath().resolve("DOMDocument.xml").toFile();
 

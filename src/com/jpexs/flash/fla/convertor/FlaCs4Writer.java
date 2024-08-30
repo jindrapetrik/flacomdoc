@@ -133,7 +133,8 @@ public class FlaCs4Writer {
                 false,
                 new Color(rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256)),
                 false,
-                LAYERTYPE_LAYER);
+                LAYERTYPE_LAYER,
+                1);
     }
 
     public void writeFloat(float val) throws IOException {
@@ -941,7 +942,8 @@ public class FlaCs4Writer {
             boolean lockedLayer,
             Color layerColor,
             boolean showOutlines,
-            int layerType
+            int layerType,
+            int heightMultiplier
     ) throws IOException {
 
         /*writeKeyFrame(1, KEYMODE_STANDARD);
@@ -950,7 +952,7 @@ public class FlaCs4Writer {
         writeKeyFrameSeparator();
         writeKeyFrame(1, KEYMODE_STANDARD);*/
         writeKeyFrame(1, KEYMODE_STANDARD);
-        writeLayerEnd(layerName, selectedLayer, hiddenLayer, lockedLayer, layerColor, showOutlines, layerType);
+        writeLayerEnd(layerName, selectedLayer, hiddenLayer, lockedLayer, layerColor, showOutlines, layerType, heightMultiplier);
 
     }
 
@@ -961,7 +963,8 @@ public class FlaCs4Writer {
             boolean lockedLayer,
             Color layerColor,
             boolean showOutlines,
-            int layerType
+            int layerType,
+            int heightMultiplier
     ) throws IOException {
         write(
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00,
@@ -978,7 +981,7 @@ public class FlaCs4Writer {
         write(layerColor.getBlue());
         write(0xFF);
         write(showOutlines ? 1 : 0);
-        write(0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+        write(0x00, 0x00, 0x00, heightMultiplier, 0x00, 0x00, 0x00);
         write(layerType);
     }
 
