@@ -49,6 +49,7 @@ public class XflToCs4Converter {
         File domDocumentFile = dir.toPath().resolve("DOMDocument.xml").toFile();
         File publishSettingsFile = dir.toPath().resolve("PublishSettings.xml").toFile();
         File metadataFile = dir.toPath().resolve("META-INF/metadata.xml").toFile();
+        File libraryDir = dir.toPath().resolve("LIBRARY").toFile();
 
         if (!publishSettingsFile.exists()) {
             publishSettingsFile = null;
@@ -63,7 +64,7 @@ public class XflToCs4Converter {
         outputDir.mkdirs();
 
         ContentsGenerator contentsGenerator = new ContentsGenerator();
-        contentsGenerator.generate(domDocumentFile, publishSettingsFile, metadataFile, outputDir);
+        contentsGenerator.generate(domDocumentFile, publishSettingsFile, metadataFile, libraryDir, outputDir);
         try (CompoundFileBinary cfb = new CompoundFileBinary(outputFlaFile, true)) {
             cfb.addDirectoryContents("", outputDir);
         }

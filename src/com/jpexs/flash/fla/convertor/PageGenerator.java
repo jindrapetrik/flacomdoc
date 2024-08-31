@@ -248,9 +248,6 @@ public class PageGenerator extends AbstractGenerator {
             List<Element> frames = getAllSubElementsByName(framesNode, "DOMFrame");
             for (int f = 0; f < frames.size(); f++) {
                 useClass("CPicFrame", 5, fg, definedClasses);
-                /*if (totalFramesCount > 0) {
-                                fg.writeKeyFrameSeparator();
-                            }*/
                 fg.write(0x00);
                 totalFramesCountRef.setVal(totalFramesCountRef.getVal() + 1);
                 Node frame = frames.get(f);
@@ -287,9 +284,7 @@ public class PageGenerator extends AbstractGenerator {
                             nameNoXml = nameNoXml.substring(0, nameNoXml.length() - 4);
                         }
                         if (nameNoXml.equals(libraryItemName)) {
-                            //libraryItemIndex = e;
-                            //FIXME: Need to really determine the symbol file
-                            libraryItemIndex = 'X';
+                            libraryItemIndex = e + 1;
                             break;
                         }
                     }
@@ -346,9 +341,6 @@ public class PageGenerator extends AbstractGenerator {
                         useClass("CPicSprite", 5, fg, definedClasses);
                     }
 
-                    /*if (totalSymbolInstancesCount > 0) {
-                                    fg.writeSymbolInstanceSeparator();
-                                } */
                     String instanceName = "";
                     if (symbolType != FlaCs4Writer.SYMBOLTYPE_GRAPHIC && symbolInstance.hasAttribute("name")) {
                         instanceName = symbolInstance.getAttribute("name");
