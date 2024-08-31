@@ -22,6 +22,7 @@ import com.jpexs.flash.fla.extractor.FlaCfbExtractor;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
@@ -379,6 +380,10 @@ public class CompoundFileBinary implements AutoCloseable {
         if (trailingSlash) {
             path = path.substring(0, path.length() - 1);
         }
+
+        if (path.isEmpty()) {
+            return dir;
+        }
         String parts[] = path.split("/", -1);
 
         loopp:
@@ -480,6 +485,7 @@ public class CompoundFileBinary implements AutoCloseable {
 
     private void addDirectoryEntry(DirectoryEntry parent, DirectoryEntry newEntry) throws IOException {
         boolean asChild = false;
+        boolean asLeft = false;
         Long targetId = null;
         if (parent.childId == NOSTREAM) {
             asChild = true;
@@ -488,29 +494,24 @@ public class CompoundFileBinary implements AutoCloseable {
 
             DirectoryEntry e = child;
             while (true) {
-                DirectoryEntry left = e.leftSiblingId == NOSTREAM ? null : getDirEntryById(e.leftSiblingId);
-                DirectoryEntry right = e.rightSiblingId == NOSTREAM ? null : getDirEntryById(e.rightSiblingId);
-
-                if (left != null) {
-                    //The left sibling MUST always be less than the right sibling
-                    if (newEntry.compareTo(left) > 0) {
-                        e = left;
-                        continue;
+                int cmp = newEntry.compareTo(e);
+                if (cmp < 0) {
+                    if (e.leftSiblingId != NOSTREAM) {
+                        e = getDirEntryById(e.leftSiblingId);
+                    } else {
+                        asLeft = true;
+                        break;
+                    }
+                } else {
+                    if (e.rightSiblingId != NOSTREAM) {
+                        e = getDirEntryById(e.rightSiblingId);
+                    } else {
+                        asLeft = false;
+                        break;
                     }
                 }
-                if (left != null && right != null) {
-                    e = right;
-                    continue;
-                }
-                if (left == null) {
-                    break;
-                }
-                break;
             }
 
-            /*while (child.leftSiblingId != NOSTREAM && child.rightSiblingId != NOSTREAM) {
-                child = getDirEntryById(child.leftSiblingId);
-            }*/
             targetId = e.streamId;
         }
 
@@ -564,11 +565,50 @@ public class CompoundFileBinary implements AutoCloseable {
                         && startingSectorLocation == 0
                         && streamSize == 0) {
                     raf.seek((1 + directorySector) * sectorLength + i);
-                    Date d = new Date();
                     entry = newEntry;
                     entry.fileOffset = (1 + directorySector) * sectorLength + i;
                     entry.streamId = newStreamId;
                     writeDirectoryEntry(entry);
+                    directoryEntries.set(newStreamId, entry);
+
+                    if (i == sectorLength - 128) { // last directory entry in sector
+                        directorySector = allocateNewSector(directorySector);
+                        int sid = newStreamId;
+                        raf.seek((1 + directorySector) * sectorLength);
+                        for (int j = 0; j < sectorLength; j += 128) {
+                            sid++;
+                            DirectoryEntry en = new DirectoryEntry(raf.getFilePointer(), sid, null,
+                                    TYPE_UNKNOWN,
+                                    COLOR_RED,
+                                    NOSTREAM,
+                                    NOSTREAM,
+                                    NOSTREAM,
+                                    CLSID_NULL,
+                                    0,
+                                    null,
+                                    null,
+                                    0,
+                                    0);
+                            directoryEntries.add(en);
+                            writeDirectoryEntry(en);
+                        }
+                    } else {
+                        DirectoryEntry en = new DirectoryEntry(raf.getFilePointer(), newStreamId + 1, null,
+                                TYPE_UNKNOWN,
+                                COLOR_RED,
+                                NOSTREAM,
+                                NOSTREAM,
+                                NOSTREAM,
+                                CLSID_NULL,
+                                0,
+                                null,
+                                null,
+                                0,
+                                0);
+                        directoryEntries.add(en);
+                        writeDirectoryEntry(en);
+                    }
+
                     break loopDir;
                 }
                 newStreamId++;
@@ -583,12 +623,28 @@ public class CompoundFileBinary implements AutoCloseable {
             entry = newEntry;
             entry.fileOffset = (1 + directorySector) * sectorLength;
             entry.streamId = newStreamId;
+            directoryEntries.add(entry);
             writeDirectoryEntry(entry);
+            int sid = newStreamId;
+
             for (int i = 128; i < sectorLength; i += 128) {
-                writeEmptyDirectoryEntry();
+                sid++;
+                DirectoryEntry en = new DirectoryEntry(raf.getFilePointer(), sid, null,
+                        TYPE_UNKNOWN,
+                        COLOR_RED,
+                        NOSTREAM,
+                        NOSTREAM,
+                        NOSTREAM,
+                        CLSID_NULL,
+                        0,
+                        null,
+                        null,
+                        0,
+                        0);
+                directoryEntries.add(en);
+                writeDirectoryEntry(en);
             }
         }
-        directoryEntries.add(entry);
 
         directorySector = firstDirectorySectorLocation;
         int streamId = 0;
@@ -610,12 +666,12 @@ public class CompoundFileBinary implements AutoCloseable {
                     writeUI32(newStreamId);
                     parent.childId = newStreamId;
                 }
-                if (targetId != null && streamId == targetId) {
-                    if (rightSiblingId == NOSTREAM) {
+                if (!asChild && streamId == targetId) {
+                    if (!asLeft) {
                         raf.seek((1 + directorySector) * sectorLength + i + 72);
                         writeUI32(newStreamId);
                         getDirEntryById(streamId).rightSiblingId = newStreamId;
-                    } else if (leftSiblingId == NOSTREAM) {
+                    } else {
                         raf.seek((1 + directorySector) * sectorLength + i + 68);
                         writeUI32(newStreamId);
                         getDirEntryById(streamId).leftSiblingId = newStreamId;
@@ -835,6 +891,7 @@ public class CompoundFileBinary implements AutoCloseable {
                 for (int i = 0; i < sectorLength; i += 4) {
                     if (sectorId == prevSector) {
                         writeUI32(foundMiniSectorId);
+                        minifat.put(prevSector, foundMiniSectorId);
                         break loopMiniFat2;
                     }
                     readUI32();
@@ -1309,6 +1366,39 @@ public class CompoundFileBinary implements AutoCloseable {
 
     public List<DirectoryEntry> getDirectoryEntries() {
         return directoryEntries;
+    }
+
+    public void extractTo(String path, File targetDir) throws IOException {
+        DirectoryEntry de = getEntryByPath(path);
+        extractTo(de, targetDir);
+    }
+
+    public void extractTo(DirectoryEntry de, File targetPath) throws IOException {
+        if (de == null) {
+            return;
+        }
+
+        Logger.getLogger(CompoundFileBinary.class.getName()).log(Level.FINE, "Extracting {0}", de.name);
+
+        if (de.objectType == TYPE_STREAM_OBJECT) {
+            InputStream is = getEntryStream(de);
+            File outFile = targetPath.toPath().toFile();
+            try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                byte buf[] = new byte[4096];
+                int cnt;
+                while ((cnt = is.read(buf)) > 0) {
+                    fos.write(buf, 0, cnt);
+                }
+            }
+        }
+
+        if (de.objectType == TYPE_STORAGE_OBJECT
+                || de.objectType == TYPE_ROOT_STORAGE_OBJECT) {
+            List<DirectoryEntry> entries = getEntriesInDir(de);
+            for (DirectoryEntry en : entries) {
+                extractTo(en, targetPath.toPath().resolve(en.getFilename()).toFile());
+            }
+        }
     }
 
     public static void main(String[] args) throws IOException {
