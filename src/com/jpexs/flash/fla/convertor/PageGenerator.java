@@ -115,9 +115,9 @@ public class PageGenerator extends AbstractGenerator {
                     }
                 }
 
-                int type = FlaCs4Writer.TYPE_LINEAR_GRADIENT;
+                int type = FlaCs4Writer.FILLTYPE_LINEAR_GRADIENT;
                 if ("RadialGradient".equals(fillStyleVal.getNodeName())) {
-                    type = FlaCs4Writer.TYPE_RADIAL_GRADIENT;
+                    type = FlaCs4Writer.FILLTYPE_RADIAL_GRADIENT;
                 }
                 fg.writeGradientFill(colors, ratios, type, linearRGB, spreadMethod, gradientMatrix, focalPointRatio);
             }
@@ -149,15 +149,15 @@ public class PageGenerator extends AbstractGenerator {
                                         int type;
                                         if (allowSmoothing) {
                                             if (bitmapIsClipped) {
-                                                type = FlaCs4Writer.TYPE_CLIPPED_BITMAP;
+                                                type = FlaCs4Writer.FILLTYPE_CLIPPED_BITMAP;
                                             } else {
-                                                type = FlaCs4Writer.TYPE_BITMAP;
+                                                type = FlaCs4Writer.FILLTYPE_BITMAP;
                                             }
                                         } else {
                                             if (bitmapIsClipped) {
-                                                type = FlaCs4Writer.TYPE_NON_SMOOTHED_CLIPPED_BITMAP;
+                                                type = FlaCs4Writer.FILLTYPE_NON_SMOOTHED_CLIPPED_BITMAP;
                                             } else {
-                                                type = FlaCs4Writer.TYPE_NON_SMOOTHED_BITMAP;
+                                                type = FlaCs4Writer.FILLTYPE_NON_SMOOTHED_BITMAP;
                                             }
                                         }
 
@@ -817,7 +817,7 @@ public class PageGenerator extends AbstractGenerator {
                             fg.write(strokeStyles.size(), 0x00);
                             for (Node strokeStyle : strokeStyles) {
                                 Node strokeStyleVal = getFirstSubElement(strokeStyle);
-                                int scaleMode = FlaCs4Writer.SCALE_MODE_NONE;
+                                int scaleMode = FlaCs4Writer.SCALEMODE_NONE;
 
                                 double weight = 1.0;
                                 Node weightAttr = strokeStyleVal.getAttributes().getNamedItem("weight");
@@ -848,39 +848,39 @@ public class PageGenerator extends AbstractGenerator {
                                     case "SolidStroke":
                                         styleParam1 = 0;
                                         styleParam2 = 0;
-                                        joints = FlaCs4Writer.JOIN_STYLE_ROUND;
-                                        caps = FlaCs4Writer.CAP_STYLE_ROUND;
+                                        joints = FlaCs4Writer.JOINSTYLE_ROUND;
+                                        caps = FlaCs4Writer.CAPSTYLE_ROUND;
 
                                         Node scaleModeAttr = strokeStyleVal.getAttributes().getNamedItem("scaleMode");
                                         if (scaleModeAttr != null) {
                                             if ("normal".equals(scaleModeAttr.getTextContent())) {
-                                                scaleMode = FlaCs4Writer.SCALE_MODE_NORMAL;
+                                                scaleMode = FlaCs4Writer.SCALEMODE_NORMAL;
                                             }
                                             if ("horizontal".equals(scaleModeAttr.getTextContent())) {
-                                                scaleMode = FlaCs4Writer.SCALE_MODE_HORIZONTAL;
+                                                scaleMode = FlaCs4Writer.SCALEMODE_HORIZONTAL;
                                             }
                                             if ("vertical".equals(scaleModeAttr.getTextContent())) {
-                                                scaleMode = FlaCs4Writer.SCALE_MODE_VERTICAL;
+                                                scaleMode = FlaCs4Writer.SCALEMODE_VERTICAL;
                                             }
                                         }
 
                                         Node capsAttr = strokeStyleVal.getAttributes().getNamedItem("caps");
                                         if (capsAttr != null) {
                                             if ("none".equals(capsAttr.getTextContent())) {
-                                                caps = FlaCs4Writer.CAP_STYLE_NONE;
+                                                caps = FlaCs4Writer.CAPSTYLE_NONE;
                                             }
                                             if ("square".equals(capsAttr.getTextContent())) {
-                                                caps = FlaCs4Writer.CAP_STYLE_SQUARE;
+                                                caps = FlaCs4Writer.CAPSTYLE_SQUARE;
                                             }
                                         }
 
                                         Node jointsAttr = strokeStyleVal.getAttributes().getNamedItem("joints");
                                         if (jointsAttr != null) {
                                             if ("bevel".equals(jointsAttr.getTextContent())) {
-                                                joints = FlaCs4Writer.JOIN_STYLE_BEVEL;
+                                                joints = FlaCs4Writer.JOINSTYLE_BEVEL;
                                             }
                                             if ("miter".equals(jointsAttr.getTextContent())) {
-                                                joints = FlaCs4Writer.JOIN_STYLE_MITER;
+                                                joints = FlaCs4Writer.JOINSTYLE_MITER;
                                             }
                                         }
                                         break;

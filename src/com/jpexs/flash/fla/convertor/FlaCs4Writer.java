@@ -55,30 +55,30 @@ public class FlaCs4Writer {
 
     public static int KEYMODE_STANDARD = 9728;
 
-    public static int SCALE_MODE_NORMAL = 0;
-    public static int SCALE_MODE_HORIZONTAL = 1;
-    public static int SCALE_MODE_VERTICAL = 2;
-    public static int SCALE_MODE_NONE = 3;
+    public static int SCALEMODE_NORMAL = 0;
+    public static int SCALEMODE_HORIZONTAL = 1;
+    public static int SCALEMODE_VERTICAL = 2;
+    public static int SCALEMODE_NONE = 3;
 
-    public static int CAP_STYLE_NONE = 0;
-    public static int CAP_STYLE_ROUND = 1;
-    public static int CAP_STYLE_SQUARE = 2;
+    public static int CAPSTYLE_NONE = 0;
+    public static int CAPSTYLE_ROUND = 1;
+    public static int CAPSTYLE_SQUARE = 2;
 
-    public static int JOIN_STYLE_MITER = 0;
-    public static int JOIN_STYLE_ROUND = 1;
-    public static int JOIN_STYLE_BEVEL = 2;
+    public static int JOINSTYLE_MITER = 0;
+    public static int JOINSTYLE_ROUND = 1;
+    public static int JOINSTYLE_BEVEL = 2;
 
     public static final int FLOW_EXTEND = 0;
     public static final int FLOW_REFLECT = 4;
     public static final int FLOW_REPEAT = 8;
 
-    public static final int TYPE_LINEAR_GRADIENT = 0x10;
-    public static final int TYPE_RADIAL_GRADIENT = 0x12;
+    public static final int FILLTYPE_LINEAR_GRADIENT = 0x10;
+    public static final int FILLTYPE_RADIAL_GRADIENT = 0x12;
 
-    public static final int TYPE_BITMAP = 0x40;
-    public static final int TYPE_CLIPPED_BITMAP = 0x41;
-    public static final int TYPE_NON_SMOOTHED_BITMAP = 0x42;
-    public static final int TYPE_NON_SMOOTHED_CLIPPED_BITMAP = 0x43;
+    public static final int FILLTYPE_BITMAP = 0x40;
+    public static final int FILLTYPE_CLIPPED_BITMAP = 0x41;
+    public static final int FILLTYPE_NON_SMOOTHED_BITMAP = 0x42;
+    public static final int FILLTYPE_NON_SMOOTHED_CLIPPED_BITMAP = 0x43;
 
     public static final int SYMBOLTYPE_SPRITE = 0;
     public static final int SYMBOLTYPE_BUTTON = 1;
@@ -799,13 +799,12 @@ public class FlaCs4Writer {
             Color lineColor,
             int strokeWidthTwips
     ) throws IOException {
-        writeSolidStroke(
-                lineColor,
+        writeSolidStroke(lineColor,
                 strokeWidthTwips,
                 false,
-                SCALE_MODE_NORMAL,
-                CAP_STYLE_ROUND,
-                JOIN_STYLE_ROUND,
+                SCALEMODE_NORMAL,
+                CAPSTYLE_ROUND,
+                JOINSTYLE_ROUND,
                 3,
                 0,
                 0);
