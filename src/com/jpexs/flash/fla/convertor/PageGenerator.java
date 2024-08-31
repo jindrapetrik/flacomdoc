@@ -34,6 +34,12 @@ import com.jpexs.flash.fla.convertor.filters.GradientBevelFilter;
 import com.jpexs.flash.fla.convertor.filters.GradientGlowFilter;
 import com.jpexs.helpers.Reference;
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.GraphicsEnvironment;
+import java.awt.font.FontRenderContext;
+import java.awt.font.TextAttribute;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Rectangle2D;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -46,6 +52,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Stack;
 import javax.xml.parsers.DocumentBuilder;
@@ -56,12 +63,23 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+import java.util.logging.Logger;
 
 /**
  *
  * @author JPEXS
  */
 public class PageGenerator extends AbstractGenerator {
+
+    private static final Map<String, Font> psNameToFontName = new HashMap<>();
+
+    static {
+        Font[] fonts = GraphicsEnvironment.getLocalGraphicsEnvironment().getAllFonts();
+
+        for (Font font : fonts) {
+            psNameToFontName.put(font.getPSName(), font);
+        }
+    }
 
     private void handleFill(Node fillStyleVal, FlaCs4Writer fg) throws IOException {
         switch (fillStyleVal.getNodeName()) {
@@ -219,6 +237,968 @@ public class PageGenerator extends AbstractGenerator {
         return ret;
     }
 
+    protected void handleSymbolInstances(
+            Element elementsNode,
+            FlaCs4Writer fg,
+            List<String> definedClasses,
+            Reference<Integer> copiedComponentPathRef
+    ) throws IOException {
+        List<Element> symbolInstances = getAllSubElementsByName(elementsNode, "DOMSymbolInstance");
+        for (int symbolInstanceIndex = 0; symbolInstanceIndex < symbolInstances.size(); symbolInstanceIndex++) {
+
+            Element symbolInstance = symbolInstances.get(symbolInstanceIndex);
+
+            if (!symbolInstance.hasAttribute("libraryItemName")) {
+                //nothing we can do
+                continue;
+            }
+
+            String libraryItemName = symbolInstance.getAttribute("libraryItemName");
+            Element symbolsElement = getSubElementByName(symbolInstance.getOwnerDocument().getDocumentElement(), "symbols");
+            if (symbolsElement == null) {
+                //nothing we can do                                    
+                continue;
+            }
+            List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
+
+            //Find index in library
+            int libraryItemIndex = -1;
+            for (int e = 0; e < includes.size(); e++) {
+                Element include = includes.get(e);
+                if (!include.hasAttribute("href")) {
+                    continue;
+                }
+                String href = include.getAttribute("href");
+                String nameNoXml = href;
+                if (nameNoXml.endsWith(".xml")) {
+                    nameNoXml = nameNoXml.substring(0, nameNoXml.length() - 4);
+                }
+                if (nameNoXml.equals(libraryItemName)) {
+                    libraryItemIndex = e + 1;
+                    break;
+                }
+            }
+            if (libraryItemIndex == -1) {
+                //nothing we can do 
+                continue;
+            }
+
+            int symbolType = FlaCs4Writer.SYMBOLTYPE_SPRITE;
+
+            if (symbolInstance.hasAttribute("symbolType")) {
+                switch (symbolInstance.getAttribute("symbolType")) {
+                    case "sprite": //?? is this correct default value ??
+                        symbolType = FlaCs4Writer.SYMBOLTYPE_SPRITE;
+                        break;
+                    case "button":
+                        symbolType = FlaCs4Writer.SYMBOLTYPE_BUTTON;
+                        break;
+                    case "graphic":
+                        symbolType = FlaCs4Writer.SYMBOLTYPE_GRAPHIC;
+                        break;
+                }
+            }
+
+            boolean trackAsMenu = false;
+            int loop = FlaCs4Writer.LOOPMODE_LOOP;
+            int firstFrame = 0; //zero-based
+
+            if (symbolType == FlaCs4Writer.SYMBOLTYPE_BUTTON) {
+                useClass("CPicButton", 5, fg, definedClasses);
+                if (symbolInstance.hasAttribute("trackAsMenu")) {
+                    trackAsMenu = "true".equals(symbolInstance.getAttribute("trackAsMenu"));
+                }
+            } else if (symbolType == FlaCs4Writer.SYMBOLTYPE_GRAPHIC) {
+                useClass("CPicSymbol", 5, fg, definedClasses);
+
+                if (symbolInstance.hasAttribute("loop")) {
+                    switch (symbolInstance.getAttribute("loop")) {
+                        case "loop":
+                            loop = FlaCs4Writer.LOOPMODE_LOOP;
+                            break;
+                        case "play once":
+                            loop = FlaCs4Writer.LOOPMODE_PLAY_ONCE;
+                            break;
+                        case "single frame":
+                            loop = FlaCs4Writer.LOOPMODE_SINGLE_FRAME;
+                            break;
+                    }
+                }
+                if (symbolInstance.hasAttribute("firstFrame")) {
+                    firstFrame = Integer.parseInt(symbolInstance.getAttribute("firstFrame"));
+                }
+            } else {
+                useClass("CPicSprite", 5, fg, definedClasses);
+            }
+
+            String instanceName = "";
+            if (symbolType != FlaCs4Writer.SYMBOLTYPE_GRAPHIC && symbolInstance.hasAttribute("name")) {
+                instanceName = symbolInstance.getAttribute("name");
+            }
+
+            //Note: default values are not zero - they are recalculated when not present.
+            //It is actually needed to calculate center of the shape, I don't know how...
+            double centerPoint3DX = 0;
+            if (symbolInstance.hasAttribute("centerPoint3DX")) {
+                centerPoint3DX = Double.parseDouble(symbolInstance.getAttribute("centerPoint3DX"));
+            }
+            double centerPoint3DY = 0;
+            if (symbolInstance.hasAttribute("centerPoint3DY")) {
+                centerPoint3DY = Double.parseDouble(symbolInstance.getAttribute("centerPoint3DY"));
+            }
+
+            Matrix placeMatrix = parseMatrix(getSubElementByName(symbolInstance, "matrix"));
+            double transformationPointX = 0;
+            double transformationPointY = 0;
+            Element transformationPointElement = getSubElementByName(symbolInstance, "transformationPoint");
+            if (transformationPointElement != null) {
+                Element pointElement = getSubElementByName(transformationPointElement, "Point");
+                if (pointElement.hasAttribute("x")) {
+                    transformationPointX = Double.parseDouble(pointElement.getAttribute("x"));
+                }
+                if (pointElement.hasAttribute("y")) {
+                    transformationPointY = Double.parseDouble(pointElement.getAttribute("y"));
+                }
+            }
+
+            ColorEffectInterface colorEffect = new NoColorEffect();
+
+            Element colorElement = getSubElementByName(symbolInstance, "color");
+            if (colorElement != null) {
+                colorElement = getSubElementByName(colorElement, "Color");
+                if (colorElement != null) {
+                    if (colorElement.hasAttribute("brightness")) {
+                        double brightness = Double.parseDouble(colorElement.getAttribute("brightness"));
+                        colorEffect = new BrightnessColorEffect(brightness);
+                    } else if (colorElement.hasAttribute("tintColor") || colorElement.hasAttribute("tintMultiplier")) {
+                        Color tintColor = Color.black;
+                        if (colorElement.hasAttribute("tintColor")) {
+                            tintColor = parseColor(colorElement.getAttribute("tintColor"));
+                        }
+                        double tintMultiplier = 0;
+                        if (colorElement.hasAttribute("tintMultiplier")) {
+                            tintMultiplier = Double.parseDouble(colorElement.getAttribute("tintMultiplier"));
+                        }
+                        colorEffect = new TintColorEffect(tintMultiplier, tintColor);
+                    } else if ( //no Alpha offset - to not be mismatched as Alpha color effect
+                            colorElement.hasAttribute("redMultiplier")
+                            || colorElement.hasAttribute("greenMultiplier")
+                            || colorElement.hasAttribute("blueMultiplier")
+                            || colorElement.hasAttribute("alphaOffset")
+                            || colorElement.hasAttribute("redOffset")
+                            || colorElement.hasAttribute("greenOffset")
+                            || colorElement.hasAttribute("blueOffset")) {
+                        double alphaMultiplier = 1.0;
+                        double redMultiplier = 1.0;
+                        double greenMultiplier = 1.0;
+                        double blueMultiplier = 1.0;
+                        int alphaOffset = 0;
+                        int redOffset = 0;
+                        int greenOffset = 0;
+                        int blueOffset = 0;
+
+                        if (colorElement.hasAttribute("alphaMultiplier")) {
+                            alphaMultiplier = Double.parseDouble(colorElement.getAttribute("alphaMultiplier"));
+                        }
+                        if (colorElement.hasAttribute("redMultiplier")) {
+                            redMultiplier = Double.parseDouble(colorElement.getAttribute("redMultiplier"));
+                        }
+                        if (colorElement.hasAttribute("greenMultiplier")) {
+                            greenMultiplier = Double.parseDouble(colorElement.getAttribute("greenMultiplier"));
+                        }
+                        if (colorElement.hasAttribute("blueMultiplier")) {
+                            blueMultiplier = Double.parseDouble(colorElement.getAttribute("blueMultiplier"));
+                        }
+                        if (colorElement.hasAttribute("alphaOffset")) {
+                            alphaOffset = Integer.parseInt(colorElement.getAttribute("alphaOffset"));
+                        }
+                        if (colorElement.hasAttribute("redOffset")) {
+                            redOffset = Integer.parseInt(colorElement.getAttribute("redOffset"));
+                        }
+                        if (colorElement.hasAttribute("greenOffset")) {
+                            greenOffset = Integer.parseInt(colorElement.getAttribute("greenOffset"));
+                        }
+                        if (colorElement.hasAttribute("blueOffset")) {
+                            blueOffset = Integer.parseInt(colorElement.getAttribute("blueOffset"));
+                        }
+                        colorEffect = new AdvancedColorEffect(alphaMultiplier, redMultiplier, greenMultiplier, blueMultiplier, alphaOffset, redOffset, greenOffset, blueOffset);
+                    } else if (colorElement.hasAttribute("alphaMultiplier")) {
+                        double alphaMultiplier = Double.parseDouble(colorElement.getAttribute("alphaMultiplier"));
+                        colorEffect = new AlphaColorEffect(alphaMultiplier);
+                    }
+                }
+            }
+
+            //TODO: attribute "symbolType" aka "instance behavior"
+            //Order in CS5: normal, layer, darken, multiply, lighten, screen, overlay, hardlight, add, subtract, difference, invert, alpha, erase
+            int blendMode = getAttributeAsInt(symbolInstance, "blendMode",
+                    Arrays.asList(
+                            "",
+                            "normal",
+                            "layer",
+                            "multiply",
+                            "screen",
+                            "lighten",
+                            "darken",
+                            "difference",
+                            "add",
+                            "subtract",
+                            "invert",
+                            "alpha",
+                            "erase",
+                            "overlay",
+                            "hardlight"
+                    ), "normal");
+
+            boolean cacheAsBitmap = false;
+            if (symbolInstance.hasAttribute("cacheAsBitmap")) {
+                cacheAsBitmap = "true".equals(symbolInstance.getAttribute("cacheAsBitmap"));
+            }
+
+            List<FilterInterface> filterList = new ArrayList<>();
+            Element filtersElement = getSubElementByName(symbolInstance, "filters");
+            if (filtersElement != null) {
+                List<Element> filters = getAllSubElements(filtersElement);
+                for (Element filter : filters) {
+                    boolean enabled = true;
+                    if (filter.hasAttribute("isEnabled")) {
+                        enabled = !"false".equals(filter.getAttribute("isEnabled"));
+                    }
+                    switch (filter.getNodeName()) {
+                        case "DropShadowFilter": {
+                            float blurX = 5;
+                            float blurY = 5;
+                            float strength = 1;
+                            int quality = 1; //low
+                            float angle = 45;
+                            float distance = 5;
+                            boolean knockout = false;
+                            boolean inner = false;
+                            boolean hideObject = false;
+                            Color color = Color.black;
+
+                            if (filter.hasAttribute("blurX")) {
+                                blurX = Float.parseFloat(filter.getAttribute("blurX"));
+                            }
+                            if (filter.hasAttribute("blurY")) {
+                                blurY = Float.parseFloat(filter.getAttribute("blurY"));
+                            }
+                            if (filter.hasAttribute("strength")) {
+                                strength = Float.parseFloat(filter.getAttribute("strength"));
+                            }
+                            if (filter.hasAttribute("quality")) {
+                                quality = Integer.parseInt(filter.getAttribute("quality"));
+                            }
+                            if (filter.hasAttribute("angle")) {
+                                angle = Float.parseFloat(filter.getAttribute("angle"));
+                            }
+                            if (filter.hasAttribute("distance")) {
+                                distance = Float.parseFloat(filter.getAttribute("distance"));
+                            }
+                            if (filter.hasAttribute("knockout")) {
+                                knockout = "true".equals(filter.getAttribute("knockout"));
+                            }
+                            if (filter.hasAttribute("inner")) {
+                                inner = "true".equals(filter.getAttribute("inner"));
+                            }
+                            if (filter.hasAttribute("hideObject")) {
+                                hideObject = "true".equals(filter.getAttribute("hideObject"));
+                            }
+                            color = parseColorWithAlpha(filter, color);
+                            filterList.add(new DropShadowFilter(blurX, blurY, strength, quality, angle, distance, knockout, inner, hideObject, color, enabled));
+                        }
+                        break;
+                        case "BlurFilter": {
+                            float blurX = 5;
+                            float blurY = 5;
+                            int quality = 1;
+                            if (filter.hasAttribute("blurX")) {
+                                blurX = Float.parseFloat(filter.getAttribute("blurX"));
+                            }
+                            if (filter.hasAttribute("blurY")) {
+                                blurY = Float.parseFloat(filter.getAttribute("blurY"));
+                            }
+                            if (filter.hasAttribute("quality")) {
+                                quality = Integer.parseInt(filter.getAttribute("quality"));
+                            }
+                            filterList.add(new BlurFilter(blurX, blurY, quality, enabled));
+                        }
+                        break;
+                        case "GlowFilter": {
+                            float blurX = 5;
+                            float blurY = 5;
+                            Color color = Color.red;
+                            boolean inner = false;
+                            boolean knockout = false;
+                            int quality = 1;
+                            float strength = 1;
+
+                            if (filter.hasAttribute("blurX")) {
+                                blurX = Float.parseFloat(filter.getAttribute("blurX"));
+                            }
+                            if (filter.hasAttribute("blurY")) {
+                                blurY = Float.parseFloat(filter.getAttribute("blurY"));
+                            }
+                            if (filter.hasAttribute("strength")) {
+                                strength = Float.parseFloat(filter.getAttribute("strength"));
+                            }
+                            color = parseColorWithAlpha(filter, color);
+                            if (filter.hasAttribute("inner")) {
+                                inner = "true".equals(filter.getAttribute("inner"));
+                            }
+                            if (filter.hasAttribute("knockout")) {
+                                knockout = "true".equals(filter.getAttribute("knockout"));
+                            }
+                            if (filter.hasAttribute("quality")) {
+                                quality = Integer.parseInt(filter.getAttribute("quality"));
+                            }
+
+                            filterList.add(new GlowFilter(blurX, blurY, color, inner, knockout, quality, strength, enabled));
+                        }
+                        break;
+                        case "BevelFilter": {
+                            float blurX = 5;
+                            float blurY = 5;
+                            float strength = 1;
+                            int quality = 1;
+                            Color shadowColor = Color.black;
+                            Color highlightColor = Color.white;
+                            float angle = 45;
+                            float distance = 5;
+                            boolean knockout = false;
+                            int type = BevelFilter.TYPE_INNER;
+
+                            if (filter.hasAttribute("blurX")) {
+                                blurX = Float.parseFloat(filter.getAttribute("blurX"));
+                            }
+                            if (filter.hasAttribute("blurY")) {
+                                blurY = Float.parseFloat(filter.getAttribute("blurY"));
+                            }
+                            if (filter.hasAttribute("strength")) {
+                                strength = Float.parseFloat(filter.getAttribute("strength"));
+                            }
+                            if (filter.hasAttribute("quality")) {
+                                quality = Integer.parseInt(filter.getAttribute("quality"));
+                            }
+                            shadowColor = parseColorWithAlpha(filter, shadowColor, "shadowColor", "shadowAlpha");
+                            highlightColor = parseColorWithAlpha(filter, highlightColor, "highlightColor", "highlightAlpha");
+                            if (filter.hasAttribute("angle")) {
+                                angle = Float.parseFloat(filter.getAttribute("angle"));
+                            }
+                            if (filter.hasAttribute("distance")) {
+                                distance = Float.parseFloat(filter.getAttribute("distance"));
+                            }
+                            if (filter.hasAttribute("knockout")) {
+                                knockout = "true".equals(filter.getAttribute("knockout"));
+                            }
+                            if (filter.hasAttribute("type")) {
+                                switch (filter.getAttribute("type")) {
+                                    case "inner":
+                                        type = BevelFilter.TYPE_INNER;
+                                        break;
+                                    case "outer":
+                                        type = BevelFilter.TYPE_OUTER;
+                                        break;
+                                    case "full":
+                                        type = BevelFilter.TYPE_FULL;
+                                        break;
+                                }
+                            }
+
+                            filterList.add(new BevelFilter(blurX, blurY, strength, quality, shadowColor, highlightColor, angle, distance, knockout, type, enabled));
+                        }
+                        break;
+                        case "GradientGlowFilter":
+                        case "GradientBevelFilter": {
+                            float blurX = 5;
+                            float blurY = 5;
+                            float strength = 1;
+                            int quality = 1;
+                            float angle = 45;
+                            float distance = 5;
+                            boolean knockout = false;
+                            int type = "GradientGlowFilter".equals(filter.getNodeName()) ? GradientGlowFilter.TYPE_OUTER : GradientBevelFilter.TYPE_INNER;
+                            List<GradientEntry> gradientEntries = new ArrayList<>();
+
+                            if (filter.hasAttribute("blurX")) {
+                                blurX = Float.parseFloat(filter.getAttribute("blurX"));
+                            }
+                            if (filter.hasAttribute("blurY")) {
+                                blurY = Float.parseFloat(filter.getAttribute("blurY"));
+                            }
+                            if (filter.hasAttribute("strength")) {
+                                strength = Float.parseFloat(filter.getAttribute("strength"));
+                            }
+                            if (filter.hasAttribute("quality")) {
+                                quality = Integer.parseInt(filter.getAttribute("quality"));
+                            }
+                            if (filter.hasAttribute("angle")) {
+                                angle = Float.parseFloat(filter.getAttribute("angle"));
+                            }
+                            if (filter.hasAttribute("distance")) {
+                                distance = Float.parseFloat(filter.getAttribute("distance"));
+                            }
+                            if (filter.hasAttribute("knockout")) {
+                                knockout = "true".equals(filter.getAttribute("knockout"));
+                            }
+                            if (filter.hasAttribute("type")) {
+                                switch (filter.getAttribute("type")) {
+                                    case "inner":
+                                        type = GradientGlowFilter.TYPE_INNER;
+                                        break;
+                                    case "outer":
+                                        type = GradientGlowFilter.TYPE_OUTER;
+                                        break;
+                                    case "full":
+                                        type = GradientGlowFilter.TYPE_FULL;
+                                        break;
+                                }
+                            }
+                            gradientEntries = parseGradientEntries(filter);
+
+                            if ("GradientGlowFilter".equals(filter.getNodeName())) {
+                                filterList.add(new GradientGlowFilter(blurX, blurY, strength, quality, angle, distance, knockout, type, gradientEntries, enabled));
+                            } else {
+                                filterList.add(new GradientBevelFilter(blurX, blurY, strength, quality, angle, distance, knockout, type, gradientEntries, enabled));
+                            }
+
+                        }
+                        break;
+                        case "AdjustColorFilter": {
+                            //brightness="-50" contrast="75" saturation="50" hue="180"
+                            float brightness = 0;
+                            float contrast = 0;
+                            float saturation = 0;
+                            float hue = 0;
+                            if (filter.hasAttribute("brightness")) {
+                                brightness = Float.parseFloat(filter.getAttribute("brightness"));
+                            }
+                            if (filter.hasAttribute("contrast")) {
+                                contrast = Float.parseFloat(filter.getAttribute("contrast"));
+                            }
+                            if (filter.hasAttribute("saturation")) {
+                                saturation = Float.parseFloat(filter.getAttribute("saturation"));
+                            }
+                            if (filter.hasAttribute("hue")) {
+                                hue = Float.parseFloat(filter.getAttribute("hue"));
+                            }
+
+                            filterList.add(new AdjustColorFilter(brightness, contrast, saturation, hue, enabled));
+                        }
+                        break;
+                    }
+                }
+            }
+
+            String actionScript = "";
+
+            Element actionscriptElement = getSubElementByName(symbolInstance, "Actionscript");
+            if (actionscriptElement != null) {
+                Element scriptElement = getSubElementByName(actionscriptElement, "script");
+                if (scriptElement != null) {
+                    actionScript = scriptElement.getTextContent();
+                }
+            }
+
+            if (symbolType == FlaCs4Writer.SYMBOLTYPE_SPRITE) {
+                copiedComponentPathRef.setVal(copiedComponentPathRef.getVal() + 1);
+            }
+            fg.writeSymbolInstance(
+                    placeMatrix,
+                    centerPoint3DX,
+                    centerPoint3DY,
+                    transformationPointX,
+                    transformationPointY,
+                    instanceName,
+                    colorEffect,
+                    libraryItemIndex,
+                    symbolType == FlaCs4Writer.SYMBOLTYPE_SPRITE ? copiedComponentPathRef.getVal() : 0,
+                    blendMode,
+                    cacheAsBitmap,
+                    filterList,
+                    symbolType,
+                    trackAsMenu,
+                    loop,
+                    firstFrame,
+                    actionScript
+            );
+
+        }
+    }
+
+    private void handleTexts(FlaCs4Writer fg, List<Element> elements, List<String> definedClasses) throws IOException {
+        for (Element element : elements) {
+            if ("DOMTLFText".equals(element.getNodeName())) {
+                Logger.getLogger(PageGenerator.class.getName()).warning("DOMTLFText element is not supported");
+            }
+
+            if ("DOMStaticText".equals(element.getTagName())
+                    || "DOMDynamicText".equals(element.getTagName())
+                    || "DOMInputText".equals(element.getTagName())) {
+                useClass("CPicText", 5, fg, definedClasses);
+
+                boolean isDynamic = "DOMDynamicText".equals(element.getTagName());
+                boolean isInput = "DOMInputText".equals(element.getTagName());
+
+                boolean isStatic = "DOMStaticText".equals(element.getTagName());
+
+                String instanceName = "";
+                if (!isStatic && element.hasAttribute("name")) {
+                    instanceName = element.getAttribute("name");
+                }
+
+                /*
+                                        <DOMStaticText width="158.95" height="13.45">
+                            <!-- optional:
+                            fontRenderingMode="device" , "bitmap", "standard", "customThicknessSharpness"
+                            isSelectable="false"
+                            orientation="vertical right to left", "vertical left to right"
+                            
+                            if customThicknessSharpness then 
+                            float attributes antiAliasSharpness, antiAliasThickness
+                            
+                            for dynamic:
+                            renderAsHTML="true"
+                            border="true"
+                            lineType="multiline","multiline no wrap"
+                            
+                            for AS1/2 dynamic:
+                            variableName="xyz"
+                            
+                            for input:
+                            maxCharacters="1234"
+                            -->
+                                             <matrix>
+                                                  <Matrix tx="182" ty="132.25"/>
+                                             </matrix>
+                                             <textRuns>
+                                                  <DOMTextRun>
+                                                       <characters>ABC</characters>
+                                                       <textAttrs>
+                                                            <DOMTextAttrs aliasText="false" rotation="true" alpha="0.8" lineSpacing="1.65" bitmapSize="240" face="TimesNewRomanPSMT" fillColor="#123456"/>
+                                                            <!-- 
+                                                            optional: autoKern="false" 
+                                                                    letterSpacing="2.5"
+                                                                    alignment="center","right","justify"
+                                                                    characterPosition="superscript", "subscript" - if not selectable
+                                                                    indent="20"
+                                                                    leftMargin="20"
+                                                                    target="bagr" 
+                                                                    url="http://www.google.com"
+                            -->
+                                                       </textAttrs>
+                                                  </DOMTextRun>
+                                             </textRuns>
+                                             <filters>
+                                                  <DropShadowFilter/>
+                                             </filters>
+                                        </DOMStaticText>
+                 */
+                int maxCharacters = 0;
+                if (isInput && element.hasAttribute("maxCharacters")) {
+                    maxCharacters = Integer.parseInt(element.getAttribute("maxCharacters"));
+                }
+
+                boolean renderAsHTML = false;
+                boolean border = false;
+
+                boolean multiline = false;
+                boolean wrap = false;
+                boolean password = false;
+                String variableName = "";
+                if (isDynamic || isInput) {
+                    if (element.hasAttribute("renderAsHTML")) {
+                        renderAsHTML = "true".equals(element.getAttribute("renderAsHTML"));
+                    }
+                    if (element.hasAttribute("border")) {
+                        border = "true".equals(element.getAttribute("border"));
+                    }
+                    if (element.hasAttribute("lineType")) {
+                        switch (element.getAttribute("lineType")) {
+                            case "multiline":
+                                multiline = true;
+                                wrap = true;
+                                break;
+                            case "multiline no wrap":
+                                multiline = true;
+                                break;
+                            case "password":
+                                if (isInput) {
+                                    password = true;
+                                }
+                                break;
+                        }
+                    }
+                    if (element.hasAttribute("variableName")) {
+                        variableName = element.getAttribute("variableName");
+                    }
+                }
+
+                final int FONTRENDERING_DEVICE = 0;
+                final int FONTRENDERING_BITMAP = 1;
+                final int FONTRENDERING_STANDARD = 2;
+                final int FONTRENDERING_DEFAULT = 3;
+                final int FONTRENDERING_CUSTOM = 4;
+
+                int fontRenderingMode = FONTRENDERING_DEFAULT;
+                boolean isSelectable = true;
+                Matrix matrix = new Matrix();
+
+                float left = 0f;
+                float width = 0f;
+                float top = 0f;
+                float height = 0f;
+
+                float antiAliasSharpness = 0f;
+                float antiAliasThickness = 0f;
+
+                if (element.hasAttribute("antiAliasSharpness")) {
+                    antiAliasSharpness = Float.parseFloat(element.getAttribute("antiAliasSharpness"));
+                }
+                if (element.hasAttribute("antiAliasThickness")) {
+                    antiAliasThickness = Float.parseFloat(element.getAttribute("antiAliasThickness"));
+                }
+
+                if (element.hasAttribute("fontRenderingMode")) {
+                    switch (element.getAttribute("fontRenderingMode")) {
+                        case "device":
+                            fontRenderingMode = FONTRENDERING_DEVICE;
+                            break;
+                        case "bitmap":
+                            fontRenderingMode = FONTRENDERING_BITMAP;
+                            break;
+                        case "standard":
+                            fontRenderingMode = FONTRENDERING_STANDARD;
+                            break;
+                        case "customThicknessSharpness":
+                            fontRenderingMode = FONTRENDERING_CUSTOM;
+                            break;
+                    }
+                }
+
+                if (element.hasAttribute("left")) {
+                    left = Float.parseFloat(element.getAttribute("left"));
+                }
+                if (element.hasAttribute("width")) {
+                    width = Float.parseFloat(element.getAttribute("width"));
+                }
+                if (element.hasAttribute("top")) {
+                    top = Float.parseFloat(element.getAttribute("top"));
+                }
+                if (element.hasAttribute("height")) {
+                    height = Float.parseFloat(element.getAttribute("height"));
+                }
+                matrix = parseMatrix(getSubElementByName(element, "matrix"));
+
+                if (!isInput && element.hasAttribute("isSelectable")) {
+                    isSelectable = !"false".equals(element.getAttribute("isSelectable"));
+                }
+
+                boolean vertical = false;
+                boolean rightToLeft = false;
+                if (!isInput && element.hasAttribute("orientation")) {
+                    switch (element.getAttribute("orientation")) {
+                        case "vertical right to left":
+                            vertical = true;
+                            rightToLeft = true;
+                            break;
+                        case "vertical left to right":
+                            vertical = true;
+                            break;
+                    }
+                }
+
+                //orientation="vertical right to left", "vertical left to right"
+                //fontRenderingMode="device" , "bitmap", "standard", "customThicknessSharpness"
+                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x0E);
+                fg.writeMatrix(matrix);
+                fg.writeUI32((int) Math.round(left * 20));
+                fg.writeUI32((int) Math.round((left + width) * 20));
+                fg.writeUI32((int) Math.round(top * 20));
+                fg.writeUI32((int) Math.round((top + height) * 20));
+
+                fg.write(
+                        0x00, 0x00,
+                        (!isStatic ? 0x01 : 0)
+                        + (isDynamic ? 0x02 : 0)
+                        + (password ? 0x04 : 0)
+                        + (border ? 0x40 : 0)
+                        + (wrap ? 0x08 : 0)
+                        + (multiline ? 0x10 : 0)
+                );
+                fg.write(renderAsHTML ? 0x80 : 0);
+                if (!isStatic) {
+                    fg.write(0);
+                } else {
+                    fg.write(((fontRenderingMode == FONTRENDERING_DEVICE ? 0x02 : 0)
+                            + (isSelectable ? 0x01 : 0)));
+                }
+                fg.write(0x00);
+                fg.writeUI16(maxCharacters);
+                fg.write(0xFF, 0xFE, 0xFF);
+                fg.writeLenUnicodeString(variableName);
+                fg.write(0x00);
+
+                /*
+                            <DOMTextRun>
+                                                       <characters>ABC</characters>
+                                                       <textAttrs>
+                                                            <DOMTextAttrs 
+                            aliasText="false"  ???
+                            rotation="true"    ???
+                            alpha="0.8"
+                            lineSpacing="1.65"
+                            bitmapSize="240"
+                            face="TimesNewRomanPSMT" 
+                            fillColor="#123456"
+                            />
+                                                            <!-- 
+                                                            optional: autoKern="false" 
+                                                                    letterSpacing="2.5"
+                                                                    alignment="center","right","justify"
+                                                                    characterPosition="superscript", "subscript" - if not selectable
+                                                                    indent="20"
+                                                                    leftMargin="20"
+                                                                    target="bagr" 
+                                                                    url="http://www.google.com"
+                            -->
+                                                       </textAttrs>
+                                                  </DOMTextRun>
+                 */
+                List<FilterInterface> filters = new ArrayList<>();
+
+                Element textRunsElement = getSubElementByName(element, "textRuns");
+                if (textRunsElement != null) {
+                    List<Element> domTextRuns = getAllSubElementsByName(textRunsElement, "DOMTextRun");
+                    for (Element textRun : domTextRuns) {
+                        String characters = "";
+
+                        Element charactersElement = getSubElementByName(textRun, "characters");
+                        if (charactersElement != null) {
+                            characters = charactersElement.getTextContent();
+                        }
+
+                        Element textAttrsElement = getSubElementByName(textRun, "textAttrs");
+                        if (textAttrsElement == null) {
+                            continue;
+                        }
+                        Element domTextAttrs = getSubElementByName(textAttrsElement, "DOMTextAttrs");
+                        if (domTextAttrs == null) {
+                            continue;
+                        }
+
+                        String face = "TimesNewRomanPSMT"; //?
+
+                        if (domTextAttrs.hasAttribute("face")) {
+                            face = domTextAttrs.getAttribute("face");
+                        }
+
+                        Font font = psNameToFontName.get(face);
+                        String fontFamily = "";
+                        boolean bold = false;
+                        boolean italic = false;
+                        if (font != null) {
+                            fontFamily = font.getFamily();
+                            String fontNameLowercase = font.getFontName(Locale.US).toLowerCase();
+                            bold = fontNameLowercase.contains("bold");
+                            italic = fontNameLowercase.contains("italic") || fontNameLowercase.contains("oblique");
+                        }
+
+                        Color fillColor = parseColorWithAlpha(domTextAttrs, Color.red, "fillColor", "alpha");
+                        float size = 12f;
+
+                        if (domTextAttrs.hasAttribute("size")) {
+                            size = Float.parseFloat(domTextAttrs.getAttribute("size"));
+                        }
+
+                        int bitmapSize = (int) Math.round(size * 20);
+                        float lineSpacing = 1.65f;
+
+                        if (domTextAttrs.hasAttribute("lineSpacing")) {
+                            lineSpacing = Float.parseFloat(domTextAttrs.getAttribute("lineSpacing"));
+                        }
+
+                        float letterSpacing = 0f;
+
+                        if (domTextAttrs.hasAttribute("letterSpacing")) {
+                            letterSpacing = Float.parseFloat(domTextAttrs.getAttribute("letterSpacing"));
+                        }
+
+                        boolean autoKern = true;
+
+                        if (domTextAttrs.hasAttribute("autoKern")) {
+                            autoKern = !"false".equals(domTextAttrs.getAttribute("autoKern"));
+                        }
+
+                        final int ALIGN_LEFT = 0;
+                        final int ALIGN_RIGHT = 1;
+                        final int ALIGN_CENTER = 2;
+                        final int ALIGN_JUSTIFY = 3;
+
+                        int alignment = ALIGN_LEFT;
+
+                        if (domTextAttrs.hasAttribute("alignment")) {
+                            switch (domTextAttrs.getAttribute("alignment")) {
+                                case "right":
+                                    alignment = ALIGN_RIGHT;
+                                    break;
+                                case "center":
+                                    alignment = ALIGN_CENTER;
+                                    break;
+                                case "justify":
+                                    alignment = ALIGN_JUSTIFY;
+                                    break;
+                            }
+                        }
+
+                        if (fontRenderingMode == FONTRENDERING_DEVICE) {
+                            autoKern = false;
+                        }
+
+                        final int CHARACTERPOSITION_NORMAL = 0;
+                        final int CHARACTERPOSITION_SUPERSCRIPT = 1;
+                        final int CHARACTERPOSITION_SUBSCRIPT = 2;
+
+                        int characterPosition = CHARACTERPOSITION_NORMAL;
+
+                        if (!isSelectable && domTextAttrs.hasAttribute("characterPosition")) {
+                            switch (domTextAttrs.getAttribute("characterPosition")) {
+                                case "superscript":
+                                    characterPosition = CHARACTERPOSITION_SUPERSCRIPT;
+                                    break;
+                                case "subscript":
+                                    characterPosition = CHARACTERPOSITION_SUBSCRIPT;
+                                    break;
+                            }
+                        }
+
+                        float indent = 0f;
+
+                        if (domTextAttrs.hasAttribute("indent")) {
+                            indent = Float.parseFloat(domTextAttrs.getAttribute("indent"));
+                        }
+
+                        float leftMargin = 0f;
+
+                        if (domTextAttrs.hasAttribute("leftMargin")) {
+                            leftMargin = Float.parseFloat(domTextAttrs.getAttribute("leftMargin"));
+                        }
+
+                        float rightMargin = 0f;
+
+                        if (domTextAttrs.hasAttribute("rightMargin")) {
+                            rightMargin = Float.parseFloat(domTextAttrs.getAttribute("rightMargin"));
+                        }
+
+                        String url = "";
+                        String target = "";
+
+                        if (domTextAttrs.hasAttribute("url")) {
+                            url = domTextAttrs.getAttribute("url");
+                            if (domTextAttrs.hasAttribute("target")) {
+                                target = domTextAttrs.getAttribute("target");
+                            }
+                        }
+
+                        fg.writeUI16(characters.length());
+                        fg.write(0x0F);
+                        fg.writeUI16(bitmapSize);
+                        fg.write(0xFF, 0xFE, 0xFF);
+                        fg.writeLenUnicodeString(fontFamily);
+                        fg.write(0xFF, 0xFE, 0xFF);
+                        fg.writeLenUnicodeString(face);
+
+                        fg.write(0x00, 0x00, 0x00, 0x40);
+                        fg.write(fillColor.getRed(), fillColor.getGreen(), fillColor.getBlue(), fillColor.getAlpha());
+
+                        /*
+                        FIXME!!!
+                        I don't know how to calculate following (two) values,
+                        it is somehow bases on font family.
+                        
+                        Here are sample values for some familys (hex, decimal, binary)
+                        
+                        Times New Roman 0x12	18	0001 0010	
+                        Arial 0x22		34	0010 0010	
+                        Calibri 0x22		34	0010 0010	
+                        Comic sans 0x42		66	0100 0010	
+                        Courier new 0x31	49	0011 0001
+                        Lucida console 0x31	49	0011 0001	
+                        Tahoma 0x22		34	0010 0010
+                        Georgia 0x22		34	0010 0010
+                        Webdings 0x12 0x02	18/530	0001 0010
+                        Wingdings 0x02 0x02	2/514	0000 0010
+                        Verdana	0x22		34	0010 0010
+                        Impact 0x22		34	0010 0010
+
+                         */
+                        fg.write(0x12,
+                                0x00);
+
+                        fg.write(
+                                bold ? 1 : 0,
+                                italic ? 1 : 0,
+                                0x00,
+                                autoKern ? 1 : 0,
+                                characterPosition,
+                                alignment
+                        );
+                        fg.writeUI16((int) Math.round(lineSpacing * 20));
+                        fg.writeUI16((int) Math.round(indent * 20));
+                        fg.writeUI16((int) Math.round(leftMargin * 20));
+                        fg.writeUI16((int) Math.round(rightMargin * 20));
+                        fg.writeUI16((int) Math.round(letterSpacing * 20));
+                        fg.write(0xFF, 0xFE, 0xFF);
+                        fg.writeLenUnicodeString(url);
+
+                        fg.write(vertical ? 1 : 0,
+                                rightToLeft ? 1 : 0,
+                                fontRenderingMode == FONTRENDERING_CUSTOM
+                                        ? 1 : 0
+                        );
+                        fg.write(
+                                fontRenderingMode == FONTRENDERING_BITMAP ? 1 : 0,
+                                0xFF, 0xFE, 0xFF);
+                        fg.writeLenUnicodeString(target);
+                        fg.write(0x02);
+
+                        switch (fontRenderingMode) {
+                            case FONTRENDERING_DEFAULT:
+                                fg.write(1);
+                                break;
+                            case FONTRENDERING_CUSTOM:
+                                fg.write(2);
+                                break;
+                            default:
+                                fg.write(0);
+                                break;
+                        }
+                        fg.writeFloat(antiAliasThickness);
+                        fg.writeFloat(antiAliasSharpness);
+                        fg.write(0xFF, 0xFE, 0xFF);
+                        fg.writeLenUnicodeString(url);
+                        fg.write(characters.getBytes("UTF-16LE"));
+                    }
+                }
+
+                fg.write(0x00, 0x00,
+                        0xFF, 0xFE, 0xFF);
+                fg.writeLenUnicodeString(instanceName);
+                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00);
+                if (!filters.isEmpty()) {
+                    fg.write(0x01);
+                    fg.writeUI32(filters.size()); //Is it really 4 bytes long?
+                    for (FilterInterface filter : filters) {
+                        filter.write(fg);
+                    }
+                }
+                fg.write(0x00, 0x00, 0x00);
+            }
+        }
+    }
+
     private void writeLayerContents(
             Element layer,
             FlaCs4Writer fg,
@@ -251,757 +1231,279 @@ public class PageGenerator extends AbstractGenerator {
                 fg.write(0x00);
                 totalFramesCountRef.setVal(totalFramesCountRef.getVal() + 1);
                 Node frame = frames.get(f);
-                Node elementsNode = getSubElementByName(frame, "elements");
+                Element elementsNode = getSubElementByName(frame, "elements");
 
-                List<Element> symbolInstances = getAllSubElementsByName(elementsNode, "DOMSymbolInstance");
-                for (int symbolInstanceIndex = 0; symbolInstanceIndex < symbolInstances.size(); symbolInstanceIndex++) {
-
-                    Element symbolInstance = symbolInstances.get(symbolInstanceIndex);
-
-                    if (!symbolInstance.hasAttribute("libraryItemName")) {
-                        //nothing we can do
-                        continue;
-                    }
-
-                    String libraryItemName = symbolInstance.getAttribute("libraryItemName");
-                    Element symbolsElement = getSubElementByName(symbolInstance.getOwnerDocument().getDocumentElement(), "symbols");
-                    if (symbolsElement == null) {
-                        //nothing we can do                                    
-                        continue;
-                    }
-                    List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
-
-                    //Find index in library
-                    int libraryItemIndex = -1;
-                    for (int e = 0; e < includes.size(); e++) {
-                        Element include = includes.get(e);
-                        if (!include.hasAttribute("href")) {
-                            continue;
-                        }
-                        String href = include.getAttribute("href");
-                        String nameNoXml = href;
-                        if (nameNoXml.endsWith(".xml")) {
-                            nameNoXml = nameNoXml.substring(0, nameNoXml.length() - 4);
-                        }
-                        if (nameNoXml.equals(libraryItemName)) {
-                            libraryItemIndex = e + 1;
-                            break;
-                        }
-                    }
-                    if (libraryItemIndex == -1) {
-                        //nothing we can do 
-                        continue;
-                    }
-
-                    int symbolType = FlaCs4Writer.SYMBOLTYPE_SPRITE;
-
-                    if (symbolInstance.hasAttribute("symbolType")) {
-                        switch (symbolInstance.getAttribute("symbolType")) {
-                            case "sprite": //?? is this correct default value ??
-                                symbolType = FlaCs4Writer.SYMBOLTYPE_SPRITE;
-                                break;
-                            case "button":
-                                symbolType = FlaCs4Writer.SYMBOLTYPE_BUTTON;
-                                break;
-                            case "graphic":
-                                symbolType = FlaCs4Writer.SYMBOLTYPE_GRAPHIC;
-                                break;
-                        }
-                    }
-
-                    boolean trackAsMenu = false;
-                    int loop = FlaCs4Writer.LOOPMODE_LOOP;
-                    int firstFrame = 0; //zero-based
-
-                    if (symbolType == FlaCs4Writer.SYMBOLTYPE_BUTTON) {
-                        useClass("CPicButton", 5, fg, definedClasses);
-                        if (symbolInstance.hasAttribute("trackAsMenu")) {
-                            trackAsMenu = "true".equals(symbolInstance.getAttribute("trackAsMenu"));
-                        }
-                    } else if (symbolType == FlaCs4Writer.SYMBOLTYPE_GRAPHIC) {
-                        useClass("CPicSymbol", 5, fg, definedClasses);
-
-                        if (symbolInstance.hasAttribute("loop")) {
-                            switch (symbolInstance.getAttribute("loop")) {
-                                case "loop":
-                                    loop = FlaCs4Writer.LOOPMODE_LOOP;
-                                    break;
-                                case "play once":
-                                    loop = FlaCs4Writer.LOOPMODE_PLAY_ONCE;
-                                    break;
-                                case "single frame":
-                                    loop = FlaCs4Writer.LOOPMODE_SINGLE_FRAME;
-                                    break;
-                            }
-                        }
-                        if (symbolInstance.hasAttribute("firstFrame")) {
-                            firstFrame = Integer.parseInt(symbolInstance.getAttribute("firstFrame"));
-                        }
-                    } else {
-                        useClass("CPicSprite", 5, fg, definedClasses);
-                    }
-
-                    String instanceName = "";
-                    if (symbolType != FlaCs4Writer.SYMBOLTYPE_GRAPHIC && symbolInstance.hasAttribute("name")) {
-                        instanceName = symbolInstance.getAttribute("name");
-                    }
-
-                    //Note: default values are not zero - they are recalculated when not present.
-                    //It is actually needed to calculate center of the shape, I don't know how...
-                    double centerPoint3DX = 0;
-                    if (symbolInstance.hasAttribute("centerPoint3DX")) {
-                        centerPoint3DX = Double.parseDouble(symbolInstance.getAttribute("centerPoint3DX"));
-                    }
-                    double centerPoint3DY = 0;
-                    if (symbolInstance.hasAttribute("centerPoint3DY")) {
-                        centerPoint3DY = Double.parseDouble(symbolInstance.getAttribute("centerPoint3DY"));
-                    }
-
-                    Matrix placeMatrix = parseMatrix(getSubElementByName(symbolInstance, "matrix"));
-                    double transformationPointX = 0;
-                    double transformationPointY = 0;
-                    Element transformationPointElement = getSubElementByName(symbolInstance, "transformationPoint");
-                    if (transformationPointElement != null) {
-                        Element pointElement = getSubElementByName(transformationPointElement, "Point");
-                        if (pointElement.hasAttribute("x")) {
-                            transformationPointX = Double.parseDouble(pointElement.getAttribute("x"));
-                        }
-                        if (pointElement.hasAttribute("y")) {
-                            transformationPointY = Double.parseDouble(pointElement.getAttribute("y"));
-                        }
-                    }
-
-                    ColorEffectInterface colorEffect = new NoColorEffect();
-
-                    Element colorElement = getSubElementByName(symbolInstance, "color");
-                    if (colorElement != null) {
-                        colorElement = getSubElementByName(colorElement, "Color");
-                        if (colorElement != null) {
-                            if (colorElement.hasAttribute("brightness")) {
-                                double brightness = Double.parseDouble(colorElement.getAttribute("brightness"));
-                                colorEffect = new BrightnessColorEffect(brightness);
-                            } else if (colorElement.hasAttribute("tintColor") || colorElement.hasAttribute("tintMultiplier")) {
-                                Color tintColor = Color.black;
-                                if (colorElement.hasAttribute("tintColor")) {
-                                    tintColor = parseColor(colorElement.getAttribute("tintColor"));
-                                }
-                                double tintMultiplier = 0;
-                                if (colorElement.hasAttribute("tintMultiplier")) {
-                                    tintMultiplier = Double.parseDouble(colorElement.getAttribute("tintMultiplier"));
-                                }
-                                colorEffect = new TintColorEffect(tintMultiplier, tintColor);
-                            } else if ( //no Alpha offset - to not be mismatched as Alpha color effect
-                                    colorElement.hasAttribute("redMultiplier")
-                                    || colorElement.hasAttribute("greenMultiplier")
-                                    || colorElement.hasAttribute("blueMultiplier")
-                                    || colorElement.hasAttribute("alphaOffset")
-                                    || colorElement.hasAttribute("redOffset")
-                                    || colorElement.hasAttribute("greenOffset")
-                                    || colorElement.hasAttribute("blueOffset")) {
-                                double alphaMultiplier = 1.0;
-                                double redMultiplier = 1.0;
-                                double greenMultiplier = 1.0;
-                                double blueMultiplier = 1.0;
-                                int alphaOffset = 0;
-                                int redOffset = 0;
-                                int greenOffset = 0;
-                                int blueOffset = 0;
-
-                                if (colorElement.hasAttribute("alphaMultiplier")) {
-                                    alphaMultiplier = Double.parseDouble(colorElement.getAttribute("alphaMultiplier"));
-                                }
-                                if (colorElement.hasAttribute("redMultiplier")) {
-                                    redMultiplier = Double.parseDouble(colorElement.getAttribute("redMultiplier"));
-                                }
-                                if (colorElement.hasAttribute("greenMultiplier")) {
-                                    greenMultiplier = Double.parseDouble(colorElement.getAttribute("greenMultiplier"));
-                                }
-                                if (colorElement.hasAttribute("blueMultiplier")) {
-                                    blueMultiplier = Double.parseDouble(colorElement.getAttribute("blueMultiplier"));
-                                }
-                                if (colorElement.hasAttribute("alphaOffset")) {
-                                    alphaOffset = Integer.parseInt(colorElement.getAttribute("alphaOffset"));
-                                }
-                                if (colorElement.hasAttribute("redOffset")) {
-                                    redOffset = Integer.parseInt(colorElement.getAttribute("redOffset"));
-                                }
-                                if (colorElement.hasAttribute("greenOffset")) {
-                                    greenOffset = Integer.parseInt(colorElement.getAttribute("greenOffset"));
-                                }
-                                if (colorElement.hasAttribute("blueOffset")) {
-                                    blueOffset = Integer.parseInt(colorElement.getAttribute("blueOffset"));
-                                }
-                                colorEffect = new AdvancedColorEffect(alphaMultiplier, redMultiplier, greenMultiplier, blueMultiplier, alphaOffset, redOffset, greenOffset, blueOffset);
-                            } else if (colorElement.hasAttribute("alphaMultiplier")) {
-                                double alphaMultiplier = Double.parseDouble(colorElement.getAttribute("alphaMultiplier"));
-                                colorEffect = new AlphaColorEffect(alphaMultiplier);
-                            }
-                        }
-                    }
-
-                    //TODO: attribute "symbolType" aka "instance behavior"
-                    //Order in CS5: normal, layer, darken, multiply, lighten, screen, overlay, hardlight, add, subtract, difference, invert, alpha, erase
-                    int blendMode = getAttributeAsInt(symbolInstance, "blendMode",
-                            Arrays.asList(
-                                    "",
-                                    "normal",
-                                    "layer",
-                                    "multiply",
-                                    "screen",
-                                    "lighten",
-                                    "darken",
-                                    "difference",
-                                    "add",
-                                    "subtract",
-                                    "invert",
-                                    "alpha",
-                                    "erase",
-                                    "overlay",
-                                    "hardlight"
-                            ), "normal");
-
-                    boolean cacheAsBitmap = false;
-                    if (symbolInstance.hasAttribute("cacheAsBitmap")) {
-                        cacheAsBitmap = "true".equals(symbolInstance.getAttribute("cacheAsBitmap"));
-                    }
-
-                    List<FilterInterface> filterList = new ArrayList<>();
-                    Element filtersElement = getSubElementByName(symbolInstance, "filters");
-                    if (filtersElement != null) {
-                        List<Element> filters = getAllSubElements(filtersElement);
-                        for (Element filter : filters) {
-                            boolean enabled = true;
-                            if (filter.hasAttribute("isEnabled")) {
-                                enabled = !"false".equals(filter.getAttribute("isEnabled"));
-                            }
-                            switch (filter.getNodeName()) {
-                                case "DropShadowFilter": {
-                                    float blurX = 5;
-                                    float blurY = 5;
-                                    float strength = 1;
-                                    int quality = 1; //low
-                                    float angle = 45;
-                                    float distance = 5;
-                                    boolean knockout = false;
-                                    boolean inner = false;
-                                    boolean hideObject = false;
-                                    Color color = Color.black;
-
-                                    if (filter.hasAttribute("blurX")) {
-                                        blurX = Float.parseFloat(filter.getAttribute("blurX"));
-                                    }
-                                    if (filter.hasAttribute("blurY")) {
-                                        blurY = Float.parseFloat(filter.getAttribute("blurY"));
-                                    }
-                                    if (filter.hasAttribute("strength")) {
-                                        strength = Float.parseFloat(filter.getAttribute("strength"));
-                                    }
-                                    if (filter.hasAttribute("quality")) {
-                                        quality = Integer.parseInt(filter.getAttribute("quality"));
-                                    }
-                                    if (filter.hasAttribute("angle")) {
-                                        angle = Float.parseFloat(filter.getAttribute("angle"));
-                                    }
-                                    if (filter.hasAttribute("distance")) {
-                                        distance = Float.parseFloat(filter.getAttribute("distance"));
-                                    }
-                                    if (filter.hasAttribute("knockout")) {
-                                        knockout = "true".equals(filter.getAttribute("knockout"));
-                                    }
-                                    if (filter.hasAttribute("inner")) {
-                                        inner = "true".equals(filter.getAttribute("inner"));
-                                    }
-                                    if (filter.hasAttribute("hideObject")) {
-                                        hideObject = "true".equals(filter.getAttribute("hideObject"));
-                                    }
-                                    color = parseColorWithAlpha(filter, color);
-                                    filterList.add(new DropShadowFilter(blurX, blurY, strength, quality, angle, distance, knockout, inner, hideObject, color, enabled));
-                                }
-                                break;
-                                case "BlurFilter": {
-                                    float blurX = 5;
-                                    float blurY = 5;
-                                    int quality = 1;
-                                    if (filter.hasAttribute("blurX")) {
-                                        blurX = Float.parseFloat(filter.getAttribute("blurX"));
-                                    }
-                                    if (filter.hasAttribute("blurY")) {
-                                        blurY = Float.parseFloat(filter.getAttribute("blurY"));
-                                    }
-                                    if (filter.hasAttribute("quality")) {
-                                        quality = Integer.parseInt(filter.getAttribute("quality"));
-                                    }
-                                    filterList.add(new BlurFilter(blurX, blurY, quality, enabled));
-                                }
-                                break;
-                                case "GlowFilter": {
-                                    float blurX = 5;
-                                    float blurY = 5;
-                                    Color color = Color.red;
-                                    boolean inner = false;
-                                    boolean knockout = false;
-                                    int quality = 1;
-                                    float strength = 1;
-
-                                    if (filter.hasAttribute("blurX")) {
-                                        blurX = Float.parseFloat(filter.getAttribute("blurX"));
-                                    }
-                                    if (filter.hasAttribute("blurY")) {
-                                        blurY = Float.parseFloat(filter.getAttribute("blurY"));
-                                    }
-                                    if (filter.hasAttribute("strength")) {
-                                        strength = Float.parseFloat(filter.getAttribute("strength"));
-                                    }
-                                    color = parseColorWithAlpha(filter, color);
-                                    if (filter.hasAttribute("inner")) {
-                                        inner = "true".equals(filter.getAttribute("inner"));
-                                    }
-                                    if (filter.hasAttribute("knockout")) {
-                                        knockout = "true".equals(filter.getAttribute("knockout"));
-                                    }
-                                    if (filter.hasAttribute("quality")) {
-                                        quality = Integer.parseInt(filter.getAttribute("quality"));
-                                    }
-
-                                    filterList.add(new GlowFilter(blurX, blurY, color, inner, knockout, quality, strength, enabled));
-                                }
-                                break;
-                                case "BevelFilter": {
-                                    float blurX = 5;
-                                    float blurY = 5;
-                                    float strength = 1;
-                                    int quality = 1;
-                                    Color shadowColor = Color.black;
-                                    Color highlightColor = Color.white;
-                                    float angle = 45;
-                                    float distance = 5;
-                                    boolean knockout = false;
-                                    int type = BevelFilter.TYPE_INNER;
-
-                                    if (filter.hasAttribute("blurX")) {
-                                        blurX = Float.parseFloat(filter.getAttribute("blurX"));
-                                    }
-                                    if (filter.hasAttribute("blurY")) {
-                                        blurY = Float.parseFloat(filter.getAttribute("blurY"));
-                                    }
-                                    if (filter.hasAttribute("strength")) {
-                                        strength = Float.parseFloat(filter.getAttribute("strength"));
-                                    }
-                                    if (filter.hasAttribute("quality")) {
-                                        quality = Integer.parseInt(filter.getAttribute("quality"));
-                                    }
-                                    shadowColor = parseColorWithAlpha(filter, shadowColor, "shadowColor", "shadowAlpha");
-                                    highlightColor = parseColorWithAlpha(filter, highlightColor, "highlightColor", "highlightAlpha");
-                                    if (filter.hasAttribute("angle")) {
-                                        angle = Float.parseFloat(filter.getAttribute("angle"));
-                                    }
-                                    if (filter.hasAttribute("distance")) {
-                                        distance = Float.parseFloat(filter.getAttribute("distance"));
-                                    }
-                                    if (filter.hasAttribute("knockout")) {
-                                        knockout = "true".equals(filter.getAttribute("knockout"));
-                                    }
-                                    if (filter.hasAttribute("type")) {
-                                        switch (filter.getAttribute("type")) {
-                                            case "inner":
-                                                type = BevelFilter.TYPE_INNER;
-                                                break;
-                                            case "outer":
-                                                type = BevelFilter.TYPE_OUTER;
-                                                break;
-                                            case "full":
-                                                type = BevelFilter.TYPE_FULL;
-                                                break;
-                                        }
-                                    }
-
-                                    filterList.add(new BevelFilter(blurX, blurY, strength, quality, shadowColor, highlightColor, angle, distance, knockout, type, enabled));
-                                }
-                                break;
-                                case "GradientGlowFilter":
-                                case "GradientBevelFilter": {
-                                    float blurX = 5;
-                                    float blurY = 5;
-                                    float strength = 1;
-                                    int quality = 1;
-                                    float angle = 45;
-                                    float distance = 5;
-                                    boolean knockout = false;
-                                    int type = "GradientGlowFilter".equals(filter.getNodeName()) ? GradientGlowFilter.TYPE_OUTER : GradientBevelFilter.TYPE_INNER;
-                                    List<GradientEntry> gradientEntries = new ArrayList<>();
-
-                                    if (filter.hasAttribute("blurX")) {
-                                        blurX = Float.parseFloat(filter.getAttribute("blurX"));
-                                    }
-                                    if (filter.hasAttribute("blurY")) {
-                                        blurY = Float.parseFloat(filter.getAttribute("blurY"));
-                                    }
-                                    if (filter.hasAttribute("strength")) {
-                                        strength = Float.parseFloat(filter.getAttribute("strength"));
-                                    }
-                                    if (filter.hasAttribute("quality")) {
-                                        quality = Integer.parseInt(filter.getAttribute("quality"));
-                                    }
-                                    if (filter.hasAttribute("angle")) {
-                                        angle = Float.parseFloat(filter.getAttribute("angle"));
-                                    }
-                                    if (filter.hasAttribute("distance")) {
-                                        distance = Float.parseFloat(filter.getAttribute("distance"));
-                                    }
-                                    if (filter.hasAttribute("knockout")) {
-                                        knockout = "true".equals(filter.getAttribute("knockout"));
-                                    }
-                                    if (filter.hasAttribute("type")) {
-                                        switch (filter.getAttribute("type")) {
-                                            case "inner":
-                                                type = GradientGlowFilter.TYPE_INNER;
-                                                break;
-                                            case "outer":
-                                                type = GradientGlowFilter.TYPE_OUTER;
-                                                break;
-                                            case "full":
-                                                type = GradientGlowFilter.TYPE_FULL;
-                                                break;
-                                        }
-                                    }
-                                    gradientEntries = parseGradientEntries(filter);
-
-                                    if ("GradientGlowFilter".equals(filter.getNodeName())) {
-                                        filterList.add(new GradientGlowFilter(blurX, blurY, strength, quality, angle, distance, knockout, type, gradientEntries, enabled));
-                                    } else {
-                                        filterList.add(new GradientBevelFilter(blurX, blurY, strength, quality, angle, distance, knockout, type, gradientEntries, enabled));
-                                    }
-
-                                }
-                                break;
-                                case "AdjustColorFilter": {
-                                    //brightness="-50" contrast="75" saturation="50" hue="180"
-                                    float brightness = 0;
-                                    float contrast = 0;
-                                    float saturation = 0;
-                                    float hue = 0;
-                                    if (filter.hasAttribute("brightness")) {
-                                        brightness = Float.parseFloat(filter.getAttribute("brightness"));
-                                    }
-                                    if (filter.hasAttribute("contrast")) {
-                                        contrast = Float.parseFloat(filter.getAttribute("contrast"));
-                                    }
-                                    if (filter.hasAttribute("saturation")) {
-                                        saturation = Float.parseFloat(filter.getAttribute("saturation"));
-                                    }
-                                    if (filter.hasAttribute("hue")) {
-                                        hue = Float.parseFloat(filter.getAttribute("hue"));
-                                    }
-
-                                    filterList.add(new AdjustColorFilter(brightness, contrast, saturation, hue, enabled));
-                                }
-                                break;
-                            }
-                        }
-                    }
-
-                    String actionScript = "";
-
-                    Element actionscriptElement = getSubElementByName(symbolInstance, "Actionscript");
-                    if (actionscriptElement != null) {
-                        Element scriptElement = getSubElementByName(actionscriptElement, "script");
-                        if (scriptElement != null) {
-                            actionScript = scriptElement.getTextContent();
-                        }
-                    }
-
-                    if (symbolType == FlaCs4Writer.SYMBOLTYPE_SPRITE) {
-                        copiedComponentPathRef.setVal(copiedComponentPathRef.getVal() + 1);
-                    }
-                    fg.writeSymbolInstance(
-                            placeMatrix,
-                            centerPoint3DX,
-                            centerPoint3DY,
-                            transformationPointX,
-                            transformationPointY,
-                            instanceName,
-                            colorEffect,
-                            libraryItemIndex,
-                            symbolType == FlaCs4Writer.SYMBOLTYPE_SPRITE ? copiedComponentPathRef.getVal() : 0,
-                            blendMode,
-                            cacheAsBitmap,
-                            filterList,
-                            symbolType,
-                            trackAsMenu,
-                            loop,
-                            firstFrame,
-                            actionScript
-                    );
-
-                }
-                fg.writeKeyFrameMiddle();
+                handleSymbolInstances(layer, fg, definedClasses, copiedComponentPathRef);
+                List<Element> elements = new ArrayList<>();
                 if (elementsNode != null) {
-                    NodeList elements = elementsNode.getChildNodes();
-                    boolean emptyFrame = true;
-                    for (int e = 0; e < elements.getLength(); e++) {
-                        Node element = elements.item(e);
-                        if ("DOMShape".equals(element.getNodeName())) {
-                            emptyFrame = false;
-                            Node fillsNode = getSubElementByName(element, "fills");
-                            List<Element> fillStyles = new ArrayList<>();
-                            if (fillsNode != null) {
-                                fillStyles = getAllSubElementsByName(fillsNode, "FillStyle");
-                            }
+                    elements = getAllSubElements(elementsNode);
+                }
+                handleTexts(fg, elements, definedClasses);
+                fg.writeKeyFrameMiddle();
+                boolean emptyFrame = true;
+                for (int e = 0; e < elements.size(); e++) {
+                    Element element = elements.get(e);
+                    if ("DOMShape".equals(element.getNodeName())) {
+                        emptyFrame = false;
+                        Node fillsNode = getSubElementByName(element, "fills");
+                        List<Element> fillStyles = new ArrayList<>();
+                        if (fillsNode != null) {
+                            fillStyles = getAllSubElementsByName(fillsNode, "FillStyle");
+                        }
 
-                            Comparator<Node> indexComparator = new Comparator<>() {
-                                @Override
-                                public int compare(Node o1, Node o2) {
-                                    Node indexAttr1Node = o1.getAttributes().getNamedItem("index");
-                                    int index1 = 0;
-                                    if (indexAttr1Node != null) {
-                                        index1 = Integer.parseInt(indexAttr1Node.getTextContent());
-                                    }
-                                    Node indexAttr2Node = o2.getAttributes().getNamedItem("index");
-                                    int index2 = 0;
-                                    if (indexAttr2Node != null) {
-                                        index2 = Integer.parseInt(indexAttr2Node.getTextContent());
-                                    }
-                                    return index1 - index2;
+                        Comparator<Node> indexComparator = new Comparator<>() {
+                            @Override
+                            public int compare(Node o1, Node o2) {
+                                Node indexAttr1Node = o1.getAttributes().getNamedItem("index");
+                                int index1 = 0;
+                                if (indexAttr1Node != null) {
+                                    index1 = Integer.parseInt(indexAttr1Node.getTextContent());
                                 }
-                            };
-
-                            fillStyles.sort(indexComparator);
-                            Node strokesNode = getSubElementByName(element, "strokes");
-                            List<Element> strokeStyles = new ArrayList<>();
-                            if (strokesNode != null) {
-                                strokeStyles = getAllSubElementsByName(strokesNode, "StrokeStyle");
+                                Node indexAttr2Node = o2.getAttributes().getNamedItem("index");
+                                int index2 = 0;
+                                if (indexAttr2Node != null) {
+                                    index2 = Integer.parseInt(indexAttr2Node.getTextContent());
+                                }
+                                return index1 - index2;
                             }
-                            strokeStyles.sort(indexComparator);
+                        };
 
-                            Node edgesNode = getSubElementByName(element, "edges");
-                            List<Element> edges = new ArrayList<>();
-                            if (edgesNode != null) {
-                                edges = getAllSubElementsByName(edgesNode, "Edge");
+                        fillStyles.sort(indexComparator);
+                        Node strokesNode = getSubElementByName(element, "strokes");
+                        List<Element> strokeStyles = new ArrayList<>();
+                        if (strokesNode != null) {
+                            strokeStyles = getAllSubElementsByName(strokesNode, "StrokeStyle");
+                        }
+                        strokeStyles.sort(indexComparator);
+
+                        Node edgesNode = getSubElementByName(element, "edges");
+                        List<Element> edges = new ArrayList<>();
+                        if (edgesNode != null) {
+                            edges = getAllSubElementsByName(edgesNode, "Edge");
+                        }
+
+                        int totalEdgeCount = 0;
+
+                        for (Node edge : edges) {
+                            Node edgesAttrNode = edge.getAttributes().getNamedItem("edges");
+                            if (edgesAttrNode != null) {
+                                String edgesAttr = edgesAttrNode.getTextContent();
+                                totalEdgeCount += FlaCs4Writer.getEdgesCount(edgesAttr);
+                            }
+                        }
+
+                        fg.write(totalEdgeCount, 0x00, 0x00, 0x00);
+                        fg.write(fillStyles.size(), 0x00);
+                        for (Node fillStyle : fillStyles) {
+                            Node fillStyleVal = getFirstSubElement(fillStyle);
+                            handleFill(fillStyleVal, fg);
+                        }
+                        fg.write(strokeStyles.size(), 0x00);
+                        for (Node strokeStyle : strokeStyles) {
+                            Node strokeStyleVal = getFirstSubElement(strokeStyle);
+                            int scaleMode = FlaCs4Writer.SCALEMODE_NONE;
+
+                            double weight = 1.0;
+                            Node weightAttr = strokeStyleVal.getAttributes().getNamedItem("weight");
+                            if (weightAttr != null) {
+                                weight = Double.parseDouble(weightAttr.getTextContent());
                             }
 
-                            int totalEdgeCount = 0;
+                            float miterLimit = 3f;
+                            Node miterLimitAttr = strokeStyleVal.getAttributes().getNamedItem("miterLimit");
+                            if (miterLimitAttr != null) {
+                                miterLimit = Float.parseFloat(miterLimitAttr.getTextContent());
+                            }
 
-                            for (Node edge : edges) {
-                                Node edgesAttrNode = edge.getAttributes().getNamedItem("edges");
-                                if (edgesAttrNode != null) {
-                                    String edgesAttr = edgesAttrNode.getTextContent();
-                                    totalEdgeCount += FlaCs4Writer.getEdgesCount(edgesAttr);
+                            int styleParam1 = 0;
+                            int styleParam2 = 0;
+
+                            int joints = 0;
+                            int caps = 0;
+                            boolean pixelHinting = false;
+                            Node pixelHintingAttr = strokeStyleVal.getAttributes().getNamedItem("pixelHinting");
+                            if (pixelHintingAttr != null) {
+                                if ("true".equals(pixelHintingAttr.getTextContent())) {
+                                    pixelHinting = true;
                                 }
                             }
 
-                            fg.write(totalEdgeCount, 0x00, 0x00, 0x00);
-                            fg.write(fillStyles.size(), 0x00);
-                            for (Node fillStyle : fillStyles) {
-                                Node fillStyleVal = getFirstSubElement(fillStyle);
+                            switch (strokeStyleVal.getNodeName()) {
+                                case "SolidStroke":
+                                    styleParam1 = 0;
+                                    styleParam2 = 0;
+                                    joints = FlaCs4Writer.JOINSTYLE_ROUND;
+                                    caps = FlaCs4Writer.CAPSTYLE_ROUND;
+
+                                    Node scaleModeAttr = strokeStyleVal.getAttributes().getNamedItem("scaleMode");
+                                    if (scaleModeAttr != null) {
+                                        if ("normal".equals(scaleModeAttr.getTextContent())) {
+                                            scaleMode = FlaCs4Writer.SCALEMODE_NORMAL;
+                                        }
+                                        if ("horizontal".equals(scaleModeAttr.getTextContent())) {
+                                            scaleMode = FlaCs4Writer.SCALEMODE_HORIZONTAL;
+                                        }
+                                        if ("vertical".equals(scaleModeAttr.getTextContent())) {
+                                            scaleMode = FlaCs4Writer.SCALEMODE_VERTICAL;
+                                        }
+                                    }
+
+                                    Node capsAttr = strokeStyleVal.getAttributes().getNamedItem("caps");
+                                    if (capsAttr != null) {
+                                        if ("none".equals(capsAttr.getTextContent())) {
+                                            caps = FlaCs4Writer.CAPSTYLE_NONE;
+                                        }
+                                        if ("square".equals(capsAttr.getTextContent())) {
+                                            caps = FlaCs4Writer.CAPSTYLE_SQUARE;
+                                        }
+                                    }
+
+                                    Node jointsAttr = strokeStyleVal.getAttributes().getNamedItem("joints");
+                                    if (jointsAttr != null) {
+                                        if ("bevel".equals(jointsAttr.getTextContent())) {
+                                            joints = FlaCs4Writer.JOINSTYLE_BEVEL;
+                                        }
+                                        if ("miter".equals(jointsAttr.getTextContent())) {
+                                            joints = FlaCs4Writer.JOINSTYLE_MITER;
+                                        }
+                                    }
+                                    break;
+                                case "DashedStroke":
+                                    double dash1 = 6;
+                                    double dash2 = 6;
+                                    Node dash1Attr = strokeStyleVal.getAttributes().getNamedItem("dash1");
+                                    if (dash1Attr != null) {
+                                        dash1 = Double.parseDouble(dash1Attr.getTextContent());
+                                    }
+                                    Node dash2Attr = strokeStyleVal.getAttributes().getNamedItem("dash2");
+                                    if (dash2Attr != null) {
+                                        dash2 = Double.parseDouble(dash2Attr.getTextContent());
+                                    }
+
+                                    if (dash1 < 0.25 || dash1 > 300.0) {
+                                        throw new IllegalArgumentException("DashedStroke.dash1 is invalid");
+                                    }
+                                    if (dash2 < 0.25 || dash2 > 300.0) {
+                                        throw new IllegalArgumentException("DashedStroke.dash2 is invalid");
+                                    }
+
+                                    styleParam1 = (int) Math.round(dash1 * 20);
+                                    styleParam2 = (int) Math.round(dash2 * 20);
+                                    break;
+                                case "DottedStroke":
+                                    double dotSpace = 3;
+                                    Node dotSpaceAttr = strokeStyleVal.getAttributes().getNamedItem("dotSpace");
+                                    if (dotSpaceAttr != null) {
+                                        dotSpace = Double.parseDouble(dotSpaceAttr.getTextContent());
+                                    }
+                                    if (dotSpace < 0.0 || dotSpace > 300.0) {
+                                        throw new IllegalArgumentException("DottedStroke.dotSpace is invalid");
+                                    }
+                                    styleParam2 = (int) (0x10 * Math.round(dotSpace * 10) + 0x02);
+                                    break;
+                                case "RaggedStroke":
+                                    int pattern = getAttributeAsInt(strokeStyleVal, "pattern", Arrays.asList("solid", "simple", "random", "dotted", "random dotted", "triple dotted", "random tripple dotted"), "simple");
+                                    int waveHeight = getAttributeAsInt(strokeStyleVal, "waveHeight", Arrays.asList("flat", "wavy", "very wavy", "wild"), "wavy");
+                                    int waveLength = getAttributeAsInt(strokeStyleVal, "waveLength", Arrays.asList("very short", "short", "medium", "long"), "short");
+                                    styleParam2 = 0x08 * pattern + 0x40 * waveHeight + 0x100 * waveLength + 0x03;
+                                    break;
+                                case "StippleStroke":
+                                    int dotSize = getAttributeAsInt(strokeStyleVal, "dotSize", Arrays.asList("tiny", "small", "medium", "large"), "small");
+                                    int variation = getAttributeAsInt(strokeStyleVal, "variation", Arrays.asList("one size", "small variation", "varied sizes", "random sizes"), "varied sizes");
+                                    int density = getAttributeAsInt(strokeStyleVal, "density", Arrays.asList("very dense", "dense", "sparse", "very sparse"), "sparse");
+
+                                    styleParam2 = 0x08 * dotSize + 0x20 * variation + 0x80 * density + 0x04;
+                                    break;
+                                case "HatchedStroke":
+                                    int hatchThickness = getAttributeAsInt(strokeStyleVal, "hatchThickness", Arrays.asList("hairline", "thin", "medium", "thick"), "hairline");
+                                    int space = getAttributeAsInt(strokeStyleVal, "space", Arrays.asList("very close", "close", "distant", "very distant"), "distant");
+                                    int jiggle = getAttributeAsInt(strokeStyleVal, "jiggle", Arrays.asList("none", "bounce", "loose", "wild"), "none");
+                                    int rotate = getAttributeAsInt(strokeStyleVal, "rotate", Arrays.asList("none", "slight", "medium", "free"), "none");
+                                    int curve = getAttributeAsInt(strokeStyleVal, "curve", Arrays.asList("straight", "slight curve", "medium curve", "very curved"), "straight");
+                                    int length = getAttributeAsInt(strokeStyleVal, "length", Arrays.asList("equal", "slight variation", "medium variation", "random"), "equal");
+
+                                    styleParam2 = 0x08 * hatchThickness
+                                            + 0x20 * space
+                                            + 0x200 * jiggle
+                                            + 0x80 * rotate
+                                            + 0x800 * curve
+                                            + 0x2000 * length
+                                            + 0x05;
+                                    break;
+                            }
+
+                            Node sharpCornersAttr = strokeStyleVal.getAttributes().getNamedItem("sharpCorners");
+                            if (sharpCornersAttr != null) {
+                                if ("true".equals(sharpCornersAttr.getTextContent())) {
+                                    styleParam2 += 0x8000;
+                                }
+                            }
+
+                            Node fill = getSubElementByName(strokeStyleVal, "fill");
+                            if (fill != null) {
+                                Node fillStyleVal = getFirstSubElement(fill);
+                                Color baseColor = Color.black;
+                                if ("SolidColor".equals(fillStyleVal.getNodeName())) {
+                                    baseColor = parseColorWithAlpha(fillStyleVal);
+                                }
+
+                                fg.writeStrokeBegin(baseColor, weight, pixelHinting, scaleMode, caps, joints, miterLimit, styleParam1, styleParam2);
                                 handleFill(fillStyleVal, fg);
                             }
-                            fg.write(strokeStyles.size(), 0x00);
-                            for (Node strokeStyle : strokeStyles) {
-                                Node strokeStyleVal = getFirstSubElement(strokeStyle);
-                                int scaleMode = FlaCs4Writer.SCALEMODE_NONE;
-
-                                double weight = 1.0;
-                                Node weightAttr = strokeStyleVal.getAttributes().getNamedItem("weight");
-                                if (weightAttr != null) {
-                                    weight = Double.parseDouble(weightAttr.getTextContent());
-                                }
-
-                                float miterLimit = 3f;
-                                Node miterLimitAttr = strokeStyleVal.getAttributes().getNamedItem("miterLimit");
-                                if (miterLimitAttr != null) {
-                                    miterLimit = Float.parseFloat(miterLimitAttr.getTextContent());
-                                }
-
-                                int styleParam1 = 0;
-                                int styleParam2 = 0;
-
-                                int joints = 0;
-                                int caps = 0;
-                                boolean pixelHinting = false;
-                                Node pixelHintingAttr = strokeStyleVal.getAttributes().getNamedItem("pixelHinting");
-                                if (pixelHintingAttr != null) {
-                                    if ("true".equals(pixelHintingAttr.getTextContent())) {
-                                        pixelHinting = true;
-                                    }
-                                }
-
-                                switch (strokeStyleVal.getNodeName()) {
-                                    case "SolidStroke":
-                                        styleParam1 = 0;
-                                        styleParam2 = 0;
-                                        joints = FlaCs4Writer.JOINSTYLE_ROUND;
-                                        caps = FlaCs4Writer.CAPSTYLE_ROUND;
-
-                                        Node scaleModeAttr = strokeStyleVal.getAttributes().getNamedItem("scaleMode");
-                                        if (scaleModeAttr != null) {
-                                            if ("normal".equals(scaleModeAttr.getTextContent())) {
-                                                scaleMode = FlaCs4Writer.SCALEMODE_NORMAL;
-                                            }
-                                            if ("horizontal".equals(scaleModeAttr.getTextContent())) {
-                                                scaleMode = FlaCs4Writer.SCALEMODE_HORIZONTAL;
-                                            }
-                                            if ("vertical".equals(scaleModeAttr.getTextContent())) {
-                                                scaleMode = FlaCs4Writer.SCALEMODE_VERTICAL;
-                                            }
-                                        }
-
-                                        Node capsAttr = strokeStyleVal.getAttributes().getNamedItem("caps");
-                                        if (capsAttr != null) {
-                                            if ("none".equals(capsAttr.getTextContent())) {
-                                                caps = FlaCs4Writer.CAPSTYLE_NONE;
-                                            }
-                                            if ("square".equals(capsAttr.getTextContent())) {
-                                                caps = FlaCs4Writer.CAPSTYLE_SQUARE;
-                                            }
-                                        }
-
-                                        Node jointsAttr = strokeStyleVal.getAttributes().getNamedItem("joints");
-                                        if (jointsAttr != null) {
-                                            if ("bevel".equals(jointsAttr.getTextContent())) {
-                                                joints = FlaCs4Writer.JOINSTYLE_BEVEL;
-                                            }
-                                            if ("miter".equals(jointsAttr.getTextContent())) {
-                                                joints = FlaCs4Writer.JOINSTYLE_MITER;
-                                            }
-                                        }
-                                        break;
-                                    case "DashedStroke":
-                                        double dash1 = 6;
-                                        double dash2 = 6;
-                                        Node dash1Attr = strokeStyleVal.getAttributes().getNamedItem("dash1");
-                                        if (dash1Attr != null) {
-                                            dash1 = Double.parseDouble(dash1Attr.getTextContent());
-                                        }
-                                        Node dash2Attr = strokeStyleVal.getAttributes().getNamedItem("dash2");
-                                        if (dash2Attr != null) {
-                                            dash2 = Double.parseDouble(dash2Attr.getTextContent());
-                                        }
-
-                                        if (dash1 < 0.25 || dash1 > 300.0) {
-                                            throw new IllegalArgumentException("DashedStroke.dash1 is invalid");
-                                        }
-                                        if (dash2 < 0.25 || dash2 > 300.0) {
-                                            throw new IllegalArgumentException("DashedStroke.dash2 is invalid");
-                                        }
-
-                                        styleParam1 = (int) Math.round(dash1 * 20);
-                                        styleParam2 = (int) Math.round(dash2 * 20);
-                                        break;
-                                    case "DottedStroke":
-                                        double dotSpace = 3;
-                                        Node dotSpaceAttr = strokeStyleVal.getAttributes().getNamedItem("dotSpace");
-                                        if (dotSpaceAttr != null) {
-                                            dotSpace = Double.parseDouble(dotSpaceAttr.getTextContent());
-                                        }
-                                        if (dotSpace < 0.0 || dotSpace > 300.0) {
-                                            throw new IllegalArgumentException("DottedStroke.dotSpace is invalid");
-                                        }
-                                        styleParam2 = (int) (0x10 * Math.round(dotSpace * 10) + 0x02);
-                                        break;
-                                    case "RaggedStroke":
-                                        int pattern = getAttributeAsInt(strokeStyleVal, "pattern", Arrays.asList("solid", "simple", "random", "dotted", "random dotted", "triple dotted", "random tripple dotted"), "simple");
-                                        int waveHeight = getAttributeAsInt(strokeStyleVal, "waveHeight", Arrays.asList("flat", "wavy", "very wavy", "wild"), "wavy");
-                                        int waveLength = getAttributeAsInt(strokeStyleVal, "waveLength", Arrays.asList("very short", "short", "medium", "long"), "short");
-                                        styleParam2 = 0x08 * pattern + 0x40 * waveHeight + 0x100 * waveLength + 0x03;
-                                        break;
-                                    case "StippleStroke":
-                                        int dotSize = getAttributeAsInt(strokeStyleVal, "dotSize", Arrays.asList("tiny", "small", "medium", "large"), "small");
-                                        int variation = getAttributeAsInt(strokeStyleVal, "variation", Arrays.asList("one size", "small variation", "varied sizes", "random sizes"), "varied sizes");
-                                        int density = getAttributeAsInt(strokeStyleVal, "density", Arrays.asList("very dense", "dense", "sparse", "very sparse"), "sparse");
-
-                                        styleParam2 = 0x08 * dotSize + 0x20 * variation + 0x80 * density + 0x04;
-                                        break;
-                                    case "HatchedStroke":
-                                        int hatchThickness = getAttributeAsInt(strokeStyleVal, "hatchThickness", Arrays.asList("hairline", "thin", "medium", "thick"), "hairline");
-                                        int space = getAttributeAsInt(strokeStyleVal, "space", Arrays.asList("very close", "close", "distant", "very distant"), "distant");
-                                        int jiggle = getAttributeAsInt(strokeStyleVal, "jiggle", Arrays.asList("none", "bounce", "loose", "wild"), "none");
-                                        int rotate = getAttributeAsInt(strokeStyleVal, "rotate", Arrays.asList("none", "slight", "medium", "free"), "none");
-                                        int curve = getAttributeAsInt(strokeStyleVal, "curve", Arrays.asList("straight", "slight curve", "medium curve", "very curved"), "straight");
-                                        int length = getAttributeAsInt(strokeStyleVal, "length", Arrays.asList("equal", "slight variation", "medium variation", "random"), "equal");
-
-                                        styleParam2 = 0x08 * hatchThickness
-                                                + 0x20 * space
-                                                + 0x200 * jiggle
-                                                + 0x80 * rotate
-                                                + 0x800 * curve
-                                                + 0x2000 * length
-                                                + 0x05;
-                                        break;
-                                }
-
-                                Node sharpCornersAttr = strokeStyleVal.getAttributes().getNamedItem("sharpCorners");
-                                if (sharpCornersAttr != null) {
-                                    if ("true".equals(sharpCornersAttr.getTextContent())) {
-                                        styleParam2 += 0x8000;
-                                    }
-                                }
-
-                                Node fill = getSubElementByName(strokeStyleVal, "fill");
-                                if (fill != null) {
-                                    Node fillStyleVal = getFirstSubElement(fill);
-                                    Color baseColor = Color.black;
-                                    if ("SolidColor".equals(fillStyleVal.getNodeName())) {
-                                        baseColor = parseColorWithAlpha(fillStyleVal);
-                                    }
-
-                                    fg.writeStrokeBegin(baseColor, weight, pixelHinting, scaleMode, caps, joints, miterLimit, styleParam1, styleParam2);
-                                    handleFill(fillStyleVal, fg);
-                                }
-                            }
-                            fg.beginShape();
-                            for (Node edge : edges) {
-                                int strokeStyle = 0;
-                                int fillStyle0 = 0;
-                                int fillStyle1 = 0;
-                                Node strokeStyleAttr = edge.getAttributes().getNamedItem("strokeStyle");
-                                if (strokeStyleAttr != null) {
-                                    strokeStyle = Integer.parseInt(strokeStyleAttr.getTextContent());
-                                }
-                                Node fillStyle0StyleAttr = edge.getAttributes().getNamedItem("fillStyle0");
-                                if (fillStyle0StyleAttr != null) {
-                                    fillStyle0 = Integer.parseInt(fillStyle0StyleAttr.getTextContent());
-                                }
-                                Node fillStyle1StyleAttr = edge.getAttributes().getNamedItem("fillStyle1");
-                                if (fillStyle1StyleAttr != null) {
-                                    fillStyle1 = Integer.parseInt(fillStyle1StyleAttr.getTextContent());
-                                }
-                                Node edgesAttrNode = edge.getAttributes().getNamedItem("edges");
-                                if (edgesAttrNode != null) {
-                                    String edgesStr = edgesAttrNode.getTextContent();
-                                    fg.writeEdges(edgesStr, strokeStyle, fillStyle0, fillStyle1);
-                                }
-                            }
-
                         }
-                    }
-
-                    if (emptyFrame) {
-                        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-                    }
-                    int keyMode = FlaCs4Writer.KEYMODE_STANDARD;
-                    Node keyModeAttr = frame.getAttributes().getNamedItem("keyMode");
-                    if (keyModeAttr != null) {
-                        keyMode = Integer.parseInt(keyModeAttr.getTextContent());
-                    }
-
-                    int duration = 1;
-                    Node durationAttr = frame.getAttributes().getNamedItem("duration");
-                    if (durationAttr != null) {
-                        duration = Integer.parseInt(durationAttr.getTextContent());
-                    }
-
-                    String actionScript = "";
-
-                    Element actionscriptElement = getSubElementByName(frame, "Actionscript");
-                    if (actionscriptElement != null) {
-                        Element scriptElement = getSubElementByName(actionscriptElement, "script");
-                        if (scriptElement != null) {
-                            actionScript = scriptElement.getTextContent();
+                        fg.beginShape();
+                        for (Node edge : edges) {
+                            int strokeStyle = 0;
+                            int fillStyle0 = 0;
+                            int fillStyle1 = 0;
+                            Node strokeStyleAttr = edge.getAttributes().getNamedItem("strokeStyle");
+                            if (strokeStyleAttr != null) {
+                                strokeStyle = Integer.parseInt(strokeStyleAttr.getTextContent());
+                            }
+                            Node fillStyle0StyleAttr = edge.getAttributes().getNamedItem("fillStyle0");
+                            if (fillStyle0StyleAttr != null) {
+                                fillStyle0 = Integer.parseInt(fillStyle0StyleAttr.getTextContent());
+                            }
+                            Node fillStyle1StyleAttr = edge.getAttributes().getNamedItem("fillStyle1");
+                            if (fillStyle1StyleAttr != null) {
+                                fillStyle1 = Integer.parseInt(fillStyle1StyleAttr.getTextContent());
+                            }
+                            Node edgesAttrNode = edge.getAttributes().getNamedItem("edges");
+                            if (edgesAttrNode != null) {
+                                String edgesStr = edgesAttrNode.getTextContent();
+                                fg.writeEdges(edgesStr, strokeStyle, fillStyle0, fillStyle1);
+                            }
                         }
-                    }
 
-                    fg.writeKeyFrameEnd(duration, keyMode, actionScript);
+                    }
                 }
+
+                if (emptyFrame) {
+                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                }
+                int keyMode = FlaCs4Writer.KEYMODE_STANDARD;
+                Node keyModeAttr = frame.getAttributes().getNamedItem("keyMode");
+                if (keyModeAttr != null) {
+                    keyMode = Integer.parseInt(keyModeAttr.getTextContent());
+                }
+
+                int duration = 1;
+                Node durationAttr = frame.getAttributes().getNamedItem("duration");
+                if (durationAttr != null) {
+                    duration = Integer.parseInt(durationAttr.getTextContent());
+                }
+
+                String actionScript = "";
+
+                Element actionscriptElement = getSubElementByName(frame, "Actionscript");
+                if (actionscriptElement != null) {
+                    Element scriptElement = getSubElementByName(actionscriptElement, "script");
+                    if (scriptElement != null) {
+                        actionScript = scriptElement.getTextContent();
+                    }
+                }
+
+                fg.writeKeyFrameEnd(duration, keyMode, actionScript);
             }
         }
 
