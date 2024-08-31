@@ -34,7 +34,7 @@ import org.w3c.dom.NodeList;
  */
 public abstract class AbstractGenerator {
 
-    protected static Element getFirstSubElement(Node n) {
+    protected Element getFirstSubElement(Node n) {
         NodeList list = n.getChildNodes();
         for (int i = 0; i < list.getLength(); i++) {
             Node sn = list.item(i);
@@ -45,7 +45,7 @@ public abstract class AbstractGenerator {
         return null;
     }
 
-    protected static Element getSubElementByName(Node n, String name) {
+    protected Element getSubElementByName(Node n, String name) {
         NodeList list = n.getChildNodes();
         for (int i = 0; i < list.getLength(); i++) {
             Node sn = list.item(i);
@@ -56,7 +56,7 @@ public abstract class AbstractGenerator {
         return null;
     }
 
-    protected static List<Element> getAllSubElements(Node n) {
+    protected List<Element> getAllSubElements(Node n) {
         NodeList list = n.getChildNodes();
         List<Element> ret = new ArrayList<>();
         for (int i = 0; i < list.getLength(); i++) {
@@ -68,7 +68,7 @@ public abstract class AbstractGenerator {
         return ret;
     }
 
-    protected static List<Element> getAllSubElementsByName(Node n, String name) {
+    protected List<Element> getAllSubElementsByName(Node n, String name) {
         NodeList list = n.getChildNodes();
         List<Element> ret = new ArrayList<>();
         for (int i = 0; i < list.getLength(); i++) {
@@ -80,15 +80,15 @@ public abstract class AbstractGenerator {
         return ret;
     }
 
-    protected static Color parseColorWithAlpha(Node node) {
+    protected Color parseColorWithAlpha(Node node) {
         return parseColorWithAlpha(node, Color.black, "color", "alpha");
     }
 
-    protected static Color parseColorWithAlpha(Node node, Color defaultColor) {
+    protected Color parseColorWithAlpha(Node node, Color defaultColor) {
         return parseColorWithAlpha(node, defaultColor, "color", "alpha");
     }
 
-    protected static Color parseColorWithAlpha(Node node, Color defaultColor, String colorAttributeName, String alphaAttributeName) {
+    protected Color parseColorWithAlpha(Node node, Color defaultColor, String colorAttributeName, String alphaAttributeName) {
         Color color = defaultColor;
         Node colorAttr = node.getAttributes().getNamedItem(colorAttributeName);
         if (colorAttr != null) {
@@ -104,7 +104,7 @@ public abstract class AbstractGenerator {
         return color;
     }
 
-    protected static Color parseColor(String value) {
+    protected Color parseColor(String value) {
         Pattern pat = Pattern.compile("^#([a-fA-F0-9]{6})$");
         Matcher m = pat.matcher(value);
         if (m.matches()) {
@@ -114,7 +114,7 @@ public abstract class AbstractGenerator {
         throw new IllegalArgumentException("Invalid color");
     }
 
-    protected static Matrix parseMatrix(Element matrixElement) {
+    protected Matrix parseMatrix(Element matrixElement) {
         if (matrixElement == null) {
             return new Matrix();
         }
@@ -150,7 +150,7 @@ public abstract class AbstractGenerator {
         return new Matrix(a, b, c, d, tx, ty);
     }
 
-    protected static void useClass(String className, FlaCs4Writer os, List<String> definedClasses) throws IOException {
+    protected void useClass(String className, int version, FlaCs4Writer os, List<String> definedClasses) throws IOException {
         if (definedClasses.contains(className)) {
             os.write(1 + 2 * definedClasses.indexOf(className));
             os.write(0x80);
@@ -159,6 +159,17 @@ public abstract class AbstractGenerator {
             os.writeLenAsciiString(className);
             definedClasses.add(className);
         }
-        os.write(0x05);
+        os.write(version);
+    }
+
+    protected int getAttributeAsInt(Node node, String attributeName, List<String> allowedValues, String defaultValue) {
+        Node attr = node.getAttributes().getNamedItem(attributeName);
+        if (attr != null) {
+            int index = allowedValues.indexOf(attr.getTextContent());
+            if (index > -1) {
+                return index;
+            }
+        }
+        return allowedValues.indexOf(defaultValue);
     }
 }

@@ -29,9 +29,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.SecureRandom;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,100 +43,59 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
 /**
  *
  * @author JPEXS
  */
-public class ContentsGenerator {
+public class ContentsGenerator extends AbstractGenerator {
 
-    public long timeCreated = Calendar.getInstance().getTimeInMillis() / 1000;
-    public int width = 550;
-    public int height = 400;
-    //UI8
-    public int frameRate = 24;
-    public Color bgColor = new Color(0xFF, 0xFF, 0xFF);
-    public String pageName = "P 1 1725041802";
-    public String sceneName = "Scene 1";
-    public int editorVersion = 11;  // 11 = CS5, 10 = CS4
-    public int editorBuild = 485;
-    public String editorOS = "Windows";
-    public String savedBy = "Saved by Adobe Flash " + editorOS + " " + editorVersion + ".0 build " + editorBuild + " timecount = 1725041838";
+    public long timeCreatedMs = Calendar.getInstance().getTimeInMillis();
+    public long timeCreated = timeCreatedMs / 1000;
 
-    public String xmppMetadata = "<?xpacket begin=\"" + (char) 0xFEFF + "\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n"
-            + "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 5.0-c060 61.134777, 2010/02/12-17:32:00        \">\n"
-            + "   <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n"
-            + "      <rdf:Description rdf:about=\"\"\n"
-            + "            xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">\n"
-            + "         <xmp:CreatorTool>Adobe Flash Professional CS5</xmp:CreatorTool>\n"
-            + "         <xmp:CreateDate>2024-08-30T20:16:42+02:00</xmp:CreateDate>\n"
-            + "         <xmp:MetadataDate>2024-08-30T20:17:18+02:00</xmp:MetadataDate>\n"
-            + "         <xmp:ModifyDate>2024-08-30T20:17:18+02:00</xmp:ModifyDate>\n"
-            + "      </rdf:Description>\n"
-            + "      <rdf:Description rdf:about=\"\"\n"
-            + "            xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n"
-            + "         <dc:format>application/vnd.adobe.fla</dc:format>\n"
-            + "      </rdf:Description>\n"
-            + "      <rdf:Description rdf:about=\"\"\n"
-            + "            xmlns:xmpMM=\"http://ns.adobe.com/xap/1.0/mm/\"\n"
-            + "            xmlns:stEvt=\"http://ns.adobe.com/xap/1.0/sType/ResourceEvent#\"\n"
-            + "            xmlns:stRef=\"http://ns.adobe.com/xap/1.0/sType/ResourceRef#\">\n"
-            + "         <xmpMM:InstanceID>xmp.iid:C59083F8F966EF118BDFF8F9F5A48E09</xmpMM:InstanceID>\n"
-            + "         <xmpMM:DocumentID>xmp.did:C59083F8F966EF118BDFF8F9F5A48E09</xmpMM:DocumentID>\n"
-            + "         <xmpMM:OriginalDocumentID>xmp.did:C49083F8F966EF118BDFF8F9F5A48E09</xmpMM:OriginalDocumentID>\n"
-            + "         <xmpMM:History>\n"
-            + "            <rdf:Seq>\n"
-            + "               <rdf:li rdf:parseType=\"Resource\">\n"
-            + "                  <stEvt:action>created</stEvt:action>\n"
-            + "                  <stEvt:instanceID>xmp.iid:C49083F8F966EF118BDFF8F9F5A48E09</stEvt:instanceID>\n"
-            + "                  <stEvt:when>2024-08-30T20:16:42+02:00</stEvt:when>\n"
-            + "                  <stEvt:softwareAgent>Adobe Flash Professional CS5</stEvt:softwareAgent>\n"
-            + "               </rdf:li>\n"
-            + "               <rdf:li rdf:parseType=\"Resource\">\n"
-            + "                  <stEvt:action>saved</stEvt:action>\n"
-            + "                  <stEvt:instanceID>xmp.iid:C59083F8F966EF118BDFF8F9F5A48E09</stEvt:instanceID>\n"
-            + "                  <stEvt:when>2024-08-30T20:17:18+02:00</stEvt:when>\n"
-            + "                  <stEvt:softwareAgent>Adobe Flash Professional CS5</stEvt:softwareAgent>\n"
-            + "                  <stEvt:changed>/</stEvt:changed>\n"
-            + "               </rdf:li>\n"
-            + "            </rdf:Seq>\n"
-            + "         </xmpMM:History>\n"
-            + "         <xmpMM:DerivedFrom rdf:parseType=\"Resource\">\n"
-            + "            <stRef:instanceID>xmp.iid:C49083F8F966EF118BDFF8F9F5A48E09</stRef:instanceID>\n"
-            + "            <stRef:documentID>xmp.did:C49083F8F966EF118BDFF8F9F5A48E09</stRef:documentID>\n"
-            + "            <stRef:originalDocumentID>xmp.did:C49083F8F966EF118BDFF8F9F5A48E09</stRef:originalDocumentID>\n"
-            + "         </xmpMM:DerivedFrom>\n"
-            + "      </rdf:Description>\n"
-            + "   </rdf:RDF>\n"
-            + "</x:xmpmeta>\n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                                                                                                    \n"
-            + "                           \n"
-            + "<?xpacket end=\"w\"?>";
+    public static final int RULERUNITS_INCHES = 0;
+    public static final int RULERUNITS_INCHES_DECIMAL = 1;
+    public static final int RULERUNITS_POINTS = 2;
+    public static final int RULERUNITS_CM = 3;
+    public static final int RULERUNITS_MM = 4;
+    public static final int RULERUNITS_PX = 5;
 
-    protected int contentsSymbolCnt = 0;
+    private static final SecureRandom random = new SecureRandom();
 
-    protected List<Media> media = new ArrayList<>();
+    private String generateGUID() {
+        final String HEX_CHARS = "ABCDEF0123456789";
+        int length = 32;
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            int index = random.nextInt(HEX_CHARS.length());
+            sb.append(HEX_CHARS.charAt(index));
+        }
+        return sb.toString();
+    }
 
+    private String generateXmppId() {
+        int length = 24;
+
+        StringBuilder sb = new StringBuilder(length);
+
+        final String ALPHA_NUMERIC_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        final String ALPHA_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        int firstCharIndex = random.nextInt(ALPHA_CHARS.length());
+        sb.append(ALPHA_CHARS.charAt(firstCharIndex));
+
+        for (int i = 1; i < length; i++) {
+            int index = random.nextInt(ALPHA_NUMERIC_CHARS.length());
+            sb.append(ALPHA_NUMERIC_CHARS.charAt(index));
+        }
+
+        return sb.toString();
+    }
+
+    //protected int contentsSymbolCnt = 0;
+    //protected List<Media> media = new ArrayList<>();
     private Map<String, String> vectorsMap = new LinkedHashMap<>();
 
     {
@@ -429,180 +391,294 @@ public class ContentsGenerator {
         return 10;
     }
 
-    public void generateContentsFile(InputStream domDocumentIs, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
+    public void generate(
+            InputStream domDocumentIs,
+            InputStream publishSettingsIs,
+            InputStream metadataIs,
+            File outputDir
+    ) throws SAXException, IOException, ParserConfigurationException {
+
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder = factory.newDocumentBuilder();
 
-        Document doc = docBuilder.parse(domDocumentIs);
+        Document domDocument = docBuilder.parse(domDocumentIs);
+        Document publishSettings = publishSettingsIs == null ? null : docBuilder.parse(publishSettingsIs);
+        Document metadata = metadataIs == null ? null : docBuilder.parse(metadataIs);
 
-        String strCDocumentPage = "CDocumentPage";
-        FlaCs4Writer fg = new FlaCs4Writer(os);
-        fg.write(0x47, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
-                0xFF, 0x01, 0x00, strCDocumentPage.length(), 0x00);
-        fg.write(strCDocumentPage.getBytes());
-        fg.write(0x19);
-        fg.writeLenUnicodeString(pageName);
+        Color backgroundColor = Color.white;
+        Element document = domDocument.getDocumentElement();
+        if (document.hasAttribute("backgroundColor")) {
+            backgroundColor = parseColor(document.getAttribute("backgroundColor"));
+        }
 
-        fg.write(0xFF, 0xFE, 0xFF);
-        fg.writeLenUnicodeString(sceneName);
-        fg.write(
-                0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
-                0xFE, 0xFF, 0x00, 0x01, 0x00, 0x00, 0x00, 0x06,
-                0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
-                0x00, 0x00, 0x00);
-        fg.writeUI32(timeCreated);
-        fg.write(
-                0x56, 0x02, //??? 598 dec
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07,
-                0x00, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x00, 0x02, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x00);
-        fg.writeUI32(timeCreated);
-        fg.write(
-                0xFF, 0xFE, 0xFF, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x02, 0x00, 0x00, 0x00, 0x00,
-                0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-                0x07, 0x00, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x00, 0x02, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF,
-                0xFF, 0xFF, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x07,
-                0x00, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x03,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x03,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
-                0x00, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x00, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x80, 0x00, 0x00, 0x00);
-        /*0x00, 0x00, 0x00, 0x00, 0x00,
+        int width = 550;
+        int height = 400;
+
+        if (document.hasAttribute("width")) {
+            width = Integer.parseInt(document.getAttribute("width"));
+        }
+        if (document.hasAttribute("height")) {
+            height = Integer.parseInt(document.getAttribute("height"));
+        }
+
+        int rulerUnitType = getAttributeAsInt(document, "rulerUnitType", Arrays.asList(
+                "inches",
+                "decimal inches",
+                "points",
+                "centimeters",
+                "millimeters",
+                "pixels"
+        ), "pixels");
+
+        float frameRate = 24;
+        if (document.hasAttribute("frameRate")) {
+            frameRate = Float.parseFloat(document.getAttribute("frameRate"));
+        }
+
+        List<Element> timelinesElements = getAllSubElementsByName(document, "timelines");
+
+        List<String> definedClasses = new ArrayList<>();
+
+        File contentsFile = outputDir.toPath().resolve("Contents").toFile();
+        try (FileOutputStream os = new FileOutputStream(contentsFile)) {
+            String strCDocumentPage = "CDocumentPage";
+            FlaCs4Writer fg = new FlaCs4Writer(os);
+            fg.write(0x47, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+
+            int pageNum = 1;
+            for (Element timelinesElement : timelinesElements) {
+                Element domTimeline = getSubElementByName(timelinesElement, "DOMTimeline");
+                if (domTimeline == null) {
+                    continue;
+                }
+                if (!domTimeline.hasAttribute("name")) {
+                    continue;
+                }
+                String name = domTimeline.getAttribute("name");
+
+                useClass("CDocumentPage", 0x19, fg, definedClasses);
+
+                String pageName = "P " + pageNum + " " + timeCreated;
+                pageNum++;
+                fg.writeLenUnicodeString(pageName);
+                fg.write(0xFF, 0xFE, 0xFF);
+                fg.writeLenUnicodeString(name);
+                fg.write(
+                        0x00, 0x00, 0x00, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x01, 0x00, 0x00, 0x00, 0x06,
+                        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+                        0x00, 0x00, 0x00);
+                fg.writeUI32(timeCreated);
+                fg.write(
+                        0x56, 0x02, //??? 598 dec
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07,
+                        0x00, 0x00, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x02, 0x00, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00);
+                fg.writeUI32(timeCreated);
+                fg.write(
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x02, 0x00, 0x00, 0x00, 0x00,
+                        0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+                        0x07, 0x00, 0x00, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x02, 0x00, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF,
+                        0xFF, 0xFF, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x07,
+                        0x00, 0x00, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x03,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x03,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+                        0x00, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+                        0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x00, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x80, 0x00, 0x00, 0x00);
+                /*0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x02, 0x00);*/
-        //writeContentsSymbol(dw, "Symbol 1", "shape 1", false);
-        //writeContentsSymbol(dw, "Symbol 2", "shape 2", false);
-        //writeContentsSymbol(dw, "Symbol 3", "sprite 3", true);
+                //writeContentsSymbol(dw, "Symbol 1", "shape 1", false);
+                //writeContentsSymbol(dw, "Symbol 2", "shape 2", false);
+                //writeContentsSymbol(dw, "Symbol 3", "sprite 3", true);
 
-        /*fg.write(0x00, 0x00, contentsSymbolCnt + 1, 0x00, 0x00, 0x00, contentsSymbolCnt + 1, 0x00,
+                /*fg.write(0x00, 0x00, contentsSymbolCnt + 1, 0x00, 0x00, 0x00, contentsSymbolCnt + 1, 0x00,
                 0x05, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00);*/
-        fg.write(
-                0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
-                0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00,
-                0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00,
-                0x00, 0x00, 0x01, 0x00, 0x05, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00);
+                fg.write(
+                        0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
+                        0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00);
 
-        fg.writeUI16(width * 20);
-        fg.write(0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00);
-        fg.writeUI16(height * 20);
-        fg.write(0x00, 0x00, 0x00, 0x00,
-                0xC8, 0x00, //?, was 68 01
-                0x03, 0x00, 0x00, 0x8D, 0x00, 0x68,
-                0x01, 0x00, 0x00, 0x68, 0x01, 0x00, 0x00, 0x68,
-                0x01, 0x00, 0x00, 0x68, 0x01, 0x00, 0x00, 0x01,
-                0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                0x00, 0x00, 0x00, bgColor.getRed(), bgColor.getGreen(), bgColor.getBlue(), 0xFF,
-                0x94, 0x94, 0x94, //? some color
-                0xFF, 0x00, 0x00, frameRate, 0x00, 0x00,
-                0x00, 0x03, 0xb4, 0x00, 0x00, 0x00);
-        writeMap(fg, getLegacyProperties(), true);
-        fg.write(
-                0x01, 0x00, 0x00, 0x00
-        );
-        writeMap(fg, getProperties("Untitled-1"), true);
-        fg.write(0xFF, 0xFF, 0xFF, 0xFF);
-        fg.write(0xFF, 0xFE, 0xFF, 0x00);
-        fg.write(0xFF, 0xFE, 0xFF, 0x00);
-        fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFC, 0x00, 0xFF, 0xFF, 0x00, 0x00);
-        writeColorDef(fg, 0x04, true);
-        fg.write(0x00,
-                0xFF, 0xFE, 0xFF);
-        fg.writeLenUnicodeString("PublishQTProperties::QTSndSettings");
-        fg.write(0xFF, 0xFF, 0x01, 0x00);
-        writeQTAudioSettings(fg, true);
-        //writeUnk1(fg);
-        fg.write(0xFF, 0xFE, 0xFF);
-        fg.write(0xFF);
-        fg.writeDoubleLenUnicodeString(xmppMetadata);
+                PageGenerator pageGenerator = new PageGenerator();
+                pageGenerator.generatePageFile(domTimeline, outputDir.toPath().resolve(pageName).toFile());
+            }
 
-        fg.write(0xFF, 0xFE, 0xFF, 00);
-        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-        fg.write(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
-        fg.write(0x00, 0x00, 0x00, 0x00, 0x00,
-                editorVersion
-        );
-        fg.write(0x00, 0x00, 0x00);
-        fg.writeUI16(editorBuild);
-        fg.write(0x00, 0x00, 0x43, 0x00);
-        fg.write(savedBy.getBytes());
-        fg.write(0x00);
-        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x4B, 0x40, 0x7C, 0x15, 0x00, 0x00, 0xA0, 0x0F, 0x00, 0x00,
-                0x01, 0x00, 0x00, 0x00);
+            int currentTimeline = 1;
 
-        //writeUnk2(fg);
+            if (document.hasAttribute("currentTimeline")) {
+                currentTimeline = Integer.parseInt(document.getAttribute("currentTimeline"));
+            }
 
-        /*fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x4b,
-                0x40, 0x7c, 0x15, 0x00, 0x00, 0xA0, 0x0f, 0x00,
-                0x00, 0x01, 0x00, 0x00, 0x00);*/
-    }
+            int nextSceneIdentifier = timelinesElements.size() + 1;
+            if (document.hasAttribute("nextSceneIdentifier")) {
+                nextSceneIdentifier = Integer.parseInt(document.getAttribute("nextSceneIdentifier"));
+            }
 
-    protected void writeUnk2(FlaCs4Writer dw) throws IOException {
-        dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0xEE, 0x01, 0x00, 0x00
-        );
-    }
+            fg.write(0x00, 0x00,
+                    nextSceneIdentifier,
+                    0x00,
+                    0x01, 0x00,
+                    1 + currentTimeline,
+                    0x00, 0x00, 0x00, 0x01, 0x00,
+                    0x00, 0x00, 0x01, 0x00,
+                    rulerUnitType,
+                    0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00);
 
-    protected void writeUnk1(FlaCs4Writer dw) throws IOException {
-        dw.write(
-                0xFF, 0xFE, 0xFF,
-                0x00,
-                0xFF, 0xFE, 0xFF,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
+            fg.writeUI16(width * 20);
+            fg.write(0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00);
+            fg.writeUI16(height * 20);
+            fg.write(0x00, 0x00, 0x00, 0x00,
+                    0xC8, 0x00, //?, was 68 01
+                    0x03, 0x00,
+                    timelinesElements.size() > 1 ? 1 : 0, //?? something like "Did you ever used multiple scenes"
+                    0x8D, 0x00, 0x68,
+                    0x01, 0x00, 0x00, 0x68, 0x01, 0x00, 0x00, 0x68,
+                    0x01, 0x00, 0x00, 0x68, 0x01, 0x00, 0x00, 0x01,
+                    0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+                    0x00, 0x00, 0x00, backgroundColor.getRed(), backgroundColor.getGreen(), backgroundColor.getBlue(), 0xFF,
+                    0x94, 0x94, 0x94, //? some color
+                    0xFF, 0x00, (int) Math.round((frameRate - Math.floor(frameRate)) * 256), (int) Math.floor(frameRate), 0x00, 0x00,
+                    0x00, 0x03, 0xb4, 0x00, 0x00, 0x00);
+            writeMap(fg, getLegacyProperties(), true);
+
+            if (publishSettings == null) {
+                fg.writeUI32(1);
+                writeMap(fg, getProperties("Untitled-1", width, height), true);
+            } else {
+                List<Element> flashProfiles = getAllSubElementsByName(publishSettings.getDocumentElement(), "flash_profile");
+                fg.writeUI32(flashProfiles.size()); //?
+                for (Element flashProfile : flashProfiles) {
+                    Map<String, String> properties = getProperties("Untitled-1", width, height);
+                    for (Element propertiesSet : getAllSubElements(flashProfile)) {
+                        String namespace = propertiesSet.getTagName();
+                        for (Element property : getAllSubElements(propertiesSet)) {
+                            String key = property.getTagName();
+                            String value = property.getTextContent();
+                            if ("PublishFlashProperties".equals(namespace)
+                                    && ("LibraryPath".equals(key)
+                                    || "LibraryVersions".equals(key))) {
+                                continue;
+                            }
+                            String nsKey = namespace + "::" + key;
+                            if (!properties.containsKey(nsKey)) {
+                                continue;
+                            }
+                            properties.put(nsKey, value);
+                        }
+                    }
+                    writeMap(fg, properties, true);
+                }
+            }
+            fg.write(0xFF, 0xFF, 0xFF, 0xFF);
+            fg.write(0xFF, 0xFE, 0xFF, 0x00);
+            fg.write(0xFF, 0xFE, 0xFF, 0x00);
+            fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFC, 0x00, 0xFF, 0xFF, 0x00, 0x00);
+            writeColorDef(fg, timelinesElements.size(), 0x04, true);
+            fg.write(0x00,
+                    0xFF, 0xFE, 0xFF);
+            fg.writeLenUnicodeString("PublishQTProperties::QTSndSettings");
+            fg.write(0xFF, 0xFF, 0x01, 0x00);
+            writeQTAudioSettings(fg, true);
+            fg.write(0xFF, 0xFE, 0xFF);
+            fg.write(0xFF);
+            String creatorInfo = "";
+            if (document.hasAttribute("creatorInfo")) {
+                creatorInfo = document.getAttribute("creatorInfo");
+            }
+            fg.writeDoubleLenUnicodeString(getXmpp(creatorInfo));
+            /*
+            public int majorVersion = 11;  // 11 = CS5, 10 = CS4
+    public int buildNumber = 485;
+    public String platform = "Windows";
+
+    public String versionInfo = "Saved by Adobe Flash " + platform + " " + majorVersion + ".0 build " + buildNumber;
+    public String creatorInfo = "Adobe Flash Professional CS5";
+             */
+            fg.write(0xFF, 0xFE, 0xFF, 00);
+            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+            fg.write(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
+            fg.write(0x00, 0x00, 0x00, 0x00, 0x00);
+            int majorVersion = 0;
+            if (document.hasAttribute("majorVersion")) {
+                majorVersion = Integer.parseInt(document.getAttribute("majorVersion"));
+            }
+            fg.write(majorVersion);
+            fg.write(0x00, 0x00, 0x00);
+            int buildNumber = 0;
+            if (document.hasAttribute("buildNumber")) {
+                buildNumber = Integer.parseInt(document.getAttribute("buildNumber"));
+            }
+
+            fg.writeUI16(buildNumber);
+            fg.write(0x00, 0x00, 0x43, 0x00);
+
+            String versionInfo = "";
+            if (document.hasAttribute("versionInfo")) {
+                versionInfo = document.getAttribute("versionInfo");
+            }
+
+            fg.write(versionInfo.getBytes());
+            String timecount = " timecount = " + timeCreated;
+            fg.write(timecount.getBytes());
+            fg.write(0x00);
+            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x4B, 0x40, 0x7C, 0x15, 0x00, 0x00, 0xA0, 0x0F, 0x00, 0x00,
+                    0x01, 0x00, 0x00, 0x00);
+        }
     }
 
     protected void writeQTAudioSettings(FlaCs4Writer dw, boolean cs4) throws IOException {
@@ -631,12 +707,13 @@ public class ContentsGenerator {
                 0x00, 0x01, 0x00, 0x00, 0x00,
                 0xFF, 0xFE, 0xFF,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+
     }
 
-    protected void writeColorDef(FlaCs4Writer dw, int b, boolean cs4) throws IOException {
+    protected void writeColorDef(FlaCs4Writer dw, int sceneCount, int b, boolean cs4) throws IOException {
 
         String CColorDef = "CColorDef";
-        int sep = 0x03 + contentsSymbolCnt + (media.isEmpty() ? 0 : media.size() + 1);
+        int sep = 0x02 + sceneCount;//contentsSymbolCnt + (media.isEmpty() ? 0 : media.size() + 1);
         dw.write(CColorDef.length(), 0x00);
         dw.write(CColorDef.getBytes());
         dw.write(b);
@@ -656,9 +733,15 @@ public class ContentsGenerator {
 
         dw.write(0x00, extendedSwatches.size());
 
-        for (ExtendedSwatchItem ex : extendedSwatches) {
+        for (int x = 0; x < extendedSwatches.size(); x++) {
+            ExtendedSwatchItem ex = extendedSwatches.get(x);
             dw.write(0x00, sep, 0x80, b);
-            dw.write(0x00, 0x00, 0x00, 0xFF, ex.getType(), 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            if (x == 5) { //WTF?
+                dw.write(0xFF, 0xFF, 0xFF);
+            } else {
+                dw.write(0x00, 0x00, 0x00);
+            }
+            dw.write(0xFF, ex.getType(), 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, ex.entries.size());
             if (b == 0x04) {
                 dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
@@ -667,7 +750,12 @@ public class ContentsGenerator {
                 int r = (int) Math.round(en.ratio * 255);
                 dw.write(r, en.color.getRed(), en.color.getGreen(), en.color.getBlue(), 0xFF);
             }
-            dw.write(0x00, 0x00, 0x00, 0x00, 0x00);
+            dw.write(0x00, 0x00, 0x00, 0x00);
+            if (x == 5) {
+                dw.write(0xF0);
+            } else {
+                dw.write(0x00);
+            }
         }
 
         dw.write(0x00, 0x01, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -697,9 +785,13 @@ public class ContentsGenerator {
         writeMap(dw, vectorsMap, isUni);
     }
 
-    public void generateContentsFile(File domDocumentFile, File outputFile) throws IOException, SAXException, ParserConfigurationException {
-        try (FileInputStream fis = new FileInputStream(domDocumentFile); FileOutputStream fos = new FileOutputStream(outputFile)) {
-            generateContentsFile(fis, fos);
+    public void generate(
+            File domDocumentFile,
+            File publishSettingsFile,
+            File metadataFile,
+            File outputDir) throws IOException, SAXException, ParserConfigurationException {
+        try (FileInputStream domDocumentIs = new FileInputStream(domDocumentFile); FileInputStream publishSettingsIs = publishSettingsFile == null ? null : new FileInputStream(publishSettingsFile); FileInputStream metadataIs = metadataFile == null ? null : new FileInputStream(metadataFile)) {
+            generate(domDocumentIs, publishSettingsIs, metadataIs, outputDir);
         }
     }
 
@@ -709,7 +801,7 @@ public class ContentsGenerator {
         return propertiesMap;
     }
 
-    private Map<String, String> getProperties(String basePublishName) {
+    private Map<String, String> getProperties(String basePublishName, int width, int height) {
         Map<String, String> propertiesMap = new LinkedHashMap<>();
         propertiesMap.put("PublishGifProperties::PaletteName", "");
         propertiesMap.put("PublishRNWKProperties::speed256K", "0");
@@ -879,5 +971,82 @@ public class ContentsGenerator {
         propertiesMap.put("PublishFormatProperties::defaultNames", "1");
 
         return propertiesMap;
+    }
+
+    private String getXmpp(String creatorInfo) {
+        SimpleDateFormat XMPP_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+        String timeCreatedXmpp = XMPP_DATE_FORMAT.format(new Date(timeCreatedMs));
+
+        String xmppDocumentId = generateGUID();
+        String xmppOriginalDocumentId = generateGUID();
+
+        return "<?xpacket begin=\"" + (char) 0xFEFF + "\" id=\"" + generateXmppId() + "\"?>\n"
+                + "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 5.0-c060 61.134777, 2010/02/12-17:32:00        \">\n"
+                + "   <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n"
+                + "      <rdf:Description rdf:about=\"\"\n"
+                + "            xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">\n"
+                + "         <xmp:CreatorTool>" + creatorInfo + "</xmp:CreatorTool>\n"
+                + "         <xmp:CreateDate>" + timeCreatedXmpp + "</xmp:CreateDate>\n"
+                + "         <xmp:MetadataDate>" + timeCreatedXmpp + "</xmp:MetadataDate>\n"
+                + "         <xmp:ModifyDate>" + timeCreatedXmpp + "</xmp:ModifyDate>\n"
+                + "      </rdf:Description>\n"
+                + "      <rdf:Description rdf:about=\"\"\n"
+                + "            xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n"
+                + "         <dc:format>application/vnd.adobe.fla</dc:format>\n"
+                + "      </rdf:Description>\n"
+                + "      <rdf:Description rdf:about=\"\"\n"
+                + "            xmlns:xmpMM=\"http://ns.adobe.com/xap/1.0/mm/\"\n"
+                + "            xmlns:stEvt=\"http://ns.adobe.com/xap/1.0/sType/ResourceEvent#\"\n"
+                + "            xmlns:stRef=\"http://ns.adobe.com/xap/1.0/sType/ResourceRef#\">\n"
+                + "         <xmpMM:InstanceID>xmp.iid:" + xmppDocumentId + "</xmpMM:InstanceID>\n"
+                + "         <xmpMM:DocumentID>xmp.did:" + xmppDocumentId + "</xmpMM:DocumentID>\n"
+                + "         <xmpMM:OriginalDocumentID>xmp.did:" + xmppOriginalDocumentId + "</xmpMM:OriginalDocumentID>\n"
+                + "         <xmpMM:History>\n"
+                + "            <rdf:Seq>\n"
+                + "               <rdf:li rdf:parseType=\"Resource\">\n"
+                + "                  <stEvt:action>created</stEvt:action>\n"
+                + "                  <stEvt:instanceID>xmp.iid:" + xmppOriginalDocumentId + "</stEvt:instanceID>\n"
+                + "                  <stEvt:when>" + timeCreatedXmpp + "</stEvt:when>\n"
+                + "                  <stEvt:softwareAgent>Adobe Flash Professional CS5</stEvt:softwareAgent>\n"
+                + "               </rdf:li>\n"
+                + "               <rdf:li rdf:parseType=\"Resource\">\n"
+                + "                  <stEvt:action>saved</stEvt:action>\n"
+                + "                  <stEvt:instanceID>xmp.iid:" + xmppDocumentId + "</stEvt:instanceID>\n"
+                + "                  <stEvt:when>" + timeCreatedXmpp + "</stEvt:when>\n"
+                + "                  <stEvt:softwareAgent>Adobe Flash Professional CS5</stEvt:softwareAgent>\n"
+                + "                  <stEvt:changed>/</stEvt:changed>\n"
+                + "               </rdf:li>\n"
+                + "            </rdf:Seq>\n"
+                + "         </xmpMM:History>\n"
+                + "         <xmpMM:DerivedFrom rdf:parseType=\"Resource\">\n"
+                + "            <stRef:instanceID>xmp.iid:" + xmppOriginalDocumentId + "</stRef:instanceID>\n"
+                + "            <stRef:documentID>xmp.did:" + xmppOriginalDocumentId + "</stRef:documentID>\n"
+                + "            <stRef:originalDocumentID>xmp.did:" + xmppOriginalDocumentId + "</stRef:originalDocumentID>\n"
+                + "         </xmpMM:DerivedFrom>\n"
+                + "      </rdf:Description>\n"
+                + "   </rdf:RDF>\n"
+                + "</x:xmpmeta>\n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                           \n"
+                + "<?xpacket end=\"w\"?>";
     }
 }

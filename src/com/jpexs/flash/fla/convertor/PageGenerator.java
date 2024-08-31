@@ -63,7 +63,7 @@ import org.xml.sax.SAXException;
  */
 public class PageGenerator extends AbstractGenerator {
 
-    private static void handleFill(Node fillStyleVal, FlaCs4Writer fg) throws IOException {
+    private void handleFill(Node fillStyleVal, FlaCs4Writer fg) throws IOException {
         switch (fillStyleVal.getNodeName()) {
             case "SolidColor":
                 Color color = parseColorWithAlpha(fillStyleVal);
@@ -174,17 +174,6 @@ public class PageGenerator extends AbstractGenerator {
         }
     }
 
-    private static int getAttributeAsInt(Node node, String attributeName, List<String> allowedValues, String defaultValue) {
-        Node attr = node.getAttributes().getNamedItem(attributeName);
-        if (attr != null) {
-            int index = allowedValues.indexOf(attr.getTextContent());
-            if (index > -1) {
-                return index;
-            }
-        }
-        return allowedValues.indexOf(defaultValue);
-    }
-
     private void handleParentLayer(
             Element layer,
             FlaCs4Writer fg,
@@ -216,7 +205,7 @@ public class PageGenerator extends AbstractGenerator {
         }
     }
 
-    private static List<GradientEntry> parseGradientEntries(Element element) {
+    private List<GradientEntry> parseGradientEntries(Element element) {
         List<GradientEntry> ret = new ArrayList<>();
         List<Element> entries = getAllSubElementsByName(element, "GradientEntry");
         for (Element entry : entries) {
@@ -237,7 +226,7 @@ public class PageGenerator extends AbstractGenerator {
             Reference<Integer> copiedComponentPathRef,
             Reference<Integer> totalFramesCountRef
     ) throws IOException {
-        useClass("CPicLayer", fg, definedClasses);
+        useClass("CPicLayer", 5, fg, definedClasses);
         fg.write(0x00);
 
         int layerType = FlaCs4Writer.LAYERTYPE_LAYER;
@@ -258,7 +247,7 @@ public class PageGenerator extends AbstractGenerator {
         } else {
             List<Element> frames = getAllSubElementsByName(framesNode, "DOMFrame");
             for (int f = 0; f < frames.size(); f++) {
-                useClass("CPicFrame", fg, definedClasses);
+                useClass("CPicFrame", 5, fg, definedClasses);
                 /*if (totalFramesCount > 0) {
                                 fg.writeKeyFrameSeparator();
                             }*/
@@ -330,12 +319,12 @@ public class PageGenerator extends AbstractGenerator {
                     int firstFrame = 0; //zero-based
 
                     if (symbolType == FlaCs4Writer.SYMBOLTYPE_BUTTON) {
-                        useClass("CPicButton", fg, definedClasses);
+                        useClass("CPicButton", 5, fg, definedClasses);
                         if (symbolInstance.hasAttribute("trackAsMenu")) {
                             trackAsMenu = "true".equals(symbolInstance.getAttribute("trackAsMenu"));
                         }
                     } else if (symbolType == FlaCs4Writer.SYMBOLTYPE_GRAPHIC) {
-                        useClass("CPicSymbol", fg, definedClasses);
+                        useClass("CPicSymbol", 5, fg, definedClasses);
 
                         if (symbolInstance.hasAttribute("loop")) {
                             switch (symbolInstance.getAttribute("loop")) {
@@ -354,7 +343,7 @@ public class PageGenerator extends AbstractGenerator {
                             firstFrame = Integer.parseInt(symbolInstance.getAttribute("firstFrame"));
                         }
                     } else {
-                        useClass("CPicSprite", fg, definedClasses);
+                        useClass("CPicSprite", 5, fg, definedClasses);
                     }
 
                     /*if (totalSymbolInstancesCount > 0) {
@@ -1173,18 +1162,13 @@ public class PageGenerator extends AbstractGenerator {
         return layerIndexToRevLayerIndex;
     }
 
-    private void generatePageFile(InputStream is, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder docBuilder = factory.newDocumentBuilder();
-
-        Document doc = docBuilder.parse(is);
-
+    private void generatePageFile(Element domTimeLine, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
         FlaCs4Writer fg = new FlaCs4Writer(os);
 
         List<String> definedClasses = new ArrayList<>();
 
         fg.write(0x01);
-        useClass("CPicPage", fg, definedClasses);
+        useClass("CPicPage", 5, fg, definedClasses);
         fg.write(0x00);
 
         int nextLayerId = 1;
@@ -1192,95 +1176,91 @@ public class PageGenerator extends AbstractGenerator {
         Reference<Integer> copiedComponentPathRef = new Reference<>(0);
         Reference<Integer> totalFramesCountRef = new Reference<>(0);
 
-        NodeList timeLines = doc.getElementsByTagName("DOMTimeline");
-        for (int i = 0; i < timeLines.getLength(); i++) {
-            Node n = timeLines.item(i);
-            Node layersNode = getSubElementByName(n, "layers");
-            if (layersNode != null) {
-                List<Element> layers = getAllSubElementsByName(layersNode, "DOMLayer");
+        Node layersNode = getSubElementByName(domTimeLine, "layers");
+        if (layersNode != null) {
+            List<Element> layers = getAllSubElementsByName(layersNode, "DOMLayer");
 
-                Map<Integer, Integer> layerIndexToRevLayerIndex = calculateReverseParentLayerIndices(layers);
-                Stack<Integer> openedParentLayers = new Stack<>();
+            Map<Integer, Integer> layerIndexToRevLayerIndex = calculateReverseParentLayerIndices(layers);
+            Stack<Integer> openedParentLayers = new Stack<>();
 
-                for (int layerIndex = layers.size() - 1; layerIndex >= 0; layerIndex--) {
-                    Element layer = layers.get(layerIndex);
+            for (int layerIndex = layers.size() - 1; layerIndex >= 0; layerIndex--) {
+                Element layer = layers.get(layerIndex);
 
-                    boolean autoNamed = true;
-                    if (layer.hasAttribute("autoNamed")) {
-                        autoNamed = !"false".equals(layer.getAttribute("autoNamed"));
+                boolean autoNamed = true;
+                if (layer.hasAttribute("autoNamed")) {
+                    autoNamed = !"false".equals(layer.getAttribute("autoNamed"));
+                }
+
+                boolean canHaveSubLayers = false;
+                if (layer.hasAttribute("layerType")) {
+                    String layerTypeStr = layer.getAttribute("layerType");
+                    switch (layerTypeStr) {
+                        case "folder":
+                        case "guide":
+                            canHaveSubLayers = true;
+                            break;
                     }
+                }
 
-                    boolean canHaveSubLayers = false;
-                    if (layer.hasAttribute("layerType")) {
-                        String layerTypeStr = layer.getAttribute("layerType");
-                        switch (layerTypeStr) {
-                            case "folder":
-                            case "guide":
-                                canHaveSubLayers = true;
-                                break;
+                if (canHaveSubLayers) {
+                    nextFolderId++;
+
+                    boolean noSubLayers = true;
+                    for (int layerIndex2 = layerIndex + 1; layerIndex2 < layers.size(); layerIndex2++) {
+                        Node layer2 = layers.get(layerIndex2);
+                        int parentLayerIndex2 = -1;
+                        Node parentLayerIndexAttr2 = layer2.getAttributes().getNamedItem("parentLayerIndex");
+                        if (parentLayerIndexAttr2 != null) {
+                            parentLayerIndex2 = Integer.parseInt(parentLayerIndexAttr2.getTextContent());
+                        }
+                        if (parentLayerIndex2 == layerIndex) {
+                            noSubLayers = false;
+                            break;
                         }
                     }
-
-                    if (canHaveSubLayers) {
-                        nextFolderId++;
-
-                        boolean noSubLayers = true;
-                        for (int layerIndex2 = layerIndex + 1; layerIndex2 < layers.size(); layerIndex2++) {
-                            Node layer2 = layers.get(layerIndex2);
-                            int parentLayerIndex2 = -1;
-                            Node parentLayerIndexAttr2 = layer2.getAttributes().getNamedItem("parentLayerIndex");
-                            if (parentLayerIndexAttr2 != null) {
-                                parentLayerIndex2 = Integer.parseInt(parentLayerIndexAttr2.getTextContent());
-                            }
-                            if (parentLayerIndex2 == layerIndex) {
-                                noSubLayers = false;
-                                break;
-                            }
-                        }
-                        if (noSubLayers) {
-                            handleParentLayer(layer, fg, layerIndexToRevLayerIndex, true, definedClasses, copiedComponentPathRef, totalFramesCountRef);
-                        }
-
-                        continue;
+                    if (noSubLayers) {
+                        handleParentLayer(layer, fg, layerIndexToRevLayerIndex, true, definedClasses, copiedComponentPathRef, totalFramesCountRef);
                     }
 
-                    int parentLayerIndex = -1;
-                    if (layer.hasAttribute("parentLayerIndex")) {
-                        parentLayerIndex = Integer.parseInt(layer.getAttribute("parentLayerIndex"));
-                    }
+                    continue;
+                }
 
-                    nextLayerId++;
+                int parentLayerIndex = -1;
+                if (layer.hasAttribute("parentLayerIndex")) {
+                    parentLayerIndex = Integer.parseInt(layer.getAttribute("parentLayerIndex"));
+                }
 
-                    writeLayerContents(layer, fg, definedClasses, copiedComponentPathRef, totalFramesCountRef);
-                    if (parentLayerIndex > -1) {
-                        int reverseParentLayerIndex = layerIndexToRevLayerIndex.get(parentLayerIndex);
-                        if (openedParentLayers.contains(parentLayerIndex)) {
-                            fg.writeLayerEnd2(reverseParentLayerIndex, true, autoNamed);
-                            if (parentLayerIndex == layerIndex - 1) {
-                                fg.writeEndParentLayer(reverseParentLayerIndex);
-                                openedParentLayers.pop();
-                            }
-                        } else {
-                            Element parentLayer = layers.get(parentLayerIndex);
-                            handleParentLayer(parentLayer, fg, layerIndexToRevLayerIndex, false, definedClasses, copiedComponentPathRef, totalFramesCountRef);
-                            if (parentLayerIndex == layerIndex - 1) {
-                                fg.write(7 + reverseParentLayerIndex, 0x00);
-                            } else {
-                                openedParentLayers.push(parentLayerIndex);
-                            }
+                nextLayerId++;
+
+                writeLayerContents(layer, fg, definedClasses, copiedComponentPathRef, totalFramesCountRef);
+                if (parentLayerIndex > -1) {
+                    int reverseParentLayerIndex = layerIndexToRevLayerIndex.get(parentLayerIndex);
+                    if (openedParentLayers.contains(parentLayerIndex)) {
+                        fg.writeLayerEnd2(reverseParentLayerIndex, true, autoNamed);
+                        if (parentLayerIndex == layerIndex - 1) {
+                            fg.writeEndParentLayer(reverseParentLayerIndex);
+                            openedParentLayers.pop();
                         }
                     } else {
-                        fg.writeLayerEnd2(-1, true, autoNamed);
+                        Element parentLayer = layers.get(parentLayerIndex);
+                        handleParentLayer(parentLayer, fg, layerIndexToRevLayerIndex, false, definedClasses, copiedComponentPathRef, totalFramesCountRef);
+                        if (parentLayerIndex == layerIndex - 1) {
+                            fg.write(7 + reverseParentLayerIndex, 0x00);
+                        } else {
+                            openedParentLayers.push(parentLayerIndex);
+                        }
                     }
+                } else {
+                    fg.writeLayerEnd2(-1, true, autoNamed);
                 }
             }
         }
         fg.writePageFooter(nextLayerId, nextFolderId, 0);
     }
 
-    public void generatePageFile(File inputFile, File outputFile) throws FileNotFoundException, IOException, SAXException, ParserConfigurationException {
-        try (FileInputStream fis = new FileInputStream(inputFile); FileOutputStream fos = new FileOutputStream(outputFile)) {
-            generatePageFile(fis, fos);
+    public void generatePageFile(Element domTimeline, File outputFile) throws FileNotFoundException, IOException, SAXException, ParserConfigurationException {
+        try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+            generatePageFile(domTimeline, fos);
         }
     }
 

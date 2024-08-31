@@ -18,6 +18,7 @@
  */
 package com.jpexs.flash.fla.convertor;
 
+import com.jpexs.cfb.CompoundFileBinary;
 import com.jpexs.flash.fla.extractor.FlaCfbExtractor;
 import java.io.File;
 import java.io.IOException;
@@ -31,19 +32,40 @@ import org.xml.sax.SAXException;
  */
 public class XflToCs4Converter {
 
+    private static void deleteDir(File f) throws IOException {
+        if (f.isDirectory()) {
+            for (File c : f.listFiles()) {
+                deleteDir(c);
+            }
+        }
+        f.delete();
+    }
+
     public static void main(String[] args) throws ParserConfigurationException, SAXException, IOException {
         FlaCfbExtractor.initLog();
         File dir = new File(FlaCfbExtractor.getProperty("convert.xfl.dir"));
 
-        File outputFile = new File(FlaCfbExtractor.getProperty("convert.xfl.output.file"));
+        File outputDir = new File(FlaCfbExtractor.getProperty("convert.xfl.output.dir"));
         File domDocumentFile = dir.toPath().resolve("DOMDocument.xml").toFile();
+        File publishSettingsFile = dir.toPath().resolve("PublishSettings.xml").toFile();
+        File metadataFile = dir.toPath().resolve("META-INF/metadata.xml").toFile();
 
-        File outputContentsFile = new File(FlaCfbExtractor.getProperty("convert.xfl.output.contents.file"));
+        if (!publishSettingsFile.exists()) {
+            publishSettingsFile = null;
+        }
+        if (!metadataFile.exists()) {
+            metadataFile = null;
+        }
 
-        PageGenerator pageGenerator = new PageGenerator();
-        pageGenerator.generatePageFile(domDocumentFile, outputFile);
+        File outputFlaFile = new File(FlaCfbExtractor.getProperty("convert.xfl.output.fla"));
+
+        deleteDir(outputDir);
+        outputDir.mkdirs();
 
         ContentsGenerator contentsGenerator = new ContentsGenerator();
-        contentsGenerator.generateContentsFile(domDocumentFile, outputContentsFile);
+        contentsGenerator.generate(domDocumentFile, publishSettingsFile, metadataFile, outputDir);
+        try (CompoundFileBinary cfb = new CompoundFileBinary(outputFlaFile, true)) {
+            cfb.addDirectoryContents("", outputDir);
+        }
     }
 }
