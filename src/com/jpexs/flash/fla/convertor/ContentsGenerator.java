@@ -39,6 +39,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -394,7 +396,8 @@ public class ContentsGenerator extends AbstractGenerator {
         return 10;
     }
 
-    private void writeSymbol(FlaCs4Writer fg, int symbolId, String symbolFile, long time, String symbolName, int symbolType) throws IOException {
+    private void writeSymbol(FlaCs4Writer fg, int symbolId, String itemID, String symbolFile, long time, String symbolName, int symbolType) throws IOException {
+        
         fg.write(0x01, 0x80, 0x19);
         fg.writeLenUnicodeString(symbolFile);
         fg.write(0xFF, 0xFE, 0xFF);
@@ -404,8 +407,9 @@ public class ContentsGenerator extends AbstractGenerator {
                 0xFF, 0xFE, 0xFF, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
-        fg.writeUI32(time);
-        fg.write(0xD8, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00,
+        
+        fg.writeItemID(itemID);
+        fg.write(0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00,
                 0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF,
                 0x00,
                 0xFF, 0xFE, 0xFF);
@@ -494,6 +498,7 @@ public class ContentsGenerator extends AbstractGenerator {
 
             int pageCount = 0;
             int symbolCount = 0;
+            long generatedItemIdOrder = 1;
 
             for (Element timelinesElement : timelinesElements) {
                 Element domTimeline = getSubElementByName(timelinesElement, "DOMTimeline");
@@ -522,10 +527,11 @@ public class ContentsGenerator extends AbstractGenerator {
                         0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
                         0x00, 0x00, 0x00);
-                fg.writeUI32(timeCreated);
-                fg.write(
-                        0x56, 0x02, //??? 598 dec
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07,
+                 
+                String pageItemID = String.format("%1$08x-%2$08x", timeCreated, generatedItemIdOrder++);                    
+                
+                fg.writeItemID(pageItemID);
+                fg.write(0x00, 0x00, 0x00, 0x00, 0x07,
                         0x00, 0x00, 0x00, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
@@ -609,7 +615,7 @@ public class ContentsGenerator extends AbstractGenerator {
                     0x01, 0x00,
                     1 + currentTimeline,
                     0x00);
-
+            
             Element symbolsElement = getSubElementByName(document, "symbols");
             if (symbolsElement != null) {
                 List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
@@ -638,9 +644,14 @@ public class ContentsGenerator extends AbstractGenerator {
                         symbolName = domTimelineElement.getAttribute("name");
                     }
 
-                    int symbolType = getAttributeAsInt(symbolElement, "symbolType", Arrays.asList("graphic", "button", "movieclip"), "movieclip"); //not sure about the default value name
-
-                    writeSymbol(fg, symbolId, symbolFile, symbolTime, symbolName, symbolType);
+                    int symbolType = getAttributeAsInt(symbolElement, "symbolType", Arrays.asList("graphic", "button", "movieclip"), "movieclip"); //not sure about the default value name                  
+                    
+                    String itemID = String.format("%1$08x-%2$08x", timeCreated, generatedItemIdOrder++);
+                    if (symbolElement.hasAttribute("itemID")) {
+                        itemID = symbolElement.getAttribute("itemID");
+                    }
+                    
+                    writeSymbol(fg, symbolId, itemID, symbolFile, symbolTime, symbolName, symbolType);
 
                     PageGenerator symbolPageGenerator = new PageGenerator();
                     symbolPageGenerator.generatePageFile(domTimelineElement, outputDir.toPath().resolve(symbolFile).toFile());

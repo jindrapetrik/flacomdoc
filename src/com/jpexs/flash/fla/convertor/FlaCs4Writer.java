@@ -1033,6 +1033,19 @@ public class FlaCs4Writer {
         write((value >> 8) & 0xFF);
     }
 
+    public void writeItemID(String itemID) throws IOException {
+        Pattern itemIdPattern = Pattern.compile("^(?<hi>[a-f0-9]{8})-(?<lo>[a-f0-9]{8})$");
+        Matcher m = itemIdPattern.matcher(itemID);
+        if (!m.matches()) {
+            throw new IllegalArgumentException("Invalid itemID supplied: " + itemID);
+        }
+        Long itemIDHigh = Long.parseLong(m.group("hi"), 16);
+        Long itemIDLow = Long.parseLong(m.group("lo"), 16);
+        
+        writeUI32(itemIDHigh);
+        writeUI32(itemIDLow);
+    }
+    
     public void writeUI32(long value) throws IOException {
         write((int) (value & 0xFF));
         write((int) ((value >> 8) & 0xFF));
