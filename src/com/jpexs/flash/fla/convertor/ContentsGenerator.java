@@ -736,8 +736,14 @@ public class ContentsGenerator extends AbstractGenerator {
 
             int fontCount = writeFonts(fg, document, generatedItemIdOrder);
 
-            fg.write(0xFF, 0xFE, 0xFF,
-                    0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x01,
+            String sharedLibraryURL = "";
+            if (document.hasAttribute("sharedLibraryURL")) {
+                sharedLibraryURL = document.getAttribute("sharedLibraryURL");
+            }
+
+            fg.write(0xFF, 0xFE, 0xFF);
+            fg.writeLenUnicodeString(sharedLibraryURL);
+            fg.write(0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x01,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0xC8, 0x00,//0x68, 0x01,
                     0xFF, 0xFE, 0xFF,
                     0x00,
@@ -930,7 +936,6 @@ public class ContentsGenerator extends AbstractGenerator {
                 linkageExportForAS = "true".equals(domBitmapItem.getAttribute("linkageExportForAS"));
             }
 
-            //linkageExportForAS="true" linkageClassName="MyClass"
             String linkageClassName = "";
             if (domBitmapItem.hasAttribute("linkageClassName")) {
                 linkageClassName = domBitmapItem.getAttribute("linkageClassName");
@@ -970,12 +975,22 @@ public class ContentsGenerator extends AbstractGenerator {
             dw.writeLenUnicodeString(linkageURL);
             dw.write(0xFF, 0xFE, 0xFF);
             dw.writeLenUnicodeString(linkageClassName);
-            dw.write((linkageExportForAS ? 1 : 0) + (linkageExportInFirstFrame ? 4 : 0) + (linkageExportForRS ? 2 : 0),
+            int linkageFlags = 0;
+            if (linkageExportForAS) {
+                linkageFlags |= 1;
+                if (linkageExportInFirstFrame) {
+                    linkageFlags |= 4;
+                }
+                if (linkageExportForRS) {
+                    linkageFlags |= 2;
+                }
+            }
+            dw.write(linkageFlags,
                     0x02, 0x00, 0x00, 0x00,
                     0xFF, 0xFE, 0xFF, 0x00,
                     0xFF, 0xFE, 0xFF, 0x00,
-                    0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0xFF, 0xFF, 0xFF, 0xFF, 0x00,
                     0xFF, 0xFE, 0xFF);
             dw.writeLenUnicodeString(linkageBaseClass);
@@ -1041,6 +1056,41 @@ public class ContentsGenerator extends AbstractGenerator {
                 italic = fontNameLowercase.contains("italic") || fontNameLowercase.contains("oblique");
             }
 
+            boolean linkageExportForAS = false;
+            if (domFontItem.hasAttribute("linkageExportForAS")) {
+                linkageExportForAS = "true".equals(domFontItem.getAttribute("linkageExportForAS"));
+            }
+
+            String linkageClassName = "";
+            if (domFontItem.hasAttribute("linkageClassName")) {
+                linkageClassName = domFontItem.getAttribute("linkageClassName");
+            }
+
+            boolean linkageExportInFirstFrame = true;
+            if (domFontItem.hasAttribute("linkageExportInFirstFrame")) {
+                linkageExportInFirstFrame = !"false".equals(domFontItem.getAttribute("linkageExportInFirstFrame"));
+            }
+
+            String linkageBaseClass = "";
+            if (domFontItem.hasAttribute("linkageBaseClass")) {
+                linkageBaseClass = domFontItem.getAttribute("linkageBaseClass");
+            }
+
+            boolean linkageExportForRS = false;
+            if (domFontItem.hasAttribute("linkageExportForRS")) {
+                linkageExportForRS = "true".equals(domFontItem.getAttribute("linkageExportForRS"));
+            }
+
+            String linkageURL = "";
+            if (domFontItem.hasAttribute("linkageURL")) {
+                linkageURL = domFontItem.getAttribute("linkageURL");
+            }
+
+            boolean linkageImportForRS = false;
+            if (domFontItem.hasAttribute("linkageImportForRS")) {
+                linkageImportForRS = "true".equals(domFontItem.getAttribute("linkageImportForRS"));
+            }
+
             dw.write(0x03,
                     0xFF, 0xFE, 0xFF);
             dw.writeLenUnicodeString(name);
@@ -1066,19 +1116,54 @@ public class ContentsGenerator extends AbstractGenerator {
                     0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00);
-            //end of copied part
+            //end of copied part           
 
-            dw.write(0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x02, 0x01, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x06, 0x00, 0x00, 0x00, 0x01, 0x00,
+            dw.write(0xFF, 0xFE, 0xFF, 0x00,
+                    0x00, 0x00, 0x00, 0x00,
+                    0xFF, 0xFE, 0xFF, 0x00,
+                    0x02,
+                    0x01, // 2?
+                    0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0xFF, 0xFE, 0xFF, 0x00,
+                    0x06, 0x00, 0x00, 0x00, 0x01, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
 
             dw.writeItemID(itemID);
-            dw.write(0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0xFF,
-                    0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
-                    0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00,
+            dw.write(0x00, 0x00,
+                    0x00, 0x00, 0x07,
+                    (linkageExportForAS ? 1 : 0) + (linkageImportForRS ? 2 : 0),
+                    0x00, 0x00, 0x00,
                     0xFF, 0xFE, 0xFF, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00);
+                    0xFF, 0xFE, 0xFF);
+            if (linkageImportForRS) {
+                dw.writeLenUnicodeString(linkageURL);
+            } else {
+                dw.write(0);
+            }
+            dw.write(0xFF, 0xFE, 0xFF);
+            dw.writeLenUnicodeString(linkageClassName);
+            int linkageFlags = 0;
+            if (linkageExportForAS) {
+                linkageFlags |= 1;
+                if (linkageExportInFirstFrame) {
+                    linkageFlags |= 4;
+                }
+                if (linkageExportForRS) {
+                    linkageFlags |= 2;
+                }
+            }
+
+            dw.write(linkageFlags,
+                    0x02, 0x00, 0x00, 0x00,
+                    0xFF, 0xFE, 0xFF, 0x00,
+                    0xFF, 0xFE, 0xFF, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0xFF, 0xFF, 0xFF, 0xFF, 0x00,
+                    0xFF, 0xFE, 0xFF);
+            dw.writeLenUnicodeString(linkageBaseClass);
+            dw.write(0x00, 0x00, 0x00, 0x00, 0x00);
         }
         return fontCount;
     }
