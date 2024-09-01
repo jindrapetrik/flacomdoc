@@ -164,18 +164,6 @@ public abstract class AbstractGenerator {
         return new Matrix(a, b, c, d, tx, ty);
     }
 
-    protected void useClass(String className, int version, FlaCs4Writer os, List<String> definedClasses) throws IOException {
-        if (definedClasses.contains(className)) {
-            os.write(1 + 2 * definedClasses.indexOf(className));
-            os.write(0x80);
-        } else {
-            os.write(0xFF, 0xFF, 0x01, 0x00);
-            os.writeLenAsciiString(className);
-            definedClasses.add(className);
-        }
-        os.write(version);
-    }
-
     protected int getAttributeAsInt(Node node, String attributeName, List<String> allowedValues, String defaultValue) {
         Node attr = node.getAttributes().getNamedItem(attributeName);
         if (attr != null) {

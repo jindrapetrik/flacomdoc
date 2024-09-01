@@ -35,17 +35,10 @@ import com.jpexs.flash.fla.convertor.filters.GradientGlowFilter;
 import com.jpexs.helpers.Reference;
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.GraphicsEnvironment;
-import java.awt.font.FontRenderContext;
-import java.awt.font.TextAttribute;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Rectangle2D;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,13 +48,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Stack;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import java.util.logging.Logger;
 
@@ -70,6 +59,18 @@ import java.util.logging.Logger;
  * @author JPEXS
  */
 public class PageGenerator extends AbstractGenerator {
+
+    protected void useClass(String className, int version, FlaCs4Writer os, List<String> definedClasses) throws IOException {
+        if (definedClasses.contains(className)) {
+            os.write(1 + 2 * definedClasses.indexOf(className));
+            os.write(0x80);
+        } else {
+            os.write(0xFF, 0xFF, 0x01, 0x00);
+            os.writeLenAsciiString(className);
+            definedClasses.add(className);
+        }
+        os.write(version);
+    }
 
     private void handleFill(Node fillStyleVal, FlaCs4Writer fg) throws IOException {
         switch (fillStyleVal.getNodeName()) {

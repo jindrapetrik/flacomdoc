@@ -997,12 +997,18 @@ public class FlaCs4Writer {
     }
 
     public void writeLenUnicodeString(String s) throws IOException {
-        write(s.length());
-        write(s.getBytes("UTF-16LE"));
-    }
-
-    public void writeDoubleLenUnicodeString(String s) throws IOException {
-        writeUI16(s.length());
+        int len = s.length();
+        if (len < 0xFF) {
+            write(len);
+        } else if (len < 0xFFFF) {
+            write(0xFF);
+            writeUI16(len);
+        } else {
+            write(0xFF);
+            write(0xFF);
+            write(0xFF);
+            writeUI32(len);
+        }
         write(s.getBytes("UTF-16LE"));
     }
 
