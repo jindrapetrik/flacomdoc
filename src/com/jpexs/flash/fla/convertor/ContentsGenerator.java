@@ -26,6 +26,7 @@ import com.jpexs.helpers.Reference;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -46,6 +47,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
 import javax.imageio.ImageIO;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -897,12 +900,13 @@ public class ContentsGenerator extends AbstractGenerator {
                 frameBottom = Integer.parseInt(domBitmapItem.getAttribute("frameBottom"));
             }
 
+            BufferedImage bimg = ImageIO.read(libraryDir.toPath().resolve(sourceFile).toFile());
+
             if (frameLeft == -115200
                     && frameRight == -115200
                     && frameTop == -115200
                     && frameBottom == -115200 //Error in CS5
                     ) {
-                BufferedImage bimg = ImageIO.read(libraryDir.toPath().resolve(sourceFile).toFile());
                 frameLeft = 0;
                 frameTop = 0;
                 frameRight = 20 * bimg.getWidth();
@@ -914,7 +918,6 @@ public class ContentsGenerator extends AbstractGenerator {
             }
 
             if (isJPEG) {
-
                 try (FileOutputStream fos = new FileOutputStream(outputDir.toPath().resolve(mediaFile).toFile()); FileInputStream fis = new FileInputStream(libraryDir.toPath().resolve(sourceFile).toFile());) {
                     byte[] buf = new byte[4096];
                     int cnt;
@@ -928,7 +931,53 @@ public class ContentsGenerator extends AbstractGenerator {
                     dw2.writeUI32(frameBottom);
                 }
             } else {
-                //TODO
+                try (FileOutputStream fos = new FileOutputStream(outputDir.toPath().resolve(mediaFile).toFile())) {
+                    //https://stackoverflow.com/questions/4082812/xfl-what-are-the-bin-dat-files/4082907#4082907
+                    fos.write(0x03);
+                    fos.write(0x05);
+                    FlaCs4Writer w = new FlaCs4Writer(fos);
+
+                    int decRowLen = 4 * bimg.getWidth();
+                    w.writeUI16(decRowLen);
+
+                    w.writeUI16(bimg.getWidth());
+                    w.writeUI16(bimg.getHeight());
+
+                    w.writeUI32(frameLeft);
+                    w.writeUI32(frameRight);
+                    w.writeUI32(frameTop);
+                    w.writeUI32(frameBottom);
+
+                    w.write(0x01); //has transparency
+                    w.write(0x01); //compressed variant
+
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    DeflaterOutputStream def = new DeflaterOutputStream(baos, new Deflater(1));
+
+                    for (int y = 0; y < bimg.getHeight(); y++) {
+                        for (int x = 0; x < bimg.getWidth(); x++) {
+                            int rgba = bimg.getRGB(x, y);
+                            def.write((rgba >> 24) & 0xFF); //a 
+                            def.write((rgba >> 16) & 0xFF); //b
+                            def.write((rgba >> 8) & 0xFF); //g
+                            def.write(rgba & 0xFF); //r                                                       
+                        }
+                    }
+                    def.flush();
+                    def.finish();
+                    byte[] data = baos.toByteArray();
+                    int pos = 0;
+                    while (pos < data.length) {
+                        int cnt = 2048; //it seems that using large chunk sizes like 0xFFFF crashes flash. 2024 is used in CS5.
+                        if (pos + cnt > data.length) {
+                            cnt = data.length - pos;
+                        }
+                        w.writeUI16(cnt);
+                        fos.write(data, pos, cnt);
+                        pos += cnt;
+                    }
+                    w.writeUI16(0);
+                }
             }
 
             boolean linkageExportForAS = false;
@@ -994,10 +1043,22 @@ public class ContentsGenerator extends AbstractGenerator {
                     0xFF, 0xFF, 0xFF, 0xFF, 0x00,
                     0xFF, 0xFE, 0xFF);
             dw.writeLenUnicodeString(linkageBaseClass);
-            dw.write(0x00, 0x01, 0x00, 0x00, 0x00, 0x04,
-                    useImportedJPEGData ? 0x00 : 0x02,
-                    quality, allowSmoothing ? 1 : 0);
-            dw.writeUI32(externalFileSize);
+            dw.write(0x00, 0x01, 0x00, 0x00, 0x00, 0x04);
+            if (isJPEG) {
+                if (useImportedJPEGData) {
+                    dw.write(0x00);
+                } else {
+                    dw.write(0x02);
+                }
+            } else {
+                dw.write(0x01);
+            }
+            dw.write(quality, allowSmoothing ? 1 : 0);
+            if (isJPEG) {
+                dw.writeUI32(externalFileSize);
+            } else {
+                dw.writeUI32(0);
+            }
             dw.write(useDeblocking ? 1 : 0);
         }
 
