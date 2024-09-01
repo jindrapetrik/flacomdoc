@@ -19,9 +19,13 @@
 package com.jpexs.flash.fla.convertor;
 
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.GraphicsEnvironment;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.w3c.dom.Element;
@@ -33,6 +37,16 @@ import org.w3c.dom.NodeList;
  * @author JPEXS
  */
 public abstract class AbstractGenerator {
+
+    protected static final Map<String, Font> psNameToFontName = new HashMap<>();
+
+    static {
+        Font[] fonts = GraphicsEnvironment.getLocalGraphicsEnvironment().getAllFonts();
+
+        for (Font font : fonts) {
+            psNameToFontName.put(font.getPSName(), font);
+        }
+    }
 
     protected Element getFirstSubElement(Node n) {
         NodeList list = n.getChildNodes();

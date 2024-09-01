@@ -22,7 +22,9 @@ import com.jpexs.flash.fla.convertor.swatches.ExtendedSwatchItem;
 import com.jpexs.flash.fla.convertor.swatches.LinearGradientSwatchItem;
 import com.jpexs.flash.fla.convertor.swatches.RadialGradientSwatchItem;
 import com.jpexs.flash.fla.convertor.swatches.SolidSwatchItem;
+import com.jpexs.helpers.Reference;
 import java.awt.Color;
+import java.awt.Font;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -34,10 +36,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -397,7 +401,7 @@ public class ContentsGenerator extends AbstractGenerator {
     }
 
     private void writeSymbol(FlaCs4Writer fg, int symbolId, String itemID, String symbolFile, long time, String symbolName, int symbolType) throws IOException {
-        
+
         fg.write(0x01, 0x80, 0x19);
         fg.writeLenUnicodeString(symbolFile);
         fg.write(0xFF, 0xFE, 0xFF);
@@ -407,7 +411,7 @@ public class ContentsGenerator extends AbstractGenerator {
                 0xFF, 0xFE, 0xFF, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
-        
+
         fg.writeItemID(itemID);
         fg.write(0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00,
                 0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF,
@@ -498,7 +502,7 @@ public class ContentsGenerator extends AbstractGenerator {
 
             int pageCount = 0;
             int symbolCount = 0;
-            long generatedItemIdOrder = 1;
+            Reference<Long> generatedItemIdOrder = new Reference<>(0L);
 
             for (Element timelinesElement : timelinesElements) {
                 Element domTimeline = getSubElementByName(timelinesElement, "DOMTimeline");
@@ -527,9 +531,9 @@ public class ContentsGenerator extends AbstractGenerator {
                         0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
                         0x00, 0x00, 0x00);
-                 
-                String pageItemID = String.format("%1$08x-%2$08x", timeCreated, generatedItemIdOrder++);                    
-                
+
+                String pageItemID = generateItemID(generatedItemIdOrder);
+
                 fg.writeItemID(pageItemID);
                 fg.write(0x00, 0x00, 0x00, 0x00, 0x07,
                         0x00, 0x00, 0x00, 0x00,
@@ -615,7 +619,7 @@ public class ContentsGenerator extends AbstractGenerator {
                     0x01, 0x00,
                     1 + currentTimeline,
                     0x00);
-            
+
             Element symbolsElement = getSubElementByName(document, "symbols");
             if (symbolsElement != null) {
                 List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
@@ -645,12 +649,13 @@ public class ContentsGenerator extends AbstractGenerator {
                     }
 
                     int symbolType = getAttributeAsInt(symbolElement, "symbolType", Arrays.asList("graphic", "button", "movieclip"), "movieclip"); //not sure about the default value name                  
-                    
-                    String itemID = String.format("%1$08x-%2$08x", timeCreated, generatedItemIdOrder++);
+
+                    String itemID = generateItemID(generatedItemIdOrder);
+
                     if (symbolElement.hasAttribute("itemID")) {
                         itemID = symbolElement.getAttribute("itemID");
                     }
-                    
+
                     writeSymbol(fg, symbolId, itemID, symbolFile, symbolTime, symbolName, symbolType);
 
                     PageGenerator symbolPageGenerator = new PageGenerator();
@@ -721,6 +726,27 @@ public class ContentsGenerator extends AbstractGenerator {
             fg.writeLenUnicodeString("PublishQTProperties::QTSndSettings");
             fg.write(0xFF, 0xFF, 0x01, 0x00);
             writeQTAudioSettings(fg, true);
+
+            writeFonts(fg, document, generatedItemIdOrder);
+
+            fg.write(0xFF, 0xFE, 0xFF,
+                    0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x01,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0xC8, 0x00,//0x68, 0x01,
+                    0xFF, 0xFE, 0xFF,
+                    0x00,
+                    0xFF, 0xFE, 0xFF,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01,
+                    0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x01,
+                    0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
+                    0xFF, 0xFE, 0xFF,
+                    0x00, 0x01, 0x00, 0x00, 0x00,
+                    0xFF, 0xFE, 0xFF,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+
             fg.write(0xFF, 0xFE, 0xFF);
             fg.write(0xFF);
             String creatorInfo = "";
@@ -760,6 +786,89 @@ public class ContentsGenerator extends AbstractGenerator {
         }
     }
 
+    private String generateItemID(Reference<Long> generatedItemIdOrder) {
+        String itemID = String.format("%1$08x-%2$08x", timeCreated, generatedItemIdOrder.getVal());
+        generatedItemIdOrder.setVal(generatedItemIdOrder.getVal() + 1);
+        return itemID;
+    }
+
+    protected void writeFonts(FlaCs4Writer dw, Element document, Reference<Long> generatedItemIdOrder) throws IOException {
+        Element fontsElement = getSubElementByName(document, "fonts");
+        if (fontsElement == null) {
+            return;
+        }
+        List<Element> domFontItems = getAllSubElementsByName(fontsElement, "DOMFontItem");
+
+        dw.writeUI32(domFontItems.size());
+
+        /*domFontItems.sort(new Comparator<Element>() {
+            @Override
+            public int compare(Element o1, Element o2) {
+                return Integer.parseInt(o1.getAttribute("id")) - Integer.parseInt(o2.getAttribute("id"));
+            }            
+        });*/
+        for (Element domFontItem : domFontItems) {
+            String name = domFontItem.getAttribute("name"); //assuming has name
+            String fontPsName = domFontItem.getAttribute("font"); //assuming has font
+            int id = Integer.parseInt(domFontItem.getAttribute("id"));
+
+            String itemID = generateItemID(generatedItemIdOrder);
+            if (domFontItem.hasAttribute("itemID")) {
+                itemID = domFontItem.getAttribute("itemID");
+            }
+            String fontFamily = fontPsName;
+            boolean bold = false;
+            boolean italic = false;
+            if (psNameToFontName.containsKey(fontPsName)) {
+                Font font = psNameToFontName.get(fontPsName);
+                fontFamily = font.getFamily(Locale.US);
+
+                String fontNameLowercase = font.getFontName(Locale.US).toLowerCase();
+                bold = fontNameLowercase.contains("bold");
+                italic = fontNameLowercase.contains("italic") || fontNameLowercase.contains("oblique");
+            }
+
+            dw.write(0x03,
+                    0xFF, 0xFE, 0xFF);
+            dw.writeLenUnicodeString(name);
+            dw.writeUI16(id);
+            dw.writeUI32(timeCreated);
+            dw.write(0x0F, 0x00, 0x00,
+                    0xFF, 0xFE, 0xFF);
+
+            dw.writeLenUnicodeString(fontFamily);
+            dw.write(0xFF, 0xFE, 0xFF);
+
+            dw.writeLenUnicodeString(fontPsName);
+
+            //following part might be copied from textfield
+            dw.write(0x00, 0x00, 0x00, 0x40,
+                    0x00, 0x00, 0x00, 0x00,
+                    0x12, //something magic, see PageGenerator for details
+                    0x00);
+            dw.write(bold ? 1 : 0);
+            dw.write(italic ? 1 : 0);
+            dw.write(0x00,
+                    0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00);
+            //end of copied part
+
+            dw.write(0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x02, 0x01, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x06, 0x00, 0x00, 0x00, 0x01, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+
+            dw.writeItemID(itemID);
+            dw.write(0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0xFF,
+                    0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+                    0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00,
+                    0xFF, 0xFE, 0xFF, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00);
+        }
+    }
+
     protected void writeQTAudioSettings(FlaCs4Writer dw, boolean cs4) throws IOException {
         String CQTAudioSettings = "CQTAudioSettings";
         dw.write(CQTAudioSettings.length(),
@@ -768,24 +877,7 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.write(
                 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, cs4 ? 0x58 : 0x00, 0xFF,
                 cs4 ? 0xFF : 0x00, 0xFF, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF,
-                0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x01,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0xC8, 0x00,//0x68, 0x01,
-                0xFF, 0xFE, 0xFF,
-                0x00,
-                0xFF, 0xFE, 0xFF,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01,
-                0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x01,
-                0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
-                0xFF, 0xFE, 0xFF,
-                0x00, 0x01, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                0x00);
 
     }
 

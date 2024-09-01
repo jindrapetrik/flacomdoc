@@ -71,16 +71,6 @@ import java.util.logging.Logger;
  */
 public class PageGenerator extends AbstractGenerator {
 
-    private static final Map<String, Font> psNameToFontName = new HashMap<>();
-
-    static {
-        Font[] fonts = GraphicsEnvironment.getLocalGraphicsEnvironment().getAllFonts();
-
-        for (Font font : fonts) {
-            psNameToFontName.put(font.getPSName(), font);
-        }
-    }
-
     private void handleFill(Node fillStyleVal, FlaCs4Writer fg) throws IOException {
         switch (fillStyleVal.getNodeName()) {
             case "SolidColor":
@@ -926,7 +916,63 @@ public class PageGenerator extends AbstractGenerator {
                         + (wrap ? 0x08 : 0)
                         + (multiline ? 0x10 : 0)
                 );
-                fg.write(renderAsHTML ? 0x80 : 0);
+
+                Element fontsElement = getSubElementByName(element.getOwnerDocument().getDocumentElement(), "fonts");
+                List<Element> domFontItems = new ArrayList<>();
+
+                if (fontsElement != null) {
+                    domFontItems = getAllSubElementsByName(fontsElement, "DOMFontItem");
+                }
+
+                Element textRunsElement = getSubElementByName(element, "textRuns");
+                List<Element> domTextRuns = new ArrayList<>();
+                if (textRunsElement != null) {
+                    domTextRuns = getAllSubElementsByName(textRunsElement, "DOMTextRun");
+                }
+
+                List<String> allEmbedRanges = new ArrayList<>();
+                int embedFlag = 0;
+                String embeddedCharacters = "";
+                for (Element textRun : domTextRuns) {
+                    Element textAttrsElement = getSubElementByName(textRun, "textAttrs");
+                    if (textAttrsElement == null) {
+                        continue;
+                    }
+                    Element domTextAttrs = getSubElementByName(textAttrsElement, "DOMTextAttrs");
+                    if (domTextAttrs == null) {
+                        continue;
+                    }
+                    if (domTextAttrs.hasAttribute("face")) {
+                        String face = domTextAttrs.getAttribute("face");
+
+                        for (Element domFontItem : domFontItems) {
+                            if (domFontItem.hasAttribute("font")) {
+                                String fontPsName = domFontItem.getAttribute("font");
+                                if (fontPsName.equals(face)) {
+                                    embedFlag |= 1;
+                                    if (domFontItem.hasAttribute("embeddedCharacters")) {
+                                        embeddedCharacters = domFontItem.getAttribute("embeddedCharacters");
+                                        embedFlag |= 0x20;
+                                    }
+                                    if (domFontItem.hasAttribute("embedRanges")) {
+                                        String embedRanges = domFontItem.getAttribute("embedRanges");
+                                        String[] rangesParts = embedRanges.split("\\|", -1);
+                                        for (String part : rangesParts) {
+                                            int rangeId = Integer.parseInt(part);
+                                            if (rangeId >= 1 && rangeId <= 4) {
+                                                embedFlag |= (1 << rangeId);
+                                            }
+                                            if (!allEmbedRanges.contains(part)) {
+                                                allEmbedRanges.add(part);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                fg.write((renderAsHTML ? 0x80 : 0) + embedFlag);
                 if (!isStatic) {
                     fg.write(0);
                 } else {
@@ -937,6 +983,10 @@ public class PageGenerator extends AbstractGenerator {
                 fg.writeUI16(maxCharacters);
                 fg.write(0xFF, 0xFE, 0xFF);
                 fg.writeLenUnicodeString(variableName);
+                if (!embeddedCharacters.isEmpty()) {
+                    fg.write(0xFF, 0xFE, 0xFF);
+                    fg.writeLenUnicodeString(embeddedCharacters);
+                }
                 fg.write(0x00);
 
                 /*
@@ -967,151 +1017,148 @@ public class PageGenerator extends AbstractGenerator {
                  */
                 List<FilterInterface> filters = new ArrayList<>();
 
-                Element textRunsElement = getSubElementByName(element, "textRuns");
-                if (textRunsElement != null) {
-                    List<Element> domTextRuns = getAllSubElementsByName(textRunsElement, "DOMTextRun");
-                    for (Element textRun : domTextRuns) {
-                        String characters = "";
+                for (Element textRun : domTextRuns) {
+                    String characters = "";
 
-                        Element charactersElement = getSubElementByName(textRun, "characters");
-                        if (charactersElement != null) {
-                            characters = charactersElement.getTextContent();
+                    Element charactersElement = getSubElementByName(textRun, "characters");
+                    if (charactersElement != null) {
+                        characters = charactersElement.getTextContent();
+                    }
+
+                    Element textAttrsElement = getSubElementByName(textRun, "textAttrs");
+                    if (textAttrsElement == null) {
+                        continue;
+                    }
+                    Element domTextAttrs = getSubElementByName(textAttrsElement, "DOMTextAttrs");
+                    if (domTextAttrs == null) {
+                        continue;
+                    }
+
+                    String face = "TimesNewRomanPSMT"; //?
+
+                    if (domTextAttrs.hasAttribute("face")) {
+                        face = domTextAttrs.getAttribute("face");
+                    }
+
+                    Font font = psNameToFontName.get(face);
+                    String fontFamily = "";
+                    boolean bold = false;
+                    boolean italic = false;
+                    if (font != null) {
+                        fontFamily = font.getFamily();
+                        String fontNameLowercase = font.getFontName(Locale.US).toLowerCase();
+                        bold = fontNameLowercase.contains("bold");
+                        italic = fontNameLowercase.contains("italic") || fontNameLowercase.contains("oblique");
+                    }
+
+                    Color fillColor = parseColorWithAlpha(domTextAttrs, Color.red, "fillColor", "alpha");
+                    float size = 12f;
+
+                    if (domTextAttrs.hasAttribute("size")) {
+                        size = Float.parseFloat(domTextAttrs.getAttribute("size"));
+                    }
+
+                    int bitmapSize = (int) Math.round(size * 20);
+                    float lineSpacing = 1.65f;
+
+                    if (domTextAttrs.hasAttribute("lineSpacing")) {
+                        lineSpacing = Float.parseFloat(domTextAttrs.getAttribute("lineSpacing"));
+                    }
+
+                    float letterSpacing = 0f;
+
+                    if (domTextAttrs.hasAttribute("letterSpacing")) {
+                        letterSpacing = Float.parseFloat(domTextAttrs.getAttribute("letterSpacing"));
+                    }
+
+                    boolean autoKern = true;
+
+                    if (domTextAttrs.hasAttribute("autoKern")) {
+                        autoKern = !"false".equals(domTextAttrs.getAttribute("autoKern"));
+                    }
+
+                    final int ALIGN_LEFT = 0;
+                    final int ALIGN_RIGHT = 1;
+                    final int ALIGN_CENTER = 2;
+                    final int ALIGN_JUSTIFY = 3;
+
+                    int alignment = ALIGN_LEFT;
+
+                    if (domTextAttrs.hasAttribute("alignment")) {
+                        switch (domTextAttrs.getAttribute("alignment")) {
+                            case "right":
+                                alignment = ALIGN_RIGHT;
+                                break;
+                            case "center":
+                                alignment = ALIGN_CENTER;
+                                break;
+                            case "justify":
+                                alignment = ALIGN_JUSTIFY;
+                                break;
                         }
+                    }
 
-                        Element textAttrsElement = getSubElementByName(textRun, "textAttrs");
-                        if (textAttrsElement == null) {
-                            continue;
+                    if (fontRenderingMode == FONTRENDERING_DEVICE) {
+                        autoKern = false;
+                    }
+
+                    final int CHARACTERPOSITION_NORMAL = 0;
+                    final int CHARACTERPOSITION_SUPERSCRIPT = 1;
+                    final int CHARACTERPOSITION_SUBSCRIPT = 2;
+
+                    int characterPosition = CHARACTERPOSITION_NORMAL;
+
+                    if (!isSelectable && domTextAttrs.hasAttribute("characterPosition")) {
+                        switch (domTextAttrs.getAttribute("characterPosition")) {
+                            case "superscript":
+                                characterPosition = CHARACTERPOSITION_SUPERSCRIPT;
+                                break;
+                            case "subscript":
+                                characterPosition = CHARACTERPOSITION_SUBSCRIPT;
+                                break;
                         }
-                        Element domTextAttrs = getSubElementByName(textAttrsElement, "DOMTextAttrs");
-                        if (domTextAttrs == null) {
-                            continue;
+                    }
+
+                    float indent = 0f;
+
+                    if (domTextAttrs.hasAttribute("indent")) {
+                        indent = Float.parseFloat(domTextAttrs.getAttribute("indent"));
+                    }
+
+                    float leftMargin = 0f;
+
+                    if (domTextAttrs.hasAttribute("leftMargin")) {
+                        leftMargin = Float.parseFloat(domTextAttrs.getAttribute("leftMargin"));
+                    }
+
+                    float rightMargin = 0f;
+
+                    if (domTextAttrs.hasAttribute("rightMargin")) {
+                        rightMargin = Float.parseFloat(domTextAttrs.getAttribute("rightMargin"));
+                    }
+
+                    String url = "";
+                    String target = "";
+
+                    if (domTextAttrs.hasAttribute("url")) {
+                        url = domTextAttrs.getAttribute("url");
+                        if (domTextAttrs.hasAttribute("target")) {
+                            target = domTextAttrs.getAttribute("target");
                         }
+                    }
 
-                        String face = "TimesNewRomanPSMT"; //?
+                    fg.writeUI16(characters.length());
+                    fg.write(0x0F);
+                    fg.writeUI16(bitmapSize);
+                    fg.write(0xFF, 0xFE, 0xFF);
+                    fg.writeLenUnicodeString(fontFamily);
+                    fg.write(0xFF, 0xFE, 0xFF);
+                    fg.writeLenUnicodeString(face);
 
-                        if (domTextAttrs.hasAttribute("face")) {
-                            face = domTextAttrs.getAttribute("face");
-                        }
+                    fg.write(0x00, 0x00, 0x00, 0x40);
+                    fg.write(fillColor.getRed(), fillColor.getGreen(), fillColor.getBlue(), fillColor.getAlpha());
 
-                        Font font = psNameToFontName.get(face);
-                        String fontFamily = "";
-                        boolean bold = false;
-                        boolean italic = false;
-                        if (font != null) {
-                            fontFamily = font.getFamily();
-                            String fontNameLowercase = font.getFontName(Locale.US).toLowerCase();
-                            bold = fontNameLowercase.contains("bold");
-                            italic = fontNameLowercase.contains("italic") || fontNameLowercase.contains("oblique");
-                        }
-
-                        Color fillColor = parseColorWithAlpha(domTextAttrs, Color.red, "fillColor", "alpha");
-                        float size = 12f;
-
-                        if (domTextAttrs.hasAttribute("size")) {
-                            size = Float.parseFloat(domTextAttrs.getAttribute("size"));
-                        }
-
-                        int bitmapSize = (int) Math.round(size * 20);
-                        float lineSpacing = 1.65f;
-
-                        if (domTextAttrs.hasAttribute("lineSpacing")) {
-                            lineSpacing = Float.parseFloat(domTextAttrs.getAttribute("lineSpacing"));
-                        }
-
-                        float letterSpacing = 0f;
-
-                        if (domTextAttrs.hasAttribute("letterSpacing")) {
-                            letterSpacing = Float.parseFloat(domTextAttrs.getAttribute("letterSpacing"));
-                        }
-
-                        boolean autoKern = true;
-
-                        if (domTextAttrs.hasAttribute("autoKern")) {
-                            autoKern = !"false".equals(domTextAttrs.getAttribute("autoKern"));
-                        }
-
-                        final int ALIGN_LEFT = 0;
-                        final int ALIGN_RIGHT = 1;
-                        final int ALIGN_CENTER = 2;
-                        final int ALIGN_JUSTIFY = 3;
-
-                        int alignment = ALIGN_LEFT;
-
-                        if (domTextAttrs.hasAttribute("alignment")) {
-                            switch (domTextAttrs.getAttribute("alignment")) {
-                                case "right":
-                                    alignment = ALIGN_RIGHT;
-                                    break;
-                                case "center":
-                                    alignment = ALIGN_CENTER;
-                                    break;
-                                case "justify":
-                                    alignment = ALIGN_JUSTIFY;
-                                    break;
-                            }
-                        }
-
-                        if (fontRenderingMode == FONTRENDERING_DEVICE) {
-                            autoKern = false;
-                        }
-
-                        final int CHARACTERPOSITION_NORMAL = 0;
-                        final int CHARACTERPOSITION_SUPERSCRIPT = 1;
-                        final int CHARACTERPOSITION_SUBSCRIPT = 2;
-
-                        int characterPosition = CHARACTERPOSITION_NORMAL;
-
-                        if (!isSelectable && domTextAttrs.hasAttribute("characterPosition")) {
-                            switch (domTextAttrs.getAttribute("characterPosition")) {
-                                case "superscript":
-                                    characterPosition = CHARACTERPOSITION_SUPERSCRIPT;
-                                    break;
-                                case "subscript":
-                                    characterPosition = CHARACTERPOSITION_SUBSCRIPT;
-                                    break;
-                            }
-                        }
-
-                        float indent = 0f;
-
-                        if (domTextAttrs.hasAttribute("indent")) {
-                            indent = Float.parseFloat(domTextAttrs.getAttribute("indent"));
-                        }
-
-                        float leftMargin = 0f;
-
-                        if (domTextAttrs.hasAttribute("leftMargin")) {
-                            leftMargin = Float.parseFloat(domTextAttrs.getAttribute("leftMargin"));
-                        }
-
-                        float rightMargin = 0f;
-
-                        if (domTextAttrs.hasAttribute("rightMargin")) {
-                            rightMargin = Float.parseFloat(domTextAttrs.getAttribute("rightMargin"));
-                        }
-
-                        String url = "";
-                        String target = "";
-
-                        if (domTextAttrs.hasAttribute("url")) {
-                            url = domTextAttrs.getAttribute("url");
-                            if (domTextAttrs.hasAttribute("target")) {
-                                target = domTextAttrs.getAttribute("target");
-                            }
-                        }
-
-                        fg.writeUI16(characters.length());
-                        fg.write(0x0F);
-                        fg.writeUI16(bitmapSize);
-                        fg.write(0xFF, 0xFE, 0xFF);
-                        fg.writeLenUnicodeString(fontFamily);
-                        fg.write(0xFF, 0xFE, 0xFF);
-                        fg.writeLenUnicodeString(face);
-
-                        fg.write(0x00, 0x00, 0x00, 0x40);
-                        fg.write(fillColor.getRed(), fillColor.getGreen(), fillColor.getBlue(), fillColor.getAlpha());
-
-                        /*
+                    /*
                         FIXME!!!
                         I don't know how to calculate following (two) values,
                         it is somehow bases on font family.
@@ -1131,54 +1178,53 @@ public class PageGenerator extends AbstractGenerator {
                         Verdana	0x22		34	0010 0010
                         Impact 0x22		34	0010 0010
 
-                         */
-                        fg.write(0x12,
-                                0x00);
+                     */
+                    fg.write(0x12,
+                            0x00);
 
-                        fg.write(
-                                bold ? 1 : 0,
-                                italic ? 1 : 0,
-                                0x00,
-                                autoKern ? 1 : 0,
-                                characterPosition,
-                                alignment
-                        );
-                        fg.writeUI16((int) Math.round(lineSpacing * 20));
-                        fg.writeUI16((int) Math.round(indent * 20));
-                        fg.writeUI16((int) Math.round(leftMargin * 20));
-                        fg.writeUI16((int) Math.round(rightMargin * 20));
-                        fg.writeUI16((int) Math.round(letterSpacing * 20));
-                        fg.write(0xFF, 0xFE, 0xFF);
-                        fg.writeLenUnicodeString(url);
+                    fg.write(
+                            bold ? 1 : 0,
+                            italic ? 1 : 0,
+                            0x00,
+                            autoKern ? 1 : 0,
+                            characterPosition,
+                            alignment
+                    );
+                    fg.writeUI16((int) Math.round(lineSpacing * 20));
+                    fg.writeUI16((int) Math.round(indent * 20));
+                    fg.writeUI16((int) Math.round(leftMargin * 20));
+                    fg.writeUI16((int) Math.round(rightMargin * 20));
+                    fg.writeUI16((int) Math.round(letterSpacing * 20));
+                    fg.write(0xFF, 0xFE, 0xFF);
+                    fg.writeLenUnicodeString(url);
 
-                        fg.write(vertical ? 1 : 0,
-                                rightToLeft ? 1 : 0,
-                                fontRenderingMode == FONTRENDERING_CUSTOM
-                                        ? 1 : 0
-                        );
-                        fg.write(
-                                fontRenderingMode == FONTRENDERING_BITMAP ? 1 : 0,
-                                0xFF, 0xFE, 0xFF);
-                        fg.writeLenUnicodeString(target);
-                        fg.write(0x02);
+                    fg.write(vertical ? 1 : 0,
+                            rightToLeft ? 1 : 0,
+                            fontRenderingMode == FONTRENDERING_CUSTOM
+                                    ? 1 : 0
+                    );
+                    fg.write(
+                            fontRenderingMode == FONTRENDERING_BITMAP ? 1 : 0,
+                            0xFF, 0xFE, 0xFF);
+                    fg.writeLenUnicodeString(target);
+                    fg.write(0x02);
 
-                        switch (fontRenderingMode) {
-                            case FONTRENDERING_DEFAULT:
-                                fg.write(1);
-                                break;
-                            case FONTRENDERING_CUSTOM:
-                                fg.write(2);
-                                break;
-                            default:
-                                fg.write(0);
-                                break;
-                        }
-                        fg.writeFloat(antiAliasThickness);
-                        fg.writeFloat(antiAliasSharpness);
-                        fg.write(0xFF, 0xFE, 0xFF);
-                        fg.writeLenUnicodeString(url);
-                        fg.write(characters.getBytes("UTF-16LE"));
+                    switch (fontRenderingMode) {
+                        case FONTRENDERING_DEFAULT:
+                            fg.write(1);
+                            break;
+                        case FONTRENDERING_CUSTOM:
+                            fg.write(2);
+                            break;
+                        default:
+                            fg.write(0);
+                            break;
                     }
+                    fg.writeFloat(antiAliasThickness);
+                    fg.writeFloat(antiAliasSharpness);
+                    fg.write(0xFF, 0xFE, 0xFF);
+                    fg.writeLenUnicodeString(url);
+                    fg.write(characters.getBytes("UTF-16LE"));
                 }
 
                 fg.write(0x00, 0x00,
@@ -1186,7 +1232,8 @@ public class PageGenerator extends AbstractGenerator {
                 fg.writeLenUnicodeString(instanceName);
                 fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
-                        0xFF, 0xFE, 0xFF, 0x00);
+                        0xFF, 0xFE, 0xFF);
+                fg.writeLenUnicodeString(String.join("|", allEmbedRanges));
                 if (!filters.isEmpty()) {
                     fg.write(0x01);
                     fg.writeUI32(filters.size()); //Is it really 4 bytes long?

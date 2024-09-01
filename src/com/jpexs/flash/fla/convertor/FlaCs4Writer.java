@@ -1041,11 +1041,11 @@ public class FlaCs4Writer {
         }
         Long itemIDHigh = Long.parseLong(m.group("hi"), 16);
         Long itemIDLow = Long.parseLong(m.group("lo"), 16);
-        
+
         writeUI32(itemIDHigh);
         writeUI32(itemIDLow);
     }
-    
+
     public void writeUI32(long value) throws IOException {
         write((int) (value & 0xFF));
         write((int) ((value >> 8) & 0xFF));
