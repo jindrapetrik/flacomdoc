@@ -405,7 +405,85 @@ public class ContentsGenerator extends AbstractGenerator {
         return 10;
     }
 
-    private void writeSymbol(FlaCs4Writer fg, int symbolId, String itemID, String symbolFile, long time, String symbolName, String sourceLibraryItemHRef, int symbolType, List<String> definedClasses) throws IOException {
+    private void writeAsLinkage(FlaCs4Writer dw, Element element) throws IOException {
+        boolean linkageExportForAS = false;
+        if (element.hasAttribute("linkageExportForAS")) {
+            linkageExportForAS = "true".equals(element.getAttribute("linkageExportForAS"));
+        }
+
+        String linkageClassName = "";
+        if (element.hasAttribute("linkageClassName")) {
+            linkageClassName = element.getAttribute("linkageClassName");
+        }
+
+        boolean linkageExportInFirstFrame = true;
+        if (element.hasAttribute("linkageExportInFirstFrame")) {
+            linkageExportInFirstFrame = !"false".equals(element.getAttribute("linkageExportInFirstFrame"));
+        }
+
+        String linkageBaseClass = "";
+        if (element.hasAttribute("linkageBaseClass")) {
+            linkageBaseClass = element.getAttribute("linkageBaseClass");
+        }
+
+        boolean linkageExportForRS = false;
+        if (element.hasAttribute("linkageExportForRS")) {
+            linkageExportForRS = "true".equals(element.getAttribute("linkageExportForRS"));
+        }
+
+        String linkageURL = "";
+        if (element.hasAttribute("linkageURL")) {
+            linkageURL = element.getAttribute("linkageURL");
+        }
+
+        boolean linkageImportForRS = false;
+        if (element.hasAttribute("linkageImportForRS")) {
+            linkageImportForRS = "true".equals(element.getAttribute("linkageImportForRS"));
+        }
+
+        /*String sourceLibraryItemHRef = "";
+        if (element.hasAttribute("sourceLibraryItemHRef")) {
+            sourceLibraryItemHRef = element.getAttribute("sourceLibraryItemHRef");
+        }*/
+        
+        String linkageIdentifier = "";
+        if (element.hasAttribute("linkageIdentifier")) {
+            linkageIdentifier = element.getAttribute("linkageIdentifier");
+        }
+
+        dw.write(0x00, 0x00,
+                0x00, 0x00, 0x07,
+                (linkageExportForAS ? 1 : 0) + (linkageImportForRS ? 2 : 0),
+                0x00, 0x00, 0x00,
+                0xFF, 0xFE, 0xFF);
+        dw.writeLenUnicodeString(linkageIdentifier);
+        dw.write(0xFF, 0xFE, 0xFF);
+        dw.writeLenUnicodeString(linkageURL);
+        dw.write(0xFF, 0xFE, 0xFF);
+        dw.writeLenUnicodeString(linkageClassName);
+        int linkageFlags = 0;
+        if (linkageExportForAS) {
+            linkageFlags |= 1;
+            if (linkageExportInFirstFrame) {
+                linkageFlags |= 4;
+            }
+            if (linkageExportForRS) {
+                linkageFlags |= 2;
+            }
+        }
+        dw.write(linkageFlags,
+                0x02, 0x00, 0x00, 0x00,
+                0xFF, 0xFE, 0xFF, 0x00,
+                0xFF, 0xFE, 0xFF, 0x00);
+        //dw.writeLenUnicodeString(sourceLibraryItemHRef);
+        dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0xFF, 0xFF, 0xFF, 0xFF, 0x00,
+                0xFF, 0xFE, 0xFF);
+        dw.writeLenUnicodeString(linkageBaseClass);
+    }
+
+    private void writeSymbol(FlaCs4Writer fg, int symbolId, String itemID, String symbolFile, long time, String symbolName, Element element, int symbolType, List<String> definedClasses) throws IOException {
 
         useClass("CDocumentPage", 0x01, 0x01, 0x19, fg, definedClasses);
         //fg.write(0x01, 0x80, 0x19);
@@ -419,13 +497,9 @@ public class ContentsGenerator extends AbstractGenerator {
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
 
         fg.writeItemID(itemID);
-        fg.write(0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF,
-                0x00,
-                0xFF, 0xFE, 0xFF);
-        fg.writeLenUnicodeString(sourceLibraryItemHRef);
-        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00);
+        writeAsLinkage(fg, element);
+
+        fg.write(0x00);
         fg.writeUI32(time);
         fg.write(0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF,
@@ -660,12 +734,7 @@ public class ContentsGenerator extends AbstractGenerator {
                         itemID = symbolElement.getAttribute("itemID");
                     }
 
-                    String sourceLibraryItemHRef = "";
-                    if (symbolElement.hasAttribute("sourceLibraryItemHRef")) {
-                        sourceLibraryItemHRef = symbolElement.getAttribute("sourceLibraryItemHRef");
-                    }
-
-                    writeSymbol(fg, symbolId, itemID, symbolFile, symbolTime, symbolName, sourceLibraryItemHRef, symbolType, definedClasses);
+                    writeSymbol(fg, symbolId, itemID, symbolFile, symbolTime, symbolName, symbolElement, symbolType, definedClasses);
 
                     PageGenerator symbolPageGenerator = new PageGenerator();
                     symbolPageGenerator.generatePageFile(domTimelineElement, outputDir.toPath().resolve(symbolFile).toFile());
@@ -980,69 +1049,7 @@ public class ContentsGenerator extends AbstractGenerator {
                 }
             }
 
-            boolean linkageExportForAS = false;
-            if (domBitmapItem.hasAttribute("linkageExportForAS")) {
-                linkageExportForAS = "true".equals(domBitmapItem.getAttribute("linkageExportForAS"));
-            }
-
-            String linkageClassName = "";
-            if (domBitmapItem.hasAttribute("linkageClassName")) {
-                linkageClassName = domBitmapItem.getAttribute("linkageClassName");
-            }
-
-            boolean linkageExportInFirstFrame = true;
-            if (domBitmapItem.hasAttribute("linkageExportInFirstFrame")) {
-                linkageExportInFirstFrame = !"false".equals(domBitmapItem.getAttribute("linkageExportInFirstFrame"));
-            }
-
-            String linkageBaseClass = "";
-            if (domBitmapItem.hasAttribute("linkageBaseClass")) {
-                linkageBaseClass = domBitmapItem.getAttribute("linkageBaseClass");
-            }
-
-            boolean linkageExportForRS = false;
-            if (domBitmapItem.hasAttribute("linkageExportForRS")) {
-                linkageExportForRS = "true".equals(domBitmapItem.getAttribute("linkageExportForRS"));
-            }
-
-            String linkageURL = "";
-            if (domBitmapItem.hasAttribute("linkageURL")) {
-                linkageURL = domBitmapItem.getAttribute("linkageURL");
-            }
-
-            boolean linkageImportForRS = false;
-            if (domBitmapItem.hasAttribute("linkageImportForRS")) {
-                linkageImportForRS = "true".equals(domBitmapItem.getAttribute("linkageImportForRS"));
-            }
-
-            dw.write(0x00, 0x00,
-                    0x00, 0x00, 0x07,
-                    (linkageExportForAS ? 1 : 0) + (linkageImportForRS ? 2 : 0),
-                    0x00, 0x00, 0x00,
-                    0xFF, 0xFE, 0xFF, 0x00,
-                    0xFF, 0xFE, 0xFF);
-            dw.writeLenUnicodeString(linkageURL);
-            dw.write(0xFF, 0xFE, 0xFF);
-            dw.writeLenUnicodeString(linkageClassName);
-            int linkageFlags = 0;
-            if (linkageExportForAS) {
-                linkageFlags |= 1;
-                if (linkageExportInFirstFrame) {
-                    linkageFlags |= 4;
-                }
-                if (linkageExportForRS) {
-                    linkageFlags |= 2;
-                }
-            }
-            dw.write(linkageFlags,
-                    0x02, 0x00, 0x00, 0x00,
-                    0xFF, 0xFE, 0xFF, 0x00,
-                    0xFF, 0xFE, 0xFF, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0xFF, 0xFF, 0xFF, 0xFF, 0x00,
-                    0xFF, 0xFE, 0xFF);
-            dw.writeLenUnicodeString(linkageBaseClass);
+            writeAsLinkage(dw, domBitmapItem);
             dw.write(0x00, 0x01, 0x00, 0x00, 0x00, 0x04);
             if (isJPEG) {
                 if (useImportedJPEGData) {
@@ -1117,41 +1124,6 @@ public class ContentsGenerator extends AbstractGenerator {
                 italic = fontNameLowercase.contains("italic") || fontNameLowercase.contains("oblique");
             }
 
-            boolean linkageExportForAS = false;
-            if (domFontItem.hasAttribute("linkageExportForAS")) {
-                linkageExportForAS = "true".equals(domFontItem.getAttribute("linkageExportForAS"));
-            }
-
-            String linkageClassName = "";
-            if (domFontItem.hasAttribute("linkageClassName")) {
-                linkageClassName = domFontItem.getAttribute("linkageClassName");
-            }
-
-            boolean linkageExportInFirstFrame = true;
-            if (domFontItem.hasAttribute("linkageExportInFirstFrame")) {
-                linkageExportInFirstFrame = !"false".equals(domFontItem.getAttribute("linkageExportInFirstFrame"));
-            }
-
-            String linkageBaseClass = "";
-            if (domFontItem.hasAttribute("linkageBaseClass")) {
-                linkageBaseClass = domFontItem.getAttribute("linkageBaseClass");
-            }
-
-            boolean linkageExportForRS = false;
-            if (domFontItem.hasAttribute("linkageExportForRS")) {
-                linkageExportForRS = "true".equals(domFontItem.getAttribute("linkageExportForRS"));
-            }
-
-            String linkageURL = "";
-            if (domFontItem.hasAttribute("linkageURL")) {
-                linkageURL = domFontItem.getAttribute("linkageURL");
-            }
-
-            boolean linkageImportForRS = false;
-            if (domFontItem.hasAttribute("linkageImportForRS")) {
-                linkageImportForRS = "true".equals(domFontItem.getAttribute("linkageImportForRS"));
-            }
-
             dw.write(0x03,
                     0xFF, 0xFE, 0xFF);
             dw.writeLenUnicodeString(name);
@@ -1191,39 +1163,7 @@ public class ContentsGenerator extends AbstractGenerator {
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
 
             dw.writeItemID(itemID);
-            dw.write(0x00, 0x00,
-                    0x00, 0x00, 0x07,
-                    (linkageExportForAS ? 1 : 0) + (linkageImportForRS ? 2 : 0),
-                    0x00, 0x00, 0x00,
-                    0xFF, 0xFE, 0xFF, 0x00,
-                    0xFF, 0xFE, 0xFF);
-            if (linkageImportForRS) {
-                dw.writeLenUnicodeString(linkageURL);
-            } else {
-                dw.write(0);
-            }
-            dw.write(0xFF, 0xFE, 0xFF);
-            dw.writeLenUnicodeString(linkageClassName);
-            int linkageFlags = 0;
-            if (linkageExportForAS) {
-                linkageFlags |= 1;
-                if (linkageExportInFirstFrame) {
-                    linkageFlags |= 4;
-                }
-                if (linkageExportForRS) {
-                    linkageFlags |= 2;
-                }
-            }
-
-            dw.write(linkageFlags,
-                    0x02, 0x00, 0x00, 0x00,
-                    0xFF, 0xFE, 0xFF, 0x00,
-                    0xFF, 0xFE, 0xFF, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0xFF, 0xFF, 0xFF, 0xFF, 0x00,
-                    0xFF, 0xFE, 0xFF);
-            dw.writeLenUnicodeString(linkageBaseClass);
+            writeAsLinkage(dw, document);
             dw.write(0x00, 0x00, 0x00, 0x00, 0x00);
         }
         return fontCount;
