@@ -432,7 +432,7 @@ public class FlaCs4Writer {
                                     parts[i + 2]
                             );
                         } catch (NumberFormatException nfe) {
-                            throw new IllegalArgumentException("| has invalid arguments: " + parts[1] + ", " + parts[2]);
+                            throw new IllegalArgumentException("| has invalid arguments: " + parts[i + 1] + ", " + parts[i + 2]);
                         }
                         i += 2;
                         break;
@@ -449,7 +449,7 @@ public class FlaCs4Writer {
                                     parts[i + 4]
                             );
                         } catch (NumberFormatException nfe) {
-                            throw new IllegalArgumentException("[ has invalid arguments: " + parts[1] + ", " + parts[2] + ", " + parts[3] + ", " + parts[4]);
+                            throw new IllegalArgumentException("[ has invalid arguments: " + parts[i + 1] + ", " + parts[i + 2] + ", " + parts[i + 3] + ", " + parts[i + 4]);
                         }
                         i += 4;
                         break;
@@ -653,7 +653,7 @@ public class FlaCs4Writer {
     }
 
     private double parseEdge(String edge) {
-        Pattern doubleHexPattern = Pattern.compile("#(?<before>[a-fA-F0-9]+){1,8}(\\.(?<after>[0-9a-fA-F]{2}))?");
+        Pattern doubleHexPattern = Pattern.compile("#(?<before>[a-fA-F0-9]+){1,6}(\\.(?<after>[0-9a-fA-F]{2}))?");
         Matcher m = doubleHexPattern.matcher(edge);
         if (m.matches()) {
             String before = m.group("before");
@@ -663,6 +663,7 @@ public class FlaCs4Writer {
                 afterInt = Integer.parseInt(after, 16);
             }
             int beforeInt = Integer.parseInt(before, 16);
+            beforeInt = (beforeInt << 8) >> 8; //sign extend
             return beforeInt + afterInt / 256.0;
         }
         if (edge.contains("S")) {
@@ -679,7 +680,11 @@ public class FlaCs4Writer {
         long integerPart = (long) Math.floor(value);
         double fractionalPart = value - integerPart;
         int fractionalPart256 = (int) Math.floor(fractionalPart * 256);
-        return "#" + Long.toHexString(integerPart).toUpperCase() + "." + String.format("%02X", fractionalPart256);
+        String h = Long.toHexString(integerPart).toUpperCase();
+        if (h.length() > 6) {
+            h = h.substring(h.length() - 6, h.length());
+        }
+        return "#" + h + "." + String.format("%02X", fractionalPart256);
     }
 
     private String deltaEdge(String v1, String v2) {
