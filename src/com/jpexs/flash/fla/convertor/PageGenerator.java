@@ -227,28 +227,87 @@ public class PageGenerator extends AbstractGenerator {
         }
         return ret;
     }
+    
+    protected void handleBitmapInstance(Element bitmapInstance,
+            FlaCs4Writer fg,
+            List<String> definedClasses) throws IOException {
+            if (!bitmapInstance.hasAttribute("libraryItemName")) {
+                return;
+            }
+            
+            String libraryItemName = bitmapInstance.getAttribute("libraryItemName");
+            
+            
+            Element mediaElement = getSubElementByName(bitmapInstance.getOwnerDocument().getDocumentElement(), "media");
+            if (mediaElement == null) {
+                return;
+            }
+            List<Element> domBitmapItems = getAllSubElementsByName(mediaElement, "DOMBitmapItem");
+            int bitmapId = 0;
+            for (int i = 0; i < domBitmapItems.size(); i++) {
+                Element domBitmapItem = domBitmapItems.get(i);
+                if (domBitmapItem.hasAttribute("name")) {
+                    if (libraryItemName.equals(domBitmapItem.getAttribute("name"))) {
+                        bitmapId = i + 1;
+                        break;
+                    }
+                }
+            }
 
-    protected void handleSymbolInstances(
-            Element elementsNode,
+            if (bitmapId == 0) {
+                return;
+            }
+            
+            useClass("CPicBitmap", 0x05, fg, definedClasses);
+            Matrix placeMatrix = parseMatrix(getSubElementByName(bitmapInstance, "matrix"));
+            
+            fg.write(0x00, 0x00, 0x00, 
+                    0x00, 0x00, 0x00, 0x80, 
+                    0x00, 0x00, 0x00, 0x80,
+                    0x00, 0x00, 0x02); 
+            fg.writeMatrix(placeMatrix);                        
+            fg.writeUI16(bitmapId);
+            fg.write(0x00);        
+    }
+
+    protected void handleInstances(Element elementsNode, 
+            FlaCs4Writer fg,
+            List<String> definedClasses,
+            Reference<Integer> copiedComponentPathRef) throws IOException {
+        if (elementsNode == null) {
+            return;
+        }
+        List<Element> instances = getAllSubElements(elementsNode);
+        for (int instanceIndex = 0; instanceIndex < instances.size(); instanceIndex++) {
+            Element instance = instances.get(instanceIndex);
+            switch(instance.getTagName()) {
+                case "DOMSymbolInstance":
+                    handleSymbolInstance(instance, fg, definedClasses, copiedComponentPathRef);
+                    break;
+                case "DOMBitmapInstance":
+                    handleBitmapInstance(instance, fg, definedClasses);
+                    break;
+            }
+        }
+    }
+    
+    protected void handleSymbolInstance(
+            Element symbolInstance,
             FlaCs4Writer fg,
             List<String> definedClasses,
             Reference<Integer> copiedComponentPathRef
     ) throws IOException {
-        List<Element> symbolInstances = getAllSubElementsByName(elementsNode, "DOMSymbolInstance");
-        for (int symbolInstanceIndex = 0; symbolInstanceIndex < symbolInstances.size(); symbolInstanceIndex++) {
-
-            Element symbolInstance = symbolInstances.get(symbolInstanceIndex);
-
+            
             if (!symbolInstance.hasAttribute("libraryItemName")) {
                 //nothing we can do
-                continue;
+                return;
             }
 
             String libraryItemName = symbolInstance.getAttribute("libraryItemName");
             Element symbolsElement = getSubElementByName(symbolInstance.getOwnerDocument().getDocumentElement(), "symbols");
             if (symbolsElement == null) {
                 //nothing we can do                                    
-                continue;
+                return;
             }
             List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
 
@@ -271,7 +330,7 @@ public class PageGenerator extends AbstractGenerator {
             }
             if (libraryItemIndex == -1) {
                 //nothing we can do 
-                continue;
+                return;
             }
 
             int symbolType = FlaCs4Writer.SYMBOLTYPE_SPRITE;
@@ -713,8 +772,6 @@ public class PageGenerator extends AbstractGenerator {
                     firstFrame,
                     actionScript
             );
-
-        }
     }
 
     private void handleTexts(FlaCs4Writer fg, List<Element> elements, List<String> definedClasses) throws IOException {
@@ -1281,7 +1338,7 @@ public class PageGenerator extends AbstractGenerator {
                 Node frame = frames.get(f);
                 Element elementsNode = getSubElementByName(frame, "elements");
 
-                handleSymbolInstances(layer, fg, definedClasses, copiedComponentPathRef);
+                handleInstances(elementsNode, fg, definedClasses, copiedComponentPathRef);
                 List<Element> elements = new ArrayList<>();
                 if (elementsNode != null) {
                     elements = getAllSubElements(elementsNode);

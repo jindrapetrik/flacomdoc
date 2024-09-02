@@ -18,7 +18,6 @@
  */
 package com.jpexs.flash.fla.convertor;
 
-import java.io.FileInputStream;
 import java.io.RandomAccessFile;
 
 /**
