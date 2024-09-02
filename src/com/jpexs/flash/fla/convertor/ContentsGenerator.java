@@ -942,7 +942,7 @@ public class ContentsGenerator extends AbstractGenerator {
             dw.write(0xFF, 0xFE, 0xFF);
             dw.writeLenUnicodeString(sourceFile);
             String importFilePath = "";
-            dw.write(0x01, 0x00,
+            dw.write(mediaCount, 0x00,
                     0xFF, 0xFE, 0xFF);
             dw.writeLenUnicodeString(importFilePath);
             dw.writeUI32(timeCreated);
