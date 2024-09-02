@@ -257,10 +257,15 @@ public class PageGenerator extends AbstractGenerator {
             return;
         }
 
+        boolean selected = false;
+        if (bitmapInstance.hasAttribute("selected")) {
+            selected = "true".equals(bitmapInstance.getAttribute("selected"));
+        }
+
         useClass("CPicBitmap", 0x05, fg, definedClasses);
         Matrix placeMatrix = parseMatrix(getSubElementByName(bitmapInstance, "matrix"));
 
-        fg.write(0x00, 0x00, 0x00,
+        fg.write(selected ? 0x02 : 0, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x80,
                 0x00, 0x00, 0x00, 0x80,
                 0x00, 0x00, 0x02);
@@ -760,7 +765,14 @@ public class PageGenerator extends AbstractGenerator {
         if (symbolType == FlaCs4Writer.SYMBOLTYPE_SPRITE) {
             copiedComponentPathRef.setVal(copiedComponentPathRef.getVal() + 1);
         }
+
+        boolean selected = false;
+        if (symbolInstance.hasAttribute("selected")) {
+            selected = "true".equals(symbolInstance.getAttribute("selected"));
+        }
+
         fg.writeSymbolInstance(
+                selected,
                 placeMatrix,
                 centerPoint3DX,
                 centerPoint3DY,
@@ -958,9 +970,17 @@ public class PageGenerator extends AbstractGenerator {
                 }
             }
 
+            boolean selected = false;
+            if (element.hasAttribute("selected")) {
+                selected = "true".equals(element.getAttribute("selected"));
+            }
+
             //orientation="vertical right to left", "vertical left to right"
             //fontRenderingMode="device" , "bitmap", "standard", "customThicknessSharpness"
-            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x0E);
+            fg.write(selected ? 0x02 : 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x80,
+                    0x00, 0x00, 0x00, 0x80,
+                    0x00, 0x00, 0x0E);
             fg.writeMatrix(matrix);
             fg.writeUI32((int) Math.round(left * 20));
             fg.writeUI32((int) Math.round((left + width) * 20));
