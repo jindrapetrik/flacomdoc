@@ -29,6 +29,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -445,7 +446,6 @@ public class ContentsGenerator extends AbstractGenerator {
         if (element.hasAttribute("sourceLibraryItemHRef")) {
             sourceLibraryItemHRef = element.getAttribute("sourceLibraryItemHRef");
         }*/
-        
         String linkageIdentifier = "";
         if (element.hasAttribute("linkageIdentifier")) {
             linkageIdentifier = element.getAttribute("linkageIdentifier");
@@ -483,40 +483,117 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.writeLenUnicodeString(linkageBaseClass);
     }
 
-    private void writeSymbol(FlaCs4Writer fg, int symbolId, String itemID, String symbolFile, long time, String symbolName, Element element, int symbolType, List<String> definedClasses) throws IOException {
+    private int writeSymbols(FlaCs4Writer fg, Element document, DocumentBuilder docBuilder, File libraryDir, File outputDir, Reference<Long> generatedItemIdOrder, List<String> definedClasses) throws SAXException, IOException, FileNotFoundException, ParserConfigurationException {
+        int symbolCount = 0;
+        Element symbolsElement = getSubElementByName(document, "symbols");
+        if (symbolsElement == null) {
+            return symbolCount;
+        }
+        List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
+        for (int i = includes.size() - 1; i >= 0; i--) {
+            Element include = includes.get(i);
+            if (!include.hasAttribute("href")) {
+                continue;
+            }
+            String href = include.getAttribute("href");
+            Document symbolDocument = docBuilder.parse(libraryDir.toPath().resolve(href).toFile());
+            Element symbolElement = symbolDocument.getDocumentElement();
+            Element timelineElement = getSubElementByName(symbolElement, "timeline");
+            if (timelineElement == null) {
+                continue;
+            }
+            Element domTimelineElement = getSubElementByName(timelineElement, "DOMTimeline");
+            if (domTimelineElement == null) {
+                continue;
+            }
+            symbolCount++;
+            int symbolId = i + 1;
+            long symbolTime = timeCreated;
+            String symbolFile = "S " + symbolId + " " + symbolTime;
+            String symbolName = "Symbol " + symbolId;
+            if (domTimelineElement.hasAttribute("name")) {
+                symbolName = domTimelineElement.getAttribute("name");
+            }
 
-        useClass("CDocumentPage", 0x01, 0x01, 0x19, fg, definedClasses);
-        //fg.write(0x01, 0x80, 0x19);
-        fg.writeLenUnicodeString(symbolFile);
-        fg.write(0xFF, 0xFE, 0xFF);
-        fg.writeLenUnicodeString(symbolName);
-        fg.write(
-                symbolId, 0x00, 0x00, 0x00, symbolType,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0x01, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+            //scaleGridLeft="22.75" scaleGridRight="68.25" scaleGridTop="22.75" scaleGridBottom="68.25" 
+            float scaleGridLeft = 0f;
+            if (symbolElement.hasAttribute("scaleGridLeft")) {
+                scaleGridLeft = Float.parseFloat(symbolElement.getAttribute("scaleGridLeft"));
+            }
 
-        fg.writeItemID(itemID);
-        writeAsLinkage(fg, element);
+            float scaleGridRight = 0f;
+            if (symbolElement.hasAttribute("scaleGridRight")) {
+                scaleGridRight = Float.parseFloat(symbolElement.getAttribute("scaleGridRight"));
+            }
 
-        fg.write(0x00);
-        fg.writeUI32(time);
-        fg.write(0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
-                0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF,
-                0x00, 0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0xFF, 0xFE,
-                0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x07,
-                0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x03, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x03, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
-                0xFE, 0xFF, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-        );
+            float scaleGridTop = 0f;
+            if (symbolElement.hasAttribute("scaleGridTop")) {
+                scaleGridTop = Float.parseFloat(symbolElement.getAttribute("scaleGridTop"));
+            }
+
+            float scaleGridBottom = 0f;
+            if (symbolElement.hasAttribute("scaleGridBottom")) {
+                scaleGridBottom = Float.parseFloat(symbolElement.getAttribute("scaleGridBottom"));
+            }
+
+            int symbolType = getAttributeAsInt(symbolElement, "symbolType", Arrays.asList("graphic", "button", "movieclip"), "movieclip"); //not sure about the default value name                  
+
+            String itemID = generateItemID(generatedItemIdOrder);
+
+            if (symbolElement.hasAttribute("itemID")) {
+                itemID = symbolElement.getAttribute("itemID");
+            }
+
+            useClass("CDocumentPage", 0x01, 0x01, 0x19, fg, definedClasses);
+            //fg.write(0x01, 0x80, 0x19);
+            fg.writeLenUnicodeString(symbolFile);
+            fg.write(0xFF, 0xFE, 0xFF);
+            fg.writeLenUnicodeString(symbolName);
+            fg.write(
+                    symbolId, 0x00, 0x00, 0x00, symbolType,
+                    0xFF, 0xFE, 0xFF, 0x00,
+                    0x01, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+
+            fg.writeItemID(itemID);
+            writeAsLinkage(fg, symbolElement);
+
+            fg.write(0x00);
+            fg.writeUI32(symbolTime);
+            fg.write(0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
+                    0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF,
+                    0x00, 0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0xFF, 0xFE,
+                    0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x07,
+                    0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x03, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x03, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
+                    0xFE, 0xFF, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+                    0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00,
+                    0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00);
+
+            if (scaleGridLeft != 0f || scaleGridRight != 0f || scaleGridTop != 0f || scaleGridBottom != 0f) {
+                fg.write(0x01, 0x00, 0x00, 0x00);
+                fg.writeUI32(Math.round(scaleGridRight * 20));
+                fg.writeUI32(Math.round(scaleGridLeft * 20));
+                fg.writeUI32(Math.round(scaleGridBottom * 20));
+                fg.writeUI32(Math.round(scaleGridTop * 20));
+            } else {
+                fg.write(0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x80,
+                        0x00, 0x00, 0x00, 0x80,
+                        0x00, 0x00, 0x00, 0x80,
+                        0x00, 0x00, 0x00, 0x80);
+            }
+            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+            );
+            PageGenerator symbolPageGenerator = new PageGenerator();
+            symbolPageGenerator.generatePageFile(domTimelineElement, outputDir.toPath().resolve(symbolFile).toFile());
+        }
+
+        return symbolCount;
     }
 
     public void generate(
@@ -579,7 +656,6 @@ public class ContentsGenerator extends AbstractGenerator {
             );
 
             int pageCount = 0;
-            int symbolCount = 0;
             Reference<Long> generatedItemIdOrder = new Reference<>(0L);
 
             for (Element timelinesElement : timelinesElements) {
@@ -698,48 +774,7 @@ public class ContentsGenerator extends AbstractGenerator {
                     1 + currentTimeline,
                     0x00);
 
-            Element symbolsElement = getSubElementByName(document, "symbols");
-            if (symbolsElement != null) {
-                List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
-                for (int i = includes.size() - 1; i >= 0; i--) {
-                    Element include = includes.get(i);
-                    if (!include.hasAttribute("href")) {
-                        continue;
-                    }
-                    String href = include.getAttribute("href");
-                    Document symbolDocument = docBuilder.parse(libraryDir.toPath().resolve(href).toFile());
-                    Element symbolElement = symbolDocument.getDocumentElement();
-                    Element timelineElement = getSubElementByName(symbolElement, "timeline");
-                    if (timelineElement == null) {
-                        continue;
-                    }
-                    Element domTimelineElement = getSubElementByName(timelineElement, "DOMTimeline");
-                    if (domTimelineElement == null) {
-                        continue;
-                    }
-                    symbolCount++;
-                    int symbolId = i + 1;
-                    long symbolTime = timeCreated;
-                    String symbolFile = "S " + symbolId + " " + symbolTime;
-                    String symbolName = "Symbol " + symbolId;
-                    if (domTimelineElement.hasAttribute("name")) {
-                        symbolName = domTimelineElement.getAttribute("name");
-                    }
-
-                    int symbolType = getAttributeAsInt(symbolElement, "symbolType", Arrays.asList("graphic", "button", "movieclip"), "movieclip"); //not sure about the default value name                  
-
-                    String itemID = generateItemID(generatedItemIdOrder);
-
-                    if (symbolElement.hasAttribute("itemID")) {
-                        itemID = symbolElement.getAttribute("itemID");
-                    }
-
-                    writeSymbol(fg, symbolId, itemID, symbolFile, symbolTime, symbolName, symbolElement, symbolType, definedClasses);
-
-                    PageGenerator symbolPageGenerator = new PageGenerator();
-                    symbolPageGenerator.generatePageFile(domTimelineElement, outputDir.toPath().resolve(symbolFile).toFile());
-                }
-            }
+            int symbolCount = writeSymbols(fg, document, docBuilder, libraryDir, outputDir, generatedItemIdOrder, definedClasses);
 
             fg.write(0x00, 0x00);
 
