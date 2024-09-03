@@ -35,6 +35,7 @@ import com.jpexs.flash.fla.convertor.filters.GradientGlowFilter;
 import com.jpexs.helpers.Reference;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -53,6 +54,13 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 import java.util.logging.Logger;
+import org.w3c.dom.Attr;
+import org.w3c.dom.DOMException;
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.TypeInfo;
+import org.w3c.dom.UserDataHandler;
 
 /**
  *
@@ -60,7 +68,7 @@ import java.util.logging.Logger;
  */
 public class PageGenerator extends AbstractGenerator {
 
-    protected void useClass(String className, int version, FlaCs4Writer os, List<String> definedClasses) throws IOException {
+    protected void useClass(String className, FlaCs4Writer os, List<String> definedClasses) throws IOException {
         if (definedClasses.contains(className)) {
             os.write(1 + 2 * definedClasses.indexOf(className));
             os.write(0x80);
@@ -69,7 +77,6 @@ public class PageGenerator extends AbstractGenerator {
             os.writeLenAsciiString(className);
             definedClasses.add(className);
         }
-        os.write(version);
     }
 
     private void handleFill(Node fillStyleVal, FlaCs4Writer fg) throws IOException {
@@ -262,9 +269,10 @@ public class PageGenerator extends AbstractGenerator {
             selected = "true".equals(bitmapInstance.getAttribute("selected"));
         }
 
-        useClass("CPicBitmap", 0x05, fg, definedClasses);
+        useClass("CPicBitmap", fg, definedClasses);
         Matrix placeMatrix = parseMatrix(getSubElementByName(bitmapInstance, "matrix"));
 
+        fg.write(0x05);
         fg.write(selected ? 0x02 : 0, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x80,
                 0x00, 0x00, 0x00, 0x80,
@@ -366,12 +374,12 @@ public class PageGenerator extends AbstractGenerator {
         int firstFrame = 0; //zero-based
 
         if (symbolType == FlaCs4Writer.SYMBOLTYPE_BUTTON) {
-            useClass("CPicButton", 5, fg, definedClasses);
+            useClass("CPicButton", fg, definedClasses);
             if (symbolInstance.hasAttribute("trackAsMenu")) {
                 trackAsMenu = "true".equals(symbolInstance.getAttribute("trackAsMenu"));
             }
         } else if (symbolType == FlaCs4Writer.SYMBOLTYPE_GRAPHIC) {
-            useClass("CPicSymbol", 5, fg, definedClasses);
+            useClass("CPicSymbol", fg, definedClasses);
 
             if (symbolInstance.hasAttribute("loop")) {
                 switch (symbolInstance.getAttribute("loop")) {
@@ -390,7 +398,7 @@ public class PageGenerator extends AbstractGenerator {
                 firstFrame = Integer.parseInt(symbolInstance.getAttribute("firstFrame"));
             }
         } else {
-            useClass("CPicSprite", 5, fg, definedClasses);
+            useClass("CPicSprite", fg, definedClasses);
         }
 
         String instanceName = "";
@@ -797,7 +805,7 @@ public class PageGenerator extends AbstractGenerator {
         if ("DOMStaticText".equals(element.getTagName())
                 || "DOMDynamicText".equals(element.getTagName())
                 || "DOMInputText".equals(element.getTagName())) {
-            useClass("CPicText", 5, fg, definedClasses);
+            useClass("CPicText", fg, definedClasses);
 
             boolean isDynamic = "DOMDynamicText".equals(element.getTagName());
             boolean isInput = "DOMInputText".equals(element.getTagName());
@@ -977,6 +985,7 @@ public class PageGenerator extends AbstractGenerator {
 
             //orientation="vertical right to left", "vertical left to right"
             //fontRenderingMode="device" , "bitmap", "standard", "customThicknessSharpness"
+            fg.write(0x05);
             fg.write(selected ? 0x02 : 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x80,
                     0x00, 0x00, 0x00, 0x80,
@@ -1325,6 +1334,117 @@ public class PageGenerator extends AbstractGenerator {
         }
     }
 
+    private void writeMorphStrokeStylePart(FlaCs4Writer fg, Element strokeStyleElement) throws IOException {
+        if (strokeStyleElement == null) {
+            fg.write(0x00, 0x00, 0x00, 0x00);
+            fg.write(0x00, 0x00, 0x00, 0x00);
+            fg.writeUI16(0);
+            return;
+        }
+        Element element = getFirstSubElement(strokeStyleElement);
+        Element fill = getSubElementByName(element, "fill");
+        Element fillElement = getFirstSubElement(fill);
+        if ("SolidColor".equals(fillElement.getTagName())) {
+            Color color = parseColorWithAlpha(fillElement);
+            fg.write(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+        } else {
+            fg.write(0x00, 0x00, 0x00, 0x00);
+        }
+        float weight = 1f;
+        if (element.hasAttribute("weight")) {
+            weight = Float.parseFloat(element.getAttribute("weight"));
+        }
+        fg.writeUI32(Math.round(weight * 20));
+        fg.writeUI16(0);
+    }
+
+    private void writeMorphFillStylePart(FlaCs4Writer fg, Element fillStyleElement) throws IOException {
+        Element element = getFirstSubElement(fillStyleElement);
+        switch (element.getTagName()) {
+            case "SolidColor": {
+                Color color = parseColorWithAlpha(element);
+                fg.write(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+                fg.writeUI16(0);
+            }
+            break;
+            case "LinearGradient":
+            case "RadialGradient": {
+                Matrix matrix = parseMatrix(getSubElementByName(element, "matrix"));
+                List<Element> gradientEntries = getAllSubElementsByName(element, "GradientEntry");
+                fg.write(0x00, 0x00, 0x00, 0x00);
+                if ("LinearGradient".equals(element.getTagName())) {
+                    fg.writeUI16(FlaCs4Writer.FILLTYPE_LINEAR_GRADIENT);
+                } else {
+                    fg.writeUI16(FlaCs4Writer.FILLTYPE_RADIAL_GRADIENT);
+                }
+                fg.writeMatrix(matrix);
+                fg.write(gradientEntries.size());
+                for (Element gradEntry : gradientEntries) {
+                    Color color = parseColorWithAlpha(gradEntry);
+                    float ratio = 0f;
+                    if (gradEntry.hasAttribute("ratio")) {
+                        ratio = Float.parseFloat(gradEntry.getAttribute("ratio"));
+                    }
+                    fg.write(Math.round(ratio * 255));
+                    fg.write(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+                }
+            }
+            break;
+            case "BitmapFill": {
+                Node bitmapPathAttr = element.getAttributes().getNamedItem("bitmapPath");
+                if (bitmapPathAttr != null) {
+                    String bitmapPath = bitmapPathAttr.getTextContent(); //assuming attribute set
+                    Node mediaNode = getSubElementByName(element.getOwnerDocument().getDocumentElement(), "media");
+                    if (mediaNode != null) {
+                        List<Element> mediaElements = getAllSubElements(mediaNode);
+                        int mediaId = 0;
+                        for (Element e : mediaElements) {
+                            mediaId++;
+                            if ("DOMBitmapItem".equals(e.getNodeName())) {
+                                String name = e.getAttribute("name");
+                                if (name != null) {
+                                    if (bitmapPath.equals(name)) {
+                                        Matrix bitmapMatrix = parseMatrix(getSubElementByName(element, "matrix"));
+
+                                        boolean bitmapIsClipped = false;
+                                        Node bitmapIsClippedAttr = element.getAttributes().getNamedItem("bitmapIsClippe");
+                                        if (bitmapIsClippedAttr != null) {
+                                            bitmapIsClipped = "true".equals(bitmapIsClippedAttr.getTextContent());
+                                        }
+
+                                        boolean allowSmoothing = "true".equals(e.getAttribute("allowSmoothing"));
+
+                                        int type;
+                                        if (allowSmoothing) {
+                                            if (bitmapIsClipped) {
+                                                type = FlaCs4Writer.FILLTYPE_CLIPPED_BITMAP;
+                                            } else {
+                                                type = FlaCs4Writer.FILLTYPE_BITMAP;
+                                            }
+                                        } else {
+                                            if (bitmapIsClipped) {
+                                                type = FlaCs4Writer.FILLTYPE_NON_SMOOTHED_CLIPPED_BITMAP;
+                                            } else {
+                                                type = FlaCs4Writer.FILLTYPE_NON_SMOOTHED_BITMAP;
+                                            }
+                                        }
+
+                                        fg.write(0xFF, 0x00, 0x00, 0xFF);
+                                        fg.write(type, 0x00);
+                                        fg.writeMatrix(bitmapMatrix);
+                                        fg.writeUI16(mediaId);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+        }
+    }
+
     private void writeLayerContents(
             Element layer,
             FlaCs4Writer fg,
@@ -1332,7 +1452,8 @@ public class PageGenerator extends AbstractGenerator {
             Reference<Integer> copiedComponentPathRef,
             Reference<Integer> totalFramesCountRef
     ) throws IOException {
-        useClass("CPicLayer", 5, fg, definedClasses);
+        useClass("CPicLayer", fg, definedClasses);
+        fg.write(0x05);
         fg.write(0x00);
 
         int layerType = FlaCs4Writer.LAYERTYPE_LAYER;
@@ -1353,10 +1474,12 @@ public class PageGenerator extends AbstractGenerator {
         } else {
             List<Element> frames = getAllSubElementsByName(framesNode, "DOMFrame");
             for (int f = 0; f < frames.size(); f++) {
-                useClass("CPicFrame", 5, fg, definedClasses);
+                useClass("CPicFrame", fg, definedClasses);
+                fg.write(0x05);
                 fg.write(0x00);
                 totalFramesCountRef.setVal(totalFramesCountRef.getVal() + 1);
-                Node frame = frames.get(f);
+                Element frame = frames.get(f);
+
                 Element elementsNode = getSubElementByName(frame, "elements");
 
                 handleElements(elementsNode, fg, definedClasses, copiedComponentPathRef);
@@ -1567,7 +1690,7 @@ public class PageGenerator extends AbstractGenerator {
                             Node fill = getSubElementByName(strokeStyleVal, "fill");
                             if (fill != null) {
                                 Node fillStyleVal = getFirstSubElement(fill);
-                                Color baseColor = Color.black;
+                                Color baseColor = new Color(0x00, 0x00, 0x00, 0x00);
                                 if ("SolidColor".equals(fillStyleVal.getNodeName())) {
                                     baseColor = parseColorWithAlpha(fillStyleVal);
                                 }
@@ -1629,6 +1752,141 @@ public class PageGenerator extends AbstractGenerator {
                 }
 
                 fg.writeKeyFrameEnd(duration, keyMode, actionScript);
+
+                Element morphShape = getSubElementByName(frame, "MorphShape");
+                if (morphShape == null) {
+                    fg.write(0x00, 0x00);
+                } else {
+                    useClass("CPicMorphShape", fg, definedClasses);
+
+                    fg.write(
+                            0x02, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x00);
+
+                    Element morphSegmentsElement = getSubElementByName(morphShape, "morphSegments");
+                    List<Element> morphSegments = getAllSubElementsByName(morphSegmentsElement, "MorphSegment");
+                    fg.writeUI16(morphSegments.size());
+                    for (Element morphSegment : morphSegments) {
+                        useClass("CMorphSegment", fg, definedClasses);
+
+                        Point2D startpointA = fg.parsePoint(morphSegment.getAttribute("startPointA"));
+                        Point2D startpointB = fg.parsePoint(morphSegment.getAttribute("startPointB"));
+                        int strokeIndex1 = -1;
+                        if (morphSegment.hasAttribute("strokeIndex1")) {
+                            strokeIndex1 = Integer.parseInt(morphSegment.getAttribute("strokeIndex1"));
+                        }
+                        int strokeIndex2 = -1;
+                        if (morphSegment.hasAttribute("strokeIndex2")) {
+                            strokeIndex2 = Integer.parseInt(morphSegment.getAttribute("strokeIndex2"));
+                        }
+                        int fillIndex1 = -1;
+                        if (morphSegment.hasAttribute("fillIndex1")) {
+                            fillIndex1 = Integer.parseInt(morphSegment.getAttribute("fillIndex1"));
+                        }
+                        int fillIndex2 = -1;
+                        if (morphSegment.hasAttribute("fillIndex2")) {
+                            fillIndex2 = Integer.parseInt(morphSegment.getAttribute("fillIndex2"));
+                        }
+
+                        fg.writeUI32(strokeIndex1);
+                        fg.writeUI32(strokeIndex2);
+                        fg.writeUI32(fillIndex1);
+                        fg.writeUI32(fillIndex2);
+                        fg.writePoint(startpointA);
+                        fg.writePoint(startpointB);
+
+                        List<Element> morphCurvesList = getAllSubElementsByName(morphSegment, "MorphCurves");
+                        fg.writeUI16(morphCurvesList.size());
+                        for (Element morphCurves : morphCurvesList) {
+                            useClass("CMorphCurve", fg, definedClasses);
+                            Point2D controlPointA = fg.parsePoint(morphCurves.getAttribute("controlPointA"));
+                            Point2D anchorPointA = fg.parsePoint(morphCurves.getAttribute("anchorPointA"));
+                            Point2D controlPointB = fg.parsePoint(morphCurves.getAttribute("controlPointB"));
+                            Point2D anchorPointB = fg.parsePoint(morphCurves.getAttribute("anchorPointB"));
+                            boolean isLine = false;
+                            if (morphCurves.hasAttribute("isLine")) {
+                                isLine = "true".equals(morphCurves.getAttribute("isLine"));
+                            }
+                            fg.writePoint(controlPointA);
+                            fg.writePoint(anchorPointA);
+                            fg.writePoint(controlPointB);
+                            fg.writePoint(anchorPointB);
+                            fg.write(isLine ? 1 : 0);
+                            fg.write(0x00, 0x00, 0x00);
+                        }
+                    }
+
+                    /*fg.write(0x04, 0x00, 0x00, 0x66, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x66,
+                            0x66, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00);*/
+                    fg.writeUI16(0);
+                    if (f + 1 < frames.size()) {
+                        Element nextFrame = frames.get(f + 1);
+                        Element domShape1 = getSubElementByName(elementsNode, "DOMShape");
+                        Element nextFrameElementsNode = getSubElementByName(nextFrame, "elements");
+                        if (domShape1 != null && nextFrameElementsNode != null) {
+                            Element domShape2 = getSubElementByName(nextFrameElementsNode, "DOMShape");
+                            if (domShape2 != null) {
+                                Element fills1 = getSubElementByName(domShape1, "fills");
+                                Element fills2 = getSubElementByName(domShape2, "fills");
+                                Element strokes1 = getSubElementByName(domShape1, "strokes");
+                                Element strokes2 = getSubElementByName(domShape2, "strokes");
+
+                                List<Element> fillStyles1 = new ArrayList<>();
+                                List<Element> fillStyles2 = new ArrayList<>();
+
+                                if (fills1 != null) {
+                                    fillStyles1 = getAllSubElementsByName(fills1, "FillStyle");
+                                }
+                                if (fills2 != null) {
+                                    fillStyles2 = getAllSubElementsByName(fills2, "FillStyle");
+                                }
+
+                                List<Element> strokeStyles1 = new ArrayList<>();
+                                List<Element> strokeStyles2 = new ArrayList<>();
+
+                                if (strokes1 != null) {
+                                    strokeStyles1 = getAllSubElementsByName(strokes1, "StrokeStyle");
+                                }
+                                if (strokes2 != null) {
+                                    strokeStyles2 = getAllSubElementsByName(strokes2, "StrokeStyle");
+                                }
+
+                                if (fillStyles1.size() == fillStyles2.size()
+                                        && (strokeStyles1.size() == strokeStyles2.size() || strokeStyles2.isEmpty() || strokeStyles1.isEmpty())) {
+                                    if (!fillStyles1.isEmpty()) {
+                                        fg.writeUI16(fillStyles1.size() * 2);
+                                        for (int i = 0; i < fillStyles1.size(); i++) {
+                                            writeMorphFillStylePart(fg, fillStyles1.get(i));
+                                            writeMorphFillStylePart(fg, fillStyles2.get(i));
+                                        }
+                                    }
+                                    if (strokeStyles1.isEmpty() && strokeStyles2.isEmpty()) {
+                                        fg.writeUI16(1);
+                                        fg.writeUI32(0);
+                                        fg.writeUI32(0);
+                                        fg.writeUI16(0);
+                                    } else {
+                                        int numStrokes = Math.max(strokeStyles1.size(), strokeStyles2.size());
+                                        fg.writeUI16(numStrokes * 2);
+                                        for (int i = 0; i < numStrokes; i++) {
+                                            writeMorphStrokeStylePart(fg, strokeStyles1.size() > i ? strokeStyles1.get(i) : null);
+                                            writeMorphStrokeStylePart(fg, strokeStyles2.size() > i ? strokeStyles2.get(i) : null);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                fg.writeKeyFrameEnd2();
             }
         }
 
@@ -1787,7 +2045,8 @@ public class PageGenerator extends AbstractGenerator {
         List<String> definedClasses = new ArrayList<>();
 
         fg.write(0x01);
-        useClass("CPicPage", 5, fg, definedClasses);
+        useClass("CPicPage", fg, definedClasses);
+        fg.write(0x05);
         fg.write(0x00);
 
         int nextLayerId = 1;

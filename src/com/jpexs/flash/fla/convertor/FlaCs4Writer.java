@@ -39,7 +39,12 @@ import java.util.logging.Logger;
  */
 public class FlaCs4Writer {
 
-    public static int FLAG_EDGE_HAS_STYLES = 128 + 64;
+    public static int EDGESELECTION_FILL0 = 1;
+    public static int EDGESELECTION_FILL1 = 2;
+    public static int EDGESELECTION_STROKE = 4;
+
+    public static int FLAG_EDGE_NO_SELECTION = 128;
+    public static int FLAG_EDGE_HAS_STYLES = 64;
 
     public static int FLAG_EDGE_FROM_FLOAT = 2;
     public static int FLAG_EDGE_FROM_SHORT = 1 + 2;
@@ -101,6 +106,7 @@ public class FlaCs4Writer {
     private boolean moved = false;
     private String moveX = null;
     private String moveY = null;
+    private int edgeSelection = 0;
 
     private static final Logger logger = Logger.getLogger(FlaCs4Writer.class.getName());
 
@@ -184,7 +190,8 @@ public class FlaCs4Writer {
         0x00, 0x00, 0x06,  - is this some kind of type identifier?
         
         ...
-         */       
+         */
+        write(0x05);
         write(
                 (selected ? 0x02 : 0x00), 0x00, 0x00,
                 (int) (tptX & 0xFF), (int) ((tptX >> 8) & 0xFF), (int) ((tptX >> 16) & 0xFF), (int) ((tptX >> 24) & 0xFF),
@@ -255,7 +262,7 @@ public class FlaCs4Writer {
 
         write(
                 blendMode,
-                librarySymbolId,
+                0x00, //??
                 0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00,
@@ -312,6 +319,9 @@ public class FlaCs4Writer {
     public void beginShape() {
         stylesChanged = true;
         moved = false;
+        x = "0";
+        y = "0";
+        edgeSelection = 0;
     }
 
     public void setStrokeStyle(int strokeStyle) {
@@ -412,13 +422,21 @@ public class FlaCs4Writer {
             if (1 >= parts.length) {
                 throw new IllegalArgumentException("! requires two arguments");
             }
+
+            int selection = 0;
+            if (parts[1].contains("S")) {
+                selection = Integer.parseInt(parts[1].substring(parts[1].indexOf("S") + 1));
+                parts[1] = parts[1].substring(0, parts[1].indexOf("S"));
+            }
+
             try {
                 moveTo(
+                        selection,
                         parts[0],
                         parts[1]
                 );
             } catch (NumberFormatException nfe) {
-                throw new IllegalArgumentException("! has invalid arguments: " + parts[1] + ", " + parts[2]);
+                throw new IllegalArgumentException("! has invalid arguments: " + parts[0] + ", " + parts[1]);
             }
 
             for (int i = 2; i < parts.length; i++) {
@@ -459,7 +477,7 @@ public class FlaCs4Writer {
         }
     }
 
-    public void writeEdge(String fromX, String fromY, String toX, String toY, String controlX, String controlY) throws IOException {
+    public void writeEdge(int selection, String fromX, String fromY, String toX, String toY, String controlX, String controlY) throws IOException {
         int type = 0;
         if (controlX != null && controlY != null) {
             if (fitsXYByte(controlX, controlY)) {
@@ -490,14 +508,39 @@ public class FlaCs4Writer {
 
         if (stylesChanged) {
             type |= FLAG_EDGE_HAS_STYLES;
+
+            if (selection == 0) {
+                type |= FLAG_EDGE_NO_SELECTION;
+            }
         }
         logger.log(Level.FINE, "writing type 0x{0} ({1}{2}{3})", new Object[]{String.format("%02X", type), stylesChanged ? "style + " : "", fromX != null && fromY != null && !(fromX.equals("0") && fromY.equals("0")) ? "move + " : "", controlX != null ? "curve" : "straight"});
         write(type);
         if (stylesChanged) {
             logger.log(Level.FINE, "writing style 0x{0} 0x{1} 0x{2}", new Object[]{String.format("%02X", strokeStyle), String.format("%02X", fillStyle0), String.format("%02X", fillStyle1)});
             write(strokeStyle);
+            if (selection != 0) {
+                if ((selection & EDGESELECTION_STROKE) == EDGESELECTION_STROKE) {
+                    write(0x80);
+                } else {
+                    write(0x00);
+                }
+            }
             write(fillStyle0);
+            if (selection != 0) {
+                if ((selection & EDGESELECTION_FILL0) == EDGESELECTION_FILL0) {
+                    write(0x80);
+                } else {
+                    write(0x00);
+                }
+            }
             write(fillStyle1);
+            if (selection != 0) {
+                if ((selection & EDGESELECTION_FILL1) == EDGESELECTION_FILL1) {
+                    write(0x80);
+                } else {
+                    write(0x00);
+                }
+            }
             stylesChanged = false;
         }
         if (fromX != null && fromY != null && !(fromX.equals("0") && fromY.equals("0"))) {
@@ -647,28 +690,37 @@ public class FlaCs4Writer {
         write((integerY >> 16) & 0xFF);
     }
 
-    public void moveTo(String x, String y) {
+    public void moveTo(int selection, String x, String y) {
         moved = true;
         this.moveX = x;
         this.moveY = y;
+        this.edgeSelection = selection;
+    }
+
+    public Point2D parsePoint(String pointData) {
+        String[] parts = pointData.split(",", -1);
+        if (parts.length != 2) {
+            return null;
+        }
+        return new Point2D.Double(parseEdge(parts[0].trim()), parseEdge(parts[1].trim()));
     }
 
     private double parseEdge(String edge) {
-        Pattern doubleHexPattern = Pattern.compile("#(?<before>[a-fA-F0-9]+){1,6}(\\.(?<after>[0-9a-fA-F]{2}))?");
+        Pattern doubleHexPattern = Pattern.compile("#(?<before>[a-fA-F0-9]+){1,6}(\\.(?<after>[0-9a-fA-F]{1,2}))?");
         Matcher m = doubleHexPattern.matcher(edge);
         if (m.matches()) {
             String before = m.group("before");
             String after = m.group("after");
             int afterInt = 0;
             if (after != null) {
+                if (after.length() == 1) {
+                    after += "0";
+                }
                 afterInt = Integer.parseInt(after, 16);
             }
             int beforeInt = Integer.parseInt(before, 16);
             beforeInt = (beforeInt << 8) >> 8; //sign extend
             return beforeInt + afterInt / 256.0;
-        }
-        if (edge.contains("S")) {
-            edge = edge.substring(0, edge.indexOf("S"));
         }
         return Double.parseDouble(edge);
     }
@@ -696,6 +748,7 @@ public class FlaCs4Writer {
         String newX = moved ? moveX : this.x;
         String newY = moved ? moveY : this.y;
         writeEdge(
+                moved ? edgeSelection : 0,
                 moved ? deltaEdge(moveX, this.x) : null,
                 moved ? deltaEdge(moveY, this.y) : null,
                 deltaEdge(x2, newX),
@@ -710,6 +763,7 @@ public class FlaCs4Writer {
         String newX = moved ? moveX : this.x;
         String newY = moved ? moveY : this.y;
         writeEdge(
+                moved ? edgeSelection : 0,
                 moved ? deltaEdge(moveX, this.x) : null,
                 moved ? deltaEdge(moveY, this.y) : null,
                 deltaEdge(anchorX, newX),
@@ -782,8 +836,8 @@ public class FlaCs4Writer {
             double focalRatio
     ) throws IOException {
 
-        write(
-                0x00, 0x00, 0x00, 0x00 /*this is sometimes 0xFF*/, type, 0x00);
+        write(0x00, 0x00, 0x00, 0x00 /*this is sometimes 0xFF*/,
+                type, 0x00);
         writeMatrix(gradientMatrix);
         write(
                 colors.length,
@@ -895,8 +949,8 @@ public class FlaCs4Writer {
 
     public void writeKeyFrameMiddle() throws IOException {
         write(
-                0x00, 0x00, 
-                0x00, 0x00, 0x00, 0x80, 
+                0x00, 0x00,
+                0x00, 0x00, 0x00, 0x80,
                 0x00, 0x00, 0x00, 0x80,
                 0x00, 0x00, 0x06,
                 0x00, 0x00,
@@ -922,7 +976,14 @@ public class FlaCs4Writer {
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0xFF, 0xFE, 0xFF);
         writeLenUnicodeString(actionScript);
-        write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        write(0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00
+        );
+    }
+
+    public void writeKeyFrameEnd2() throws IOException {
+        write(0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
     }
@@ -940,6 +1001,7 @@ public class FlaCs4Writer {
         write(numStrokeStyles, 0x00);
         //place stroke styles here
         writeKeyFrameEnd(frameLen, keyMode, "");
+        writeKeyFrameEnd2();
     }
 
     public void writeLayer(
@@ -1067,6 +1129,20 @@ public class FlaCs4Writer {
         write((int) ((value >> 8) & 0xFF));
         write((int) ((value >> 16) & 0xFF));
         write((int) ((value >> 24) & 0xFF));
+    }
+
+    private void writePointPart(double val) throws IOException {
+        int fullPart = (int) Math.floor(val);
+        int fraction = (int) Math.round((val - fullPart) * 256);
+        write(fraction);
+        write(fullPart & 0xFF);
+        write((fullPart >> 8) & 0xFF);
+        write((fullPart >> 16) & 0xFF);
+    }
+
+    public void writePoint(Point2D point) throws IOException {
+        writePointPart(point.getX());
+        writePointPart(point.getY());
     }
 
 }
