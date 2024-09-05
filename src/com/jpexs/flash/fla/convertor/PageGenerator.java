@@ -506,7 +506,6 @@ public class PageGenerator extends AbstractGenerator {
             }
         }
 
-        //TODO: attribute "symbolType" aka "instance behavior"
         //Order in CS5: normal, layer, darken, multiply, lighten, screen, overlay, hardlight, add, subtract, difference, invert, alpha, erase
         int blendMode = getAttributeAsInt(symbolInstance, "blendMode",
                 Arrays.asList(
@@ -1771,10 +1770,10 @@ public class PageGenerator extends AbstractGenerator {
 
                 /*
                 TODO: 
-                hasCustomEase, labelType, motionTweenOrientToPath,
+                hasCustomEase, motionTweenOrientToPath,
                 motionTweenRotate, motionTweenRotateTimes, motionTweenScale,
                 motionTweenSnap, motionTweenSync,
-                name, shapeTweenBlend, soundEffect, soundLibraryItem, soundLoop,
+                soundEffect, soundLibraryItem, soundLoop,
                 soundLoopMode, soundName, soundSync, 
                 tweenEasing, tweenType, useSingleEaseCurve
                  */
@@ -1782,7 +1781,24 @@ public class PageGenerator extends AbstractGenerator {
                 if (frame.hasAttribute("acceleration")) {
                     acceleration = Integer.parseInt(frame.getAttribute("acceleration"));
                 }
-                fg.writeKeyFrameEnd(duration, keyMode, acceleration, actionScript);
+                String name = "";
+                if (frame.hasAttribute("name")) {
+                    name = frame.getAttribute("name");
+                }
+                int labelType = 0;
+                boolean comment = false;
+                boolean anchor = false;
+                if (frame.hasAttribute("labelType")) {
+                    switch(frame.getAttribute("labelType")) {
+                        case "comment":
+                            comment = true;
+                            break;
+                        case "anchor":
+                            anchor = true;
+                            break;
+                    }
+                }
+                fg.writeKeyFrameEnd(duration, keyMode, acceleration, actionScript, name, comment);
                                 
                 Element morphShape = getSubElementByName(frame, "MorphShape");
                 if (morphShape == null) {
@@ -1948,7 +1964,7 @@ public class PageGenerator extends AbstractGenerator {
                 }
                 fg.write(shapeTweenBlend);
 
-                fg.writeKeyFrameEnd2();
+                fg.writeKeyFrameEnd2(anchor);
 
                 Element motionObjectXML = getSubElementByName(frame, "motionObjectXML");
                 if (motionObjectXML != null) {
