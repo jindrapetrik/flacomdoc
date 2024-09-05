@@ -127,21 +127,7 @@ public class FlaCs4Writer {
         write(
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
                 0x80, 0x00, 0x00, 0x07, nextLayerId, 0x00, nextFolderId, 0x00, activeFrame, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    }
-
-    public void writeBasicLayer(int layerNum) throws IOException {
-        Random rnd = new Random();
-        writeLayer(1,
-                KEYMODE_STANDARD,
-                "Layer " + layerNum,
-                false,
-                false,
-                false,
-                new Color(rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256)),
-                false,
-                LAYERTYPE_LAYER,
-                1);
-    }
+    }   
 
     public void writeFloat(float val) throws IOException {
         int v = Float.floatToIntBits(val);
@@ -964,13 +950,16 @@ public class FlaCs4Writer {
         //return rnd.nextInt(0x10000);
     }
 
-    public void writeKeyFrameEnd(int duration, int keyMode, String actionScript) throws IOException {
+    public void writeKeyFrameEnd(int duration, int keyMode, int acceleration, String actionScript) throws IOException {
         int frameId = generateRandomId();
 
         write(
                 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x1D, duration,
-                0x00, (keyMode & 0xFF), ((keyMode >> 8) & 0xFF), 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
+                0x00);
+        writeUI16(keyMode);
+        writeUI16(acceleration);
+        write(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
                 0xFF, 0xFF, 0x3F, 0xFF, 0xFF, 0xFF, 0xFE, 0xFF, 0x00, 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
                 0x00, ((frameId >> 8) & 0xFF), (frameId & 0xFF),
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -983,49 +972,10 @@ public class FlaCs4Writer {
     }
 
     public void writeKeyFrameEnd2() throws IOException {
-        write(0x00,
+        write(
                 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    }
-
-    public void writeKeyFrame(int frameLen, int keyMode) throws IOException {
-
-        writeKeyFrameMiddle();
-        int numEdges = 0;
-        int numFillStyles = 0;
-        int numStrokeStyles = 0;
-
-        write(numEdges, 0x00, 0x00, 0x00);
-        write(numFillStyles, 0x00);
-        //place fillstyles here        
-        write(numStrokeStyles, 0x00);
-        //place stroke styles here
-        writeKeyFrameEnd(frameLen, keyMode, "");
-        writeKeyFrameEnd2();
-    }
-
-    public void writeLayer(
-            int frameLen,
-            int keyMode,
-            String layerName,
-            boolean selectedLayer,
-            boolean hiddenLayer,
-            boolean lockedLayer,
-            Color layerColor,
-            boolean showOutlines,
-            int layerType,
-            int heightMultiplier
-    ) throws IOException {
-
-        /*writeKeyFrame(1, KEYMODE_STANDARD);
-        writeKeyFrameSeparator();
-        writeKeyFrame(1, KEYMODE_STANDARD);
-        writeKeyFrameSeparator();
-        writeKeyFrame(1, KEYMODE_STANDARD);*/
-        writeKeyFrame(1, KEYMODE_STANDARD);
-        writeLayerEnd(layerName, selectedLayer, hiddenLayer, lockedLayer, layerColor, showOutlines, layerType, heightMultiplier);
-
-    }
+    }   
 
     public void writeLayerEnd(
             String layerName,

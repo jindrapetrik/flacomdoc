@@ -49,6 +49,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Stack;
 import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Element;
@@ -1777,8 +1778,12 @@ public class PageGenerator extends AbstractGenerator {
                 soundLoopMode, soundName, soundSync, 
                 tweenEasing, tweenType, useSingleEaseCurve
                  */
-                fg.writeKeyFrameEnd(duration, keyMode, actionScript);
-
+                int acceleration = 0;
+                if (frame.hasAttribute("acceleration")) {
+                    acceleration = Integer.parseInt(frame.getAttribute("acceleration"));
+                }
+                fg.writeKeyFrameEnd(duration, keyMode, acceleration, actionScript);
+                                
                 Element morphShape = getSubElementByName(frame, "MorphShape");
                 if (morphShape == null) {
                     fg.write(0x00, 0x00);
@@ -1887,10 +1892,20 @@ public class PageGenerator extends AbstractGenerator {
                                 if (fillStyles1.size() == fillStyles2.size()
                                         && (strokeStyles1.size() == strokeStyles2.size() || strokeStyles2.isEmpty() || strokeStyles1.isEmpty())) {
                                     if (!fillStyles1.isEmpty()) {
-                                        fg.writeUI16(fillStyles1.size() * 2);
-                                        for (int i = 0; i < fillStyles1.size(); i++) {
-                                            writeMorphFillStylePart(fg, fillStyles1.get(i));
-                                            writeMorphFillStylePart(fg, fillStyles2.get(i));
+                                        int maxNumFills = Math.max(fillStyles1.size(), fillStyles2.size());
+                                        List<Element> fills = new ArrayList<>();
+                                        for (int i = 0; i < maxNumFills; i++) {
+                                            Element fill1 = fillStyles1.size() > i ? fillStyles1.get(i) : null;
+                                            Element fill2 = fillStyles2.size() > i ? fillStyles2.get(i) : null;
+                                            fills.add(fill1);
+                                            if (!areElementsEqual(fill1, fill2)) {
+                                                fills.add(fill2);
+                                            }
+                                        }
+                                        
+                                        fg.writeUI16(fills.size());
+                                        for (Element fill : fills) {
+                                            writeMorphFillStylePart(fg, fill);
                                         }
                                     }
                                     if (strokeStyles1.isEmpty() && strokeStyles2.isEmpty()) {
@@ -1899,11 +1914,19 @@ public class PageGenerator extends AbstractGenerator {
                                         fg.writeUI32(0);
                                         fg.writeUI16(0);
                                     } else {
-                                        int numStrokes = Math.max(strokeStyles1.size(), strokeStyles2.size());
-                                        fg.writeUI16(numStrokes * 2);
-                                        for (int i = 0; i < numStrokes; i++) {
-                                            writeMorphStrokeStylePart(fg, strokeStyles1.size() > i ? strokeStyles1.get(i) : null);
-                                            writeMorphStrokeStylePart(fg, strokeStyles2.size() > i ? strokeStyles2.get(i) : null);
+                                        List<Element> strokes = new ArrayList<>();
+                                        int maxNumStrokes = Math.max(strokeStyles1.size(), strokeStyles2.size());
+                                        for (int i = 0; i < maxNumStrokes; i++) {
+                                            Element stroke1 = strokeStyles1.size() > i ? strokeStyles1.get(i) : null;
+                                            Element stroke2 = strokeStyles2.size() > i ? strokeStyles2.get(i) : null;
+                                            strokes.add(stroke1);
+                                            if (!areElementsEqual(stroke1, stroke2)) {
+                                                strokes.add(stroke2);
+                                            }
+                                        }
+                                        fg.writeUI16(strokes.size());
+                                        for (Element stroke : strokes) {
+                                            writeMorphStrokeStylePart(fg, stroke);                                            
                                         }
                                     }
                                 }
@@ -1911,6 +1934,19 @@ public class PageGenerator extends AbstractGenerator {
                         }
                     }
                 }
+                
+                int shapeTweenBlend = 0;
+                if (frame.hasAttribute("shapeTweenBlend")) {
+                    switch (frame.getAttribute("shapeTweenBlend")) {
+                        case "distributive":
+                            shapeTweenBlend = 0;
+                            break;
+                        case "angular":
+                            shapeTweenBlend = 1;
+                            break;
+                    }
+                }
+                fg.write(shapeTweenBlend);
 
                 fg.writeKeyFrameEnd2();
 
@@ -1989,6 +2025,64 @@ public class PageGenerator extends AbstractGenerator {
         }
     }
 
+    private static boolean areElementsEqual(Element elem1, Element elem2) {
+        if (elem1 == elem2) {
+            return true;
+        }
+        if (elem1 == null || elem2 == null) {
+            return false;
+        }
+        if (!elem1.getTagName().equals(elem2.getTagName())) {
+            return false;
+        }
+
+        if (!areAttributesEqual(elem1, elem2)) {
+            return false;
+        }
+
+        NodeList children1 = elem1.getChildNodes();
+        NodeList children2 = elem2.getChildNodes();
+
+        if (children1.getLength() != children2.getLength()) {
+            return false;
+        }
+
+        for (int i = 0; i < children1.getLength(); i++) {
+            Node child1 = children1.item(i);
+            Node child2 = children2.item(i);
+
+            if (child1.getNodeType() == Node.ELEMENT_NODE && child2.getNodeType() == Node.ELEMENT_NODE) {
+                if (!areElementsEqual((Element) child1, (Element) child2)) {
+                    return false;
+                }
+            } else if (!child1.isEqualNode(child2)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static boolean areAttributesEqual(Element elem1, Element elem2) {
+        NamedNodeMap attributes1 = elem1.getAttributes();
+        NamedNodeMap attributes2 = elem2.getAttributes();
+
+        if (attributes1.getLength() != attributes2.getLength()) {
+            return false;
+        }
+
+        for (int i = 0; i < attributes1.getLength(); i++) {
+            Node attr1 = attributes1.item(i);
+            Node attr2 = attributes2.getNamedItem(attr1.getNodeName());
+
+            if (attr2 == null || !attr1.getNodeValue().equals(attr2.getNodeValue())) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    
     private static String getInnerXml(Element element) {
         StringBuilder innerXml = new StringBuilder();
         NodeList childNodes = element.getChildNodes();
