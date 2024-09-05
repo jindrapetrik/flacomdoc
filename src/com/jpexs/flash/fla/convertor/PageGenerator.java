@@ -997,6 +997,11 @@ public class PageGenerator extends AbstractGenerator {
                 selected = "true".equals(element.getAttribute("selected"));
             }
 
+            boolean scrollable = false;
+            if (element.hasAttribute("scrollable")) {
+                scrollable = "true".equals(element.getAttribute("scrollable"));
+            }
+
             //TODO: scrollable, accName, autoExpand, description, shortcut, silent, tabIndex
             //useDeviceFonts?
             //orientation="vertical right to left", "vertical left to right"
@@ -1164,7 +1169,7 @@ public class PageGenerator extends AbstractGenerator {
                 }
 
                 int bitmapSize = (int) Math.round(size * 20);
-                float lineSpacing = 1.65f;
+                float lineSpacing = 2f;
 
                 if (domTextAttrs.hasAttribute("lineSpacing")) {
                     lineSpacing = Float.parseFloat(domTextAttrs.getAttribute("lineSpacing"));
@@ -1305,10 +1310,9 @@ public class PageGenerator extends AbstractGenerator {
                 fg.writeLenUnicodeString(url);
 
                 fg.write(vertical ? 1 : 0,
-                        rightToLeft ? 1 : 0,
-                        fontRenderingMode == FONTRENDERING_CUSTOM
-                                ? 1 : 0
+                        rightToLeft ? 1 : 0
                 );
+                fg.write(0);
                 fg.write(
                         fontRenderingMode == FONTRENDERING_BITMAP ? 1 : 0,
                         0xFF, 0xFE, 0xFF);
@@ -1336,7 +1340,9 @@ public class PageGenerator extends AbstractGenerator {
             fg.write(0x00, 0x00,
                     0xFF, 0xFE, 0xFF);
             fg.writeLenUnicodeString(instanceName);
-            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            fg.write(0x00, 0x00, 0x00, 0x00,
+                    scrollable ? 1 : 0,
+                    0x00, 0x00, 0x00,
                     0xFF, 0xFE, 0xFF, 0x00,
                     0xFF, 0xFE, 0xFF);
             fg.writeLenUnicodeString(String.join("|", allEmbedRanges));
@@ -1789,7 +1795,7 @@ public class PageGenerator extends AbstractGenerator {
                 boolean comment = false;
                 boolean anchor = false;
                 if (frame.hasAttribute("labelType")) {
-                    switch(frame.getAttribute("labelType")) {
+                    switch (frame.getAttribute("labelType")) {
                         case "comment":
                             comment = true;
                             break;
@@ -1799,7 +1805,7 @@ public class PageGenerator extends AbstractGenerator {
                     }
                 }
                 fg.writeKeyFrameEnd(duration, keyMode, acceleration, actionScript, name, comment);
-                                
+
                 Element morphShape = getSubElementByName(frame, "MorphShape");
                 if (morphShape == null) {
                     fg.write(0x00, 0x00);
@@ -1918,7 +1924,7 @@ public class PageGenerator extends AbstractGenerator {
                                                 fills.add(fill2);
                                             }
                                         }
-                                        
+
                                         fg.writeUI16(fills.size());
                                         for (Element fill : fills) {
                                             writeMorphFillStylePart(fg, fill);
@@ -1942,7 +1948,7 @@ public class PageGenerator extends AbstractGenerator {
                                         }
                                         fg.writeUI16(strokes.size());
                                         for (Element stroke : strokes) {
-                                            writeMorphStrokeStylePart(fg, stroke);                                            
+                                            writeMorphStrokeStylePart(fg, stroke);
                                         }
                                     }
                                 }
@@ -1950,7 +1956,7 @@ public class PageGenerator extends AbstractGenerator {
                         }
                     }
                 }
-                
+
                 int shapeTweenBlend = 0;
                 if (frame.hasAttribute("shapeTweenBlend")) {
                     switch (frame.getAttribute("shapeTweenBlend")) {
@@ -2098,7 +2104,7 @@ public class PageGenerator extends AbstractGenerator {
 
         return true;
     }
-    
+
     private static String getInnerXml(Element element) {
         StringBuilder innerXml = new StringBuilder();
         NodeList childNodes = element.getChildNodes();
