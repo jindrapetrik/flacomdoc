@@ -605,6 +605,7 @@ public class ContentsGenerator extends AbstractGenerator {
     ) throws SAXException, IOException, ParserConfigurationException {
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setIgnoringElementContentWhitespace(false);
         DocumentBuilder docBuilder = factory.newDocumentBuilder();
 
         Document domDocument = docBuilder.parse(domDocumentIs);

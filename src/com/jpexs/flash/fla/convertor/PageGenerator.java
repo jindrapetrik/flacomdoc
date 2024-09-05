@@ -41,6 +41,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -54,6 +55,11 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 import java.util.logging.Logger;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Attr;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
@@ -213,7 +219,7 @@ public class PageGenerator extends AbstractGenerator {
         writeLayerContents(layer, fg, definedClasses, copiedComponentPathRef, totalFramesCountRef);
 
         int reverseParentLayerIndex = parentLayerIndex == -1 ? -1 : layerIndexToRevLayerIndex.get(parentLayerIndex);
-        fg.writeLayerEnd2(reverseParentLayerIndex, open, autoNamed);
+        fg.writeLayerEnd2(reverseParentLayerIndex, open, autoNamed, 0);
         if (!isEmpty) {
             fg.write(0x01);
             fg.write(0x01);
@@ -885,6 +891,10 @@ public class PageGenerator extends AbstractGenerator {
                 }
                 if (element.hasAttribute("lineType")) {
                     switch (element.getAttribute("lineType")) {
+                        case "single line":
+                            multiline = false;
+                            wrap = false;
+                            break;
                         case "multiline":
                             multiline = true;
                             wrap = true;
@@ -968,6 +978,10 @@ public class PageGenerator extends AbstractGenerator {
             boolean rightToLeft = false;
             if (!isInput && element.hasAttribute("orientation")) {
                 switch (element.getAttribute("orientation")) {
+                    case "horizontal":
+                        vertical = false;
+                        rightToLeft = false;
+                        break;
                     case "vertical right to left":
                         vertical = true;
                         rightToLeft = true;
@@ -983,6 +997,8 @@ public class PageGenerator extends AbstractGenerator {
                 selected = "true".equals(element.getAttribute("selected"));
             }
 
+            //TODO: scrollable, accName, autoExpand, description, shortcut, silent, tabIndex
+            //useDeviceFonts?
             //orientation="vertical right to left", "vertical left to right"
             //fontRenderingMode="device" , "bitmap", "standard", "customThicknessSharpness"
             fg.write(0x05);
@@ -1236,6 +1252,7 @@ public class PageGenerator extends AbstractGenerator {
                     }
                 }
 
+                //TODO: bold, italic, rotation text attributes
                 fg.writeUI16(characters.length());
                 fg.write(0x0F);
                 fg.writeUI16(bitmapSize);
@@ -1751,6 +1768,15 @@ public class PageGenerator extends AbstractGenerator {
                     }
                 }
 
+                /*
+                TODO: 
+                hasCustomEase, labelType, motionTweenOrientToPath,
+                motionTweenRotate, motionTweenRotateTimes, motionTweenScale,
+                motionTweenSnap, motionTweenSync,
+                name, shapeTweenBlend, soundEffect, soundLibraryItem, soundLoop,
+                soundLoopMode, soundName, soundSync, 
+                tweenEasing, tweenType, useSingleEaseCurve
+                 */
                 fg.writeKeyFrameEnd(duration, keyMode, actionScript);
 
                 Element morphShape = getSubElementByName(frame, "MorphShape");
@@ -1887,6 +1913,23 @@ public class PageGenerator extends AbstractGenerator {
                 }
 
                 fg.writeKeyFrameEnd2();
+
+                Element motionObjectXML = getSubElementByName(frame, "motionObjectXML");
+                if (motionObjectXML != null) {
+                    fg.write(0xFF, 0xFE, 0xFF);
+                    fg.writeLenUnicodeString(getInnerXml(motionObjectXML));
+                    long visibleAnimationKeyframes = 0x1FFFFF;
+                    if (frame.hasAttribute("visibleAnimationKeyframes")) {
+                        visibleAnimationKeyframes = Long.parseLong(frame.getAttribute("visibleAnimationKeyframes"));
+                    }
+                    fg.writeUI32(visibleAnimationKeyframes);
+                    String tweenInstanceName = "";
+                    if (frame.hasAttribute("tweenInstanceName")) {
+                        tweenInstanceName = frame.getAttribute("tweenInstanceName");
+                    }
+                    fg.write(0xFF, 0xFE, 0xFF);
+                    fg.writeLenUnicodeString(tweenInstanceName);
+                }
             }
         }
 
@@ -1944,6 +1987,33 @@ public class PageGenerator extends AbstractGenerator {
                     layerType,
                     heightMultiplier);
         }
+    }
+
+    private static String getInnerXml(Element element) {
+        StringBuilder innerXml = new StringBuilder();
+        NodeList childNodes = element.getChildNodes();
+
+        for (int i = 0; i < childNodes.getLength(); i++) {
+            Node node = childNodes.item(i);
+
+            try {
+                TransformerFactory tf = TransformerFactory.newInstance();
+                Transformer transformer = tf.newTransformer();
+
+                transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+                transformer.setOutputProperty(OutputKeys.INDENT, "no");
+
+                StringWriter writer = new StringWriter();
+                transformer.transform(new DOMSource(node), new StreamResult(writer));
+
+                innerXml.append(writer.toString());
+
+            } catch (Exception ex) {
+                //ignore
+            }
+        }
+
+        return innerXml.toString();
     }
 
     private static Map<Integer, Integer> calculateReverseParentLayerIndices(List<Element> layers) {
@@ -2111,10 +2181,23 @@ public class PageGenerator extends AbstractGenerator {
                 nextLayerId++;
 
                 writeLayerContents(layer, fg, definedClasses, copiedComponentPathRef, totalFramesCountRef);
+
+                int animationType = 0;
+                if (layer.hasAttribute("animationType")) {
+                    switch (layer.getAttribute("animationType")) {
+                        case "motion object":
+                            animationType = 1;
+                            break;
+                        case "IK pose":
+                            //?
+                            break;
+                    }
+                }
+
                 if (parentLayerIndex > -1) {
                     int reverseParentLayerIndex = layerIndexToRevLayerIndex.get(parentLayerIndex);
                     if (openedParentLayers.contains(parentLayerIndex)) {
-                        fg.writeLayerEnd2(reverseParentLayerIndex, true, autoNamed);
+                        fg.writeLayerEnd2(reverseParentLayerIndex, true, autoNamed, animationType);
                         if (parentLayerIndex == layerIndex - 1) {
                             fg.writeEndParentLayer(reverseParentLayerIndex);
                             openedParentLayers.pop();
@@ -2129,7 +2212,7 @@ public class PageGenerator extends AbstractGenerator {
                         }
                     }
                 } else {
-                    fg.writeLayerEnd2(-1, true, autoNamed);
+                    fg.writeLayerEnd2(-1, true, autoNamed, animationType);
                 }
             }
         }

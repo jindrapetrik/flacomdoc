@@ -1056,7 +1056,7 @@ public class FlaCs4Writer {
         write(layerType);
     }
 
-    public void writeLayerEnd2(int parentLayerIndex, boolean open, boolean autoNamed) throws IOException {
+    public void writeLayerEnd2(int parentLayerIndex, boolean open, boolean autoNamed, int animationType) throws IOException {
         if (parentLayerIndex > -1) {
             write(7 + parentLayerIndex);
         } else {
@@ -1065,7 +1065,7 @@ public class FlaCs4Writer {
         write(0x00);
         write(open ? 1 : 0);
         write(autoNamed ? 1 : 0);
-        write(0x00);
+        write(animationType);
     }
 
     public void writeLenUnicodeString(String s) throws IOException {
