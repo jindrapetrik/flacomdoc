@@ -42,7 +42,7 @@ public class XflToCs4Converter {
     }
 
     public static void main(String[] args) throws ParserConfigurationException, SAXException, IOException {
-        FlaCfbExtractor.initLog();
+        //FlaCfbExtractor.initLog();
         File dir = new File(FlaCfbExtractor.getProperty("convert.xfl.dir"));
 
         File outputDir = new File(FlaCfbExtractor.getProperty("convert.xfl.output.dir"));

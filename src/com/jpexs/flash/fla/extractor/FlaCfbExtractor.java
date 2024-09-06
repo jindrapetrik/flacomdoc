@@ -74,7 +74,7 @@ public class FlaCfbExtractor {
     }
 
     public static void main(String[] args) throws Exception {
-        initLog();
+        //initLog();
         String inputDir = getProperty("extract.source.dir");
         for (File file : new File(inputDir).listFiles(new FilenameFilter() {
             @Override

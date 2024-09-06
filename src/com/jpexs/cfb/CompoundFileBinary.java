@@ -1403,7 +1403,7 @@ public class CompoundFileBinary implements AutoCloseable {
 
     public static void main(String[] args) throws IOException {
         new File("out").mkdir();
-        FlaCfbExtractor.initLog();
+        //FlaCfbExtractor.initLog();
         File outFile = new File("out/mycbf.fla");
         CompoundFileBinary cd = new CompoundFileBinary(outFile, true);
         cd.setRootClsId("08fcfece-b230-461b-9f84-d72f31db07ae"); //FLA cls id
