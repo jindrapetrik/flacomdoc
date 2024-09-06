@@ -18,6 +18,12 @@
  */
 package com.jpexs.flash.fla.convertor;
 
+import static com.jpexs.flash.fla.convertor.FlaCs4Writer.LOOPMODE_LOOP;
+import static com.jpexs.flash.fla.convertor.FlaCs4Writer.LOOPMODE_PLAY_ONCE;
+import static com.jpexs.flash.fla.convertor.FlaCs4Writer.LOOPMODE_SINGLE_FRAME;
+import static com.jpexs.flash.fla.convertor.FlaCs4Writer.SYMBOLTYPE_BUTTON;
+import static com.jpexs.flash.fla.convertor.FlaCs4Writer.SYMBOLTYPE_GRAPHIC;
+import static com.jpexs.flash.fla.convertor.FlaCs4Writer.SYMBOLTYPE_SPRITE;
 import com.jpexs.flash.fla.convertor.coloreffects.AdvancedColorEffect;
 import com.jpexs.flash.fla.convertor.coloreffects.AlphaColorEffect;
 import com.jpexs.flash.fla.convertor.coloreffects.BrightnessColorEffect;
@@ -785,26 +791,146 @@ public class PageGenerator extends AbstractGenerator {
             selected = "true".equals(symbolInstance.getAttribute("selected"));
         }
 
-        fg.writeSymbolInstance(
-                selected,
-                placeMatrix,
-                centerPoint3DX,
-                centerPoint3DY,
-                transformationPointX,
-                transformationPointY,
-                instanceName,
-                colorEffect,
-                libraryItemIndex,
-                symbolType == FlaCs4Writer.SYMBOLTYPE_SPRITE ? copiedComponentPathRef.getVal() : 0,
-                blendMode,
-                cacheAsBitmap,
-                filterList,
-                symbolType,
-                trackAsMenu,
-                loop,
-                firstFrame,
-                actionScript
+        int symbolInstanceId = fg.generateRandomId();
+
+        long centerPoint3DXLong = Math.round(centerPoint3DX * 20);
+        long centerPoint3DYLong = Math.round(centerPoint3DY * 20);
+
+        Point2D transformationPoint = new Point2D.Double(transformationPointX, transformationPointY);
+        Point2D transformationPointTransformed = placeMatrix.transform(transformationPoint);
+
+        long tptX = Math.round(transformationPointTransformed.getX() * 20);
+        long tptY = Math.round(transformationPointTransformed.getY() * 20);
+        fg.write(0x05);
+        fg.write(
+                (selected ? 0x02 : 0x00), 0x00, 0x00,
+                (int) (tptX & 0xFF), (int) ((tptX >> 8) & 0xFF), (int) ((tptX >> 16) & 0xFF), (int) ((tptX >> 24) & 0xFF),
+                (int) (tptY & 0xFF), (int) ((tptY >> 8) & 0xFF), (int) ((tptY >> 16) & 0xFF), (int) ((tptY >> 24) & 0xFF),
+                0x00, (cacheAsBitmap ? 1 : 0), 0x16
         );
+        fg.writeMatrix(placeMatrix);
+
+        fg.write((firstFrame & 0xFF), ((firstFrame >> 8) & 0xFF));
+        switch (symbolType) {
+            case SYMBOLTYPE_SPRITE:
+                fg.write(0x02);
+                break;
+            case SYMBOLTYPE_BUTTON:
+                fg.write(0x00);
+                break;
+            case SYMBOLTYPE_GRAPHIC:
+                switch (loop) {
+                    case LOOPMODE_LOOP:
+                        fg.write(0x00);
+                        break;
+                    case LOOPMODE_PLAY_ONCE:
+                        fg.write(0x01);
+                        break;
+                    case LOOPMODE_SINGLE_FRAME:
+                        fg.write(0x02);
+                        break;
+                }
+                break;
+        }
+
+        fg.write(0x00, 0x01);
+
+        if (colorEffect == null) {
+            colorEffect = new NoColorEffect();
+        }
+
+        int redMultiplier = colorEffect.getRedMultiplier();
+        int greenMultiplier = colorEffect.getGreenMultiplier();
+        int blueMultiplier = colorEffect.getBlueMultiplier();
+        int alphaMultiplier = colorEffect.getAlphaMultiplier();
+        int redOffset = colorEffect.getRedOffset();
+        int greenOffset = colorEffect.getGreenOffset();
+        int blueOffset = colorEffect.getBlueOffset();
+        int alphaOffset = colorEffect.getAlphaOffset();
+        Color effectColor = colorEffect.getValueColor();
+
+        fg.write(
+                (alphaMultiplier & 0xFF), ((alphaMultiplier >> 8) & 0xFF), (alphaOffset & 0xFF), ((alphaOffset >> 8) & 0xFF),
+                (redMultiplier & 0xFF), ((redMultiplier >> 8) & 0xFF), (redOffset & 0xFF), ((redOffset >> 8) & 0xFF),
+                (greenMultiplier & 0xFF), ((greenMultiplier >> 8) & 0xFF), (greenOffset & 0xFF), ((greenOffset >> 8) & 0xFF),
+                (blueMultiplier & 0xFF), ((blueMultiplier >> 8) & 0xFF), (blueOffset & 0xFF), ((blueOffset >> 8) & 0xFF),
+                colorEffect.getType(), 0x00, colorEffect.getValuePercent(), 0x00,
+                effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), effectColor.getAlpha()
+        );
+
+        fg.write(
+                0xFF, 0xFE, 0xFF, 0x00, //some string
+                libraryItemIndex, 0x00, 0x00, 0x00, //FIXME? this is probably a long val
+                0x00, 0x00, 0x00
+        );
+
+        if (!filterList.isEmpty()) {
+            fg.write(0x01,
+                    filterList.size(), 0x00, 0x00, 0x00);
+            for (FilterInterface filter : filterList) {
+                filter.write(fg);
+            }
+        } else {
+            fg.write(0x00);
+        }
+
+        fg.write(
+                blendMode,
+                0x00, //??
+                0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+
+        if (symbolType != SYMBOLTYPE_SPRITE) {
+            fg.write(
+                    0x00, 0x00, 0x00, 0x80,
+                    0x00, 0x00, 0x00, 0x80);
+        } else {
+            fg.write(
+                    (int) (centerPoint3DXLong & 0xFF), (int) ((centerPoint3DXLong >> 8) & 0xFF), (int) ((centerPoint3DXLong >> 16) & 0xFF), (int) ((centerPoint3DXLong >> 24) & 0xFF),
+                    (int) (centerPoint3DYLong & 0xFF), (int) ((centerPoint3DYLong >> 8) & 0xFF), (int) ((centerPoint3DYLong >> 16) & 0xFF), (int) ((centerPoint3DYLong >> 24) & 0xFF)
+            );
+        }
+
+        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+
+        if (symbolType == SYMBOLTYPE_GRAPHIC) {
+            return;
+        }
+
+        fg.write((symbolType == SYMBOLTYPE_BUTTON ? 0x0B : 0x08), 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+                0x00,
+                (symbolInstanceId & 0xFF), ((symbolInstanceId >> 8) & 0xFF),
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0xFF, 0xFE, 0xFF);
+        fg.writeLenUnicodeString(actionScript);
+        if (symbolType == SYMBOLTYPE_BUTTON) {
+            fg.write((int) (trackAsMenu ? 1 : 0));
+        }
+        fg.write(0xFF, 0xFE, 0xFF);
+
+        fg.writeLenUnicodeString(instanceName);
+
+        if (symbolType == SYMBOLTYPE_BUTTON) {
+            fg.write(0x00, 0x00, 0x00, 0x00);
+            return;
+        }
+        fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
+                0x01,
+                0x00, 0x00, 0x00);
+        writeAccessibleData(fg, symbolInstance);
+        fg.write(0x00,
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00,
+                0x01, //?
+                0x00 /*something, but it resets after resaving FLA*/, 0x00, 0x00, 0x00,
+                0xFF, 0xFE, 0xFF
+        );
+        String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + copiedComponentPathRef.getVal() + "'>\n</component>\n";
+        fg.writeLenUnicodeString(componentTxt);
     }
 
     private void handleText(Element element, FlaCs4Writer fg, List<String> definedClasses) throws IOException {
@@ -1002,7 +1128,7 @@ public class PageGenerator extends AbstractGenerator {
                 scrollable = "true".equals(element.getAttribute("scrollable"));
             }
 
-            //TODO: scrollable, accName, autoExpand, description, shortcut, silent, tabIndex
+            //TODO: autoExpand?
             //useDeviceFonts?
             //orientation="vertical right to left", "vertical left to right"
             //fontRenderingMode="device" , "bitmap", "standard", "customThicknessSharpness"
@@ -1340,6 +1466,7 @@ public class PageGenerator extends AbstractGenerator {
             fg.write(0x00, 0x00,
                     0xFF, 0xFE, 0xFF);
             fg.writeLenUnicodeString(instanceName);
+            writeAccessibleData(fg, element);
             fg.write(0x00, 0x00, 0x00, 0x00,
                     scrollable ? 1 : 0,
                     0x00, 0x00, 0x00,

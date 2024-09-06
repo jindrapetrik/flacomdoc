@@ -127,7 +127,7 @@ public class FlaCs4Writer {
         write(
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
                 0x80, 0x00, 0x00, 0x07, nextLayerId, 0x00, nextFolderId, 0x00, activeFrame, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    }   
+    }
 
     public void writeFloat(float val) throws IOException {
         int v = Float.floatToIntBits(val);
@@ -135,171 +135,6 @@ public class FlaCs4Writer {
         write((v >> 8) & 0xFF);
         write((v >> 16) & 0xFF);
         write((v >> 24) & 0xFF);
-    }
-
-    public void writeSymbolInstance(
-            boolean selected,
-            Matrix placeMatrix,
-            double centerPoint3DX,
-            double centerPoint3DY,
-            double transformationPointX,
-            double transformationPointY,
-            String instanceName,
-            ColorEffectInterface colorEffect,
-            int librarySymbolId,
-            int oldCopiedComponentPath,
-            int blendMode,
-            boolean cacheAsBitmap,
-            List<FilterInterface> filters,
-            int symbolType,
-            boolean trackAsMenu,
-            int loop,
-            int firstFrame,
-            String actionScript
-    ) throws IOException {
-
-        int symbolInstanceId = generateRandomId();
-
-        long centerPoint3DXLong = Math.round(centerPoint3DX * 20);
-        long centerPoint3DYLong = Math.round(centerPoint3DY * 20);
-
-        Point2D transformationPoint = new Point2D.Double(transformationPointX, transformationPointY);
-        Point2D transformationPointTransformed = placeMatrix.transform(transformationPoint);
-
-        long tptX = Math.round(transformationPointTransformed.getX() * 20);
-        long tptY = Math.round(transformationPointTransformed.getY() * 20);
-        /*
-        keyframe begin:
-        0x00, 0x00, 
-        0x00, 0x00, 0x00,  0x80,
-        0x00, 0x00, 0x00,  0x80, 
-        0x00, 0x00, 0x06,  - is this some kind of type identifier?
-        
-        ...
-         */
-        write(0x05);
-        write(
-                (selected ? 0x02 : 0x00), 0x00, 0x00,
-                (int) (tptX & 0xFF), (int) ((tptX >> 8) & 0xFF), (int) ((tptX >> 16) & 0xFF), (int) ((tptX >> 24) & 0xFF),
-                (int) (tptY & 0xFF), (int) ((tptY >> 8) & 0xFF), (int) ((tptY >> 16) & 0xFF), (int) ((tptY >> 24) & 0xFF),
-                0x00, (cacheAsBitmap ? 1 : 0), 0x16
-        );
-        writeMatrix(placeMatrix);
-
-        write((firstFrame & 0xFF), ((firstFrame >> 8) & 0xFF));
-        if (symbolType == SYMBOLTYPE_SPRITE) {
-            write(0x02);
-        } else if (symbolType == SYMBOLTYPE_BUTTON) {
-            write(0x00);
-        } else if (symbolType == SYMBOLTYPE_GRAPHIC) {
-            switch (loop) {
-                case LOOPMODE_LOOP:
-                    write(0x00);
-                    break;
-                case LOOPMODE_PLAY_ONCE:
-                    write(0x01);
-                    break;
-                case LOOPMODE_SINGLE_FRAME:
-                    write(0x02);
-                    break;
-            }
-        }
-
-        write(0x00, 0x01);
-
-        if (colorEffect == null) {
-            colorEffect = new NoColorEffect();
-        }
-
-        int redMultiplier = colorEffect.getRedMultiplier();
-        int greenMultiplier = colorEffect.getGreenMultiplier();
-        int blueMultiplier = colorEffect.getBlueMultiplier();
-        int alphaMultiplier = colorEffect.getAlphaMultiplier();
-        int redOffset = colorEffect.getRedOffset();
-        int greenOffset = colorEffect.getGreenOffset();
-        int blueOffset = colorEffect.getBlueOffset();
-        int alphaOffset = colorEffect.getAlphaOffset();
-        Color effectColor = colorEffect.getValueColor();
-
-        write(
-                (alphaMultiplier & 0xFF), ((alphaMultiplier >> 8) & 0xFF), (alphaOffset & 0xFF), ((alphaOffset >> 8) & 0xFF),
-                (redMultiplier & 0xFF), ((redMultiplier >> 8) & 0xFF), (redOffset & 0xFF), ((redOffset >> 8) & 0xFF),
-                (greenMultiplier & 0xFF), ((greenMultiplier >> 8) & 0xFF), (greenOffset & 0xFF), ((greenOffset >> 8) & 0xFF),
-                (blueMultiplier & 0xFF), ((blueMultiplier >> 8) & 0xFF), (blueOffset & 0xFF), ((blueOffset >> 8) & 0xFF),
-                colorEffect.getType(), 0x00, colorEffect.getValuePercent(), 0x00,
-                effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), effectColor.getAlpha()
-        );
-
-        write(
-                0xFF, 0xFE, 0xFF, 0x00, //some string
-                librarySymbolId, 0x00, 0x00, 0x00, //FIXME? this is probably a long val
-                0x00, 0x00, 0x00
-        );
-
-        if (!filters.isEmpty()) {
-            write(0x01,
-                    filters.size(), 0x00, 0x00, 0x00);
-            for (FilterInterface filter : filters) {
-                filter.write(this);
-            }
-        } else {
-            write(0x00);
-        }
-
-        write(
-                blendMode,
-                0x00, //??
-                0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-
-        if (symbolType != SYMBOLTYPE_SPRITE) {
-            write(
-                    0x00, 0x00, 0x00, 0x80,
-                    0x00, 0x00, 0x00, 0x80);
-        } else {
-            write(
-                    (int) (centerPoint3DXLong & 0xFF), (int) ((centerPoint3DXLong >> 8) & 0xFF), (int) ((centerPoint3DXLong >> 16) & 0xFF), (int) ((centerPoint3DXLong >> 24) & 0xFF),
-                    (int) (centerPoint3DYLong & 0xFF), (int) ((centerPoint3DYLong >> 8) & 0xFF), (int) ((centerPoint3DYLong >> 16) & 0xFF), (int) ((centerPoint3DYLong >> 24) & 0xFF)
-            );
-        }
-
-        write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-
-        if (symbolType == SYMBOLTYPE_GRAPHIC) {
-            return;
-        }
-
-        write((symbolType == SYMBOLTYPE_BUTTON ? 0x0B : 0x08), 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                0x00,
-                (symbolInstanceId & 0xFF), ((symbolInstanceId >> 8) & 0xFF),
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF);
-        writeLenUnicodeString(actionScript);
-        if (symbolType == SYMBOLTYPE_BUTTON) {
-            write((int) (trackAsMenu ? 1 : 0));
-        }
-        write(0xFF, 0xFE, 0xFF);
-
-        writeLenUnicodeString(instanceName);
-
-        if (symbolType == SYMBOLTYPE_BUTTON) {
-            write(0x00, 0x00, 0x00, 0x00);
-            return;
-        }
-        write(0x02, 0x00, 0x00, 0x00, 0x00,
-                0x01,
-                0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x01,
-                0x00 /*something, but it resets after resaving FLA*/, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF
-        );
-        String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + oldCopiedComponentPath + "'>\n</component>\n";
-        writeLenUnicodeString(componentTxt);
     }
 
     public void beginShape() {
@@ -944,7 +779,7 @@ public class FlaCs4Writer {
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05);
     }
 
-    private int generateRandomId() {
+    public int generateRandomId() {
         return ('X' << 8) + 'X';
         //Random rnd = new Random();
         //return rnd.nextInt(0x10000);
@@ -960,7 +795,7 @@ public class FlaCs4Writer {
         writeUI16(keyMode);
         writeUI16(acceleration);
         write(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
-                0xFF, 0xFF, 0x3F, 0xFF, 0xFF, 
+                0xFF, 0xFF, 0x3F, 0xFF, 0xFF,
                 0xFF, 0xFE, 0xFF);
         writeLenUnicodeString(name);
         write(0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
@@ -977,10 +812,10 @@ public class FlaCs4Writer {
     public void writeKeyFrameEnd2(boolean anchor) throws IOException {
         write(
                 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 
+                0x00,
                 anchor ? 1 : 0,
                 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-    }   
+    }
 
     public void writeLayerEnd(
             String layerName,
