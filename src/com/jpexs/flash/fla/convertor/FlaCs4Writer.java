@@ -785,13 +785,38 @@ public class FlaCs4Writer {
         //return rnd.nextInt(0x10000);
     }
 
-    public void writeKeyFrameEnd(int duration, int keyMode, int acceleration, String actionScript, String name, boolean comment) throws IOException {
+    public void writeKeyFrameEnd(int duration, int keyMode, int acceleration, String actionScript, String name, boolean comment, int motionTweenRotate, int motionTweenRotateTimes) throws IOException {
         int frameId = generateRandomId();
 
         write(
                 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x1D, duration,
                 0x00);
+        
+        /*
+        KEYMODES:
+        
+        normal keymode:
+        0x2600
+
+        classic tween keymode:
+        0x4001 +
+                0x0100	motionTweenOrientToPath = true
+                0x0200	motionTweenScale = true
+                0x0400	motionTweenRotate <> none
+                0x0800	motionTweenSync = true
+                0x1000	motionTweenSnap = true
+        (default: only motionTweenSnap = true)
+
+        shape tween keymode:
+        0x5602
+
+        motion tween keymode:
+        0x2003 +
+                0x0800	motionTweenSync "Sync graphic symbols"
+        
+        */
+        
         writeUI16(keyMode);
         writeUI16(acceleration);
         write(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
@@ -803,8 +828,9 @@ public class FlaCs4Writer {
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0xFF, 0xFE, 0xFF);
         writeLenUnicodeString(actionScript);
-        write(0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00,
+        write(motionTweenRotate, 0x00, 0x00, 0x00);
+        writeUI16(motionTweenRotateTimes);
+        write(0x00, 0x00,
                 comment ? 1 : 0, 0x00, 0x00, 0x00
         );
     }

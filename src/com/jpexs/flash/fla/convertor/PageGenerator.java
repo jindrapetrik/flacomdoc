@@ -1905,9 +1905,7 @@ public class PageGenerator extends AbstractGenerator {
 
                 /*
                 TODO: 
-                hasCustomEase, motionTweenOrientToPath,
-                motionTweenRotate, motionTweenRotateTimes, motionTweenScale,
-                motionTweenSnap, motionTweenSync,
+                hasCustomEase, 
                 soundEffect, soundLibraryItem, soundLoop,
                 soundLoopMode, soundName, soundSync, 
                 tweenEasing, tweenType, useSingleEaseCurve
@@ -1932,8 +1930,32 @@ public class PageGenerator extends AbstractGenerator {
                             anchor = true;
                             break;
                     }
+                }                 
+                int motionTweenRotate = 0;
+                if (frame.hasAttribute("motionTweenRotate")) {
+                    switch(frame.getAttribute("motionTweenRotate")) {
+                        case "clockwise":
+                            motionTweenRotate = 1;
+                            break;
+                        case "counter-clockwise":
+                            motionTweenRotate = 2;
+                            break;
+                        case "none":
+                            break;
+                        case "auto":
+                            break;
+                    }
                 }
-                fg.writeKeyFrameEnd(duration, keyMode, acceleration, actionScript, name, comment);
+                int motionTweenRotateTimes = 0;
+                if (motionTweenRotate != 0 && frame.hasAttribute("motionTweenRotateTimes")) {
+                    motionTweenRotateTimes = Integer.parseInt(frame.getAttribute("motionTweenRotateTimes"));
+                }
+                
+                //motionTweenOrientToPath, motionTweenScale, motionTweenSnap, motionTweenSync
+                //and also motionTweenRotate=none/auto
+                //atributes are part of the keymode
+                
+                fg.writeKeyFrameEnd(duration, keyMode, acceleration, actionScript, name, comment, motionTweenRotate, motionTweenRotateTimes);
 
                 Element morphShape = getSubElementByName(frame, "MorphShape");
                 if (morphShape == null) {
