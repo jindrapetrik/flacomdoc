@@ -813,10 +813,13 @@ public class ContentsGenerator extends AbstractGenerator {
                     Map<String, String> properties = getProperties("Untitled-1", width, height);
                     for (Element propertiesSet : getAllSubElements(flashProfile)) {
                         String namespace = propertiesSet.getTagName();
+                        if ("PublishFlashProperties".equals(namespace)) {
+                            namespace = "Vector";
+                        }
                         for (Element property : getAllSubElements(propertiesSet)) {
                             String key = property.getTagName();
                             String value = property.getTextContent();
-                            if ("PublishFlashProperties".equals(namespace)
+                            if ("Vector".equals(namespace)
                                     && ("LibraryPath".equals(key)
                                     || "LibraryVersions".equals(key))) {
                                 continue;
