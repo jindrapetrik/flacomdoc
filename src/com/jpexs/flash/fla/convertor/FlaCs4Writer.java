@@ -130,11 +130,11 @@ public class FlaCs4Writer {
     }
 
     public void writeFloat(float val) throws IOException {
-        int v = Float.floatToIntBits(val);
-        write(v & 0xFF);
-        write((v >> 8) & 0xFF);
-        write((v >> 16) & 0xFF);
-        write((v >> 24) & 0xFF);
+        writeUI32(Float.floatToIntBits(val));
+    }
+
+    public void writeDouble(double val) throws IOException {
+        writeUI64(Double.doubleToLongBits(val));
     }
 
     public void beginShape() {
@@ -792,7 +792,7 @@ public class FlaCs4Writer {
                 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x1D, duration,
                 0x00);
-        
+
         /*
         KEYMODES:
         
@@ -815,8 +815,7 @@ public class FlaCs4Writer {
         0x2003 +
                 0x0800	motionTweenSync "Sync graphic symbols"
         
-        */
-        
+         */
         writeUI16(keyMode);
         writeUI16(acceleration);
         write(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
@@ -833,14 +832,6 @@ public class FlaCs4Writer {
         write(0x00, 0x00,
                 comment ? 1 : 0, 0x00, 0x00, 0x00
         );
-    }
-
-    public void writeKeyFrameEnd2(boolean anchor) throws IOException {
-        write(
-                0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00,
-                anchor ? 1 : 0,
-                0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
     }
 
     public void writeLayerEnd(
@@ -945,6 +936,17 @@ public class FlaCs4Writer {
         write((int) ((value >> 8) & 0xFF));
         write((int) ((value >> 16) & 0xFF));
         write((int) ((value >> 24) & 0xFF));
+    }
+
+    public void writeUI64(long value) throws IOException {
+        write((int) (value & 0xFF));
+        write((int) ((value >> 8) & 0xFF));
+        write((int) ((value >> 16) & 0xFF));
+        write((int) ((value >> 24) & 0xFF));
+        write((int) ((value >> 32) & 0xFF));
+        write((int) ((value >> 40) & 0xFF));
+        write((int) ((value >> 48) & 0xFF));
+        write((int) ((value >> 56) & 0xFF));
     }
 
     private void writePointPart(double val) throws IOException {

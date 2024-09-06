@@ -1930,10 +1930,10 @@ public class PageGenerator extends AbstractGenerator {
                             anchor = true;
                             break;
                     }
-                }                 
+                }
                 int motionTweenRotate = 0;
                 if (frame.hasAttribute("motionTweenRotate")) {
-                    switch(frame.getAttribute("motionTweenRotate")) {
+                    switch (frame.getAttribute("motionTweenRotate")) {
                         case "clockwise":
                             motionTweenRotate = 1;
                             break;
@@ -1950,11 +1950,10 @@ public class PageGenerator extends AbstractGenerator {
                 if (motionTweenRotate != 0 && frame.hasAttribute("motionTweenRotateTimes")) {
                     motionTweenRotateTimes = Integer.parseInt(frame.getAttribute("motionTweenRotateTimes"));
                 }
-                
+
                 //motionTweenOrientToPath, motionTweenScale, motionTweenSnap, motionTweenSync
                 //and also motionTweenRotate=none/auto
                 //atributes are part of the keymode
-                
                 fg.writeKeyFrameEnd(duration, keyMode, acceleration, actionScript, name, comment, motionTweenRotate, motionTweenRotateTimes);
 
                 Element morphShape = getSubElementByName(frame, "MorphShape");
@@ -2121,7 +2120,79 @@ public class PageGenerator extends AbstractGenerator {
                 }
                 fg.write(shapeTweenBlend);
 
-                fg.writeKeyFrameEnd2(anchor);
+                boolean useSingleEaseCurve = true;
+                if (frame.hasAttribute("useSingleEaseCurve")) {
+                    useSingleEaseCurve = !"false".equals(frame.getAttribute("useSingleEaseCurve"));
+                }
+
+                fg.write(
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x00,
+                        anchor ? 1 : 0,
+                        0x00, 0x00, 0x00,
+                        useSingleEaseCurve ? 1 : 0, 0x00, 0x00, 0x00);
+
+                boolean hasCustomEase = false;
+                if (frame.hasAttribute("hasCustomEase")) {
+                    hasCustomEase = "true".equals(frame.getAttribute("hasCustomEase"));
+                }
+
+                fg.writeUI32(hasCustomEase ? 1 : 0);
+                if (hasCustomEase) {
+                    Element tweensElement = getSubElementByName(frame, "tweens");
+                    List<String> properties = Arrays.asList("position", "rotation", "scale", "color", "filters", "all");
+
+                    if (tweensElement == null) {
+                        for (String property : properties) {
+                            fg.writeUI32(0);
+                        }
+                    } else {
+                        List<Element> customEaseElements = getAllSubElementsByName(tweensElement, "CustomEase");
+                        Map<String, Element> targetToCustomEase = new HashMap<>();
+                        for (Element el : customEaseElements) {
+                            if (!el.hasAttribute("target")) {
+                                continue;
+                            }
+                            targetToCustomEase.put(el.getAttribute("target"), el);
+                        }
+
+                        for (String property : properties) {
+                            if (!targetToCustomEase.containsKey(property)) {
+                                fg.writeUI32(0);
+                                continue;
+                            }
+
+                            List<Element> points = getAllSubElementsByName(targetToCustomEase.get(property), "Point");
+
+                            int numPoints = 2 + (points.size() - 4) / 3;
+                            fg.writeUI32(numPoints);
+                            for (int p = 0; p < points.size(); p++) {
+                                Element point = points.get(p);
+                                double x = 0;
+                                if (point.hasAttribute("x")) {
+                                    x = Double.parseDouble(point.getAttribute("x"));
+                                }
+                                double y = 0;
+                                if (point.hasAttribute("y")) {
+                                    y = Double.parseDouble(point.getAttribute("y"));
+                                }
+                                if (x < 0) {
+                                    x = 0;
+                                }
+                                if (y < 0) {
+                                    y = 0;
+                                }
+
+                                if (p == 0 || p == points.size() - 1) {
+                                    fg.writeDouble(x);
+                                    fg.writeDouble(y);
+                                }
+                                fg.writeDouble(x);
+                                fg.writeDouble(y);
+                            }
+                        }
+                    }
+                }
 
                 Element motionObjectXML = getSubElementByName(frame, "motionObjectXML");
                 if (motionObjectXML != null) {
