@@ -1128,8 +1128,6 @@ public class PageGenerator extends AbstractGenerator {
                 scrollable = "true".equals(element.getAttribute("scrollable"));
             }
 
-            //TODO: autoExpand?
-            //useDeviceFonts?
             //orientation="vertical right to left", "vertical left to right"
             //fontRenderingMode="device" , "bitmap", "standard", "customThicknessSharpness"
             fg.write(0x05);
@@ -1373,6 +1371,11 @@ public class PageGenerator extends AbstractGenerator {
                     rightMargin = Float.parseFloat(domTextAttrs.getAttribute("rightMargin"));
                 }
 
+                boolean rotation = false;
+                if (domTextAttrs.hasAttribute("rotation")) {
+                    rotation = "true".equals(domTextAttrs.getAttribute("rotation"));
+                }
+
                 String url = "";
                 String target = "";
 
@@ -1383,7 +1386,6 @@ public class PageGenerator extends AbstractGenerator {
                     }
                 }
 
-                //TODO: bold, italic, rotation text attributes
                 fg.writeUI16(characters.length());
                 fg.write(0x0F);
                 fg.writeUI16(bitmapSize);
@@ -1436,9 +1438,9 @@ public class PageGenerator extends AbstractGenerator {
                 fg.writeLenUnicodeString(url);
 
                 fg.write(vertical ? 1 : 0,
-                        rightToLeft ? 1 : 0
+                        rightToLeft ? 1 : 0,
+                        rotation ? 1 : 0
                 );
-                fg.write(0);
                 fg.write(
                         fontRenderingMode == FONTRENDERING_BITMAP ? 1 : 0,
                         0xFF, 0xFE, 0xFF);
