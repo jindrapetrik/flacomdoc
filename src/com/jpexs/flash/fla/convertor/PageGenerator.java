@@ -921,7 +921,7 @@ public class PageGenerator extends AbstractGenerator {
         fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
                 0x01,
                 0x00, 0x00, 0x00);
-        writeAccessibleData(fg, symbolInstance);
+        writeAccessibleData(fg, symbolInstance, false);
         fg.write(0x00,
                 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00,
@@ -1468,7 +1468,7 @@ public class PageGenerator extends AbstractGenerator {
             fg.write(0x00, 0x00,
                     0xFF, 0xFE, 0xFF);
             fg.writeLenUnicodeString(instanceName);
-            writeAccessibleData(fg, element);
+            writeAccessibleData(fg, element, false);
             fg.write(0x00, 0x00, 0x00, 0x00,
                     scrollable ? 1 : 0,
                     0x00, 0x00, 0x00,
