@@ -924,6 +924,9 @@ public class CompoundFileBinary implements AutoCloseable {
             long sectorId = 0;
             loopF:
             for (long fatSect : difat) {
+                if (fatSect == FREESECT) {
+                    continue;
+                }
                 for (int i = 0; i < sectorLength; i += 4) {
                     if (sectorId == prevSector) {
                         raf.seek((1 + fatSect) * sectorLength + i);
