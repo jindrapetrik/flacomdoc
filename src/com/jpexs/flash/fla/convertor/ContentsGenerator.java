@@ -25,38 +25,31 @@ import com.jpexs.flash.fla.convertor.swatches.SolidSwatchItem;
 import com.jpexs.helpers.Reference;
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.zip.Deflater;
-import java.util.zip.DeflaterOutputStream;
-import javax.imageio.ImageIO;
+import java.util.logging.Level;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
+import java.util.logging.Logger;
 
 /**
  *
@@ -464,12 +457,12 @@ public class ContentsGenerator extends AbstractGenerator {
         int linkageFlags = 0;
         if (linkageExportForAS) {
             linkageFlags |= 1;
-            if (linkageExportInFirstFrame) {
-                linkageFlags |= 4;
-            }
-            if (linkageExportForRS) {
-                linkageFlags |= 2;
-            }
+        }
+        if (linkageExportInFirstFrame) {
+            linkageFlags |= 4;
+        }
+        if (linkageExportForRS) {
+            linkageFlags |= 2;
         }
         dw.write(linkageFlags,
                 0x02, 0x00, 0x00, 0x00,
@@ -483,13 +476,14 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.writeLenUnicodeString(linkageBaseClass);
     }
 
-    private int writeSymbols(FlaCs4Writer fg, Element document, DocumentBuilder docBuilder, File libraryDir, File outputDir, Reference<Long> generatedItemIdOrder, List<String> definedClasses) throws SAXException, IOException, FileNotFoundException, ParserConfigurationException {
+    private int writeSymbols(FlaCs4Writer fg, Element document, DocumentBuilder docBuilder, File sourceDir, File outputDir, Reference<Long> generatedItemIdOrder, List<String> definedClasses) throws SAXException, IOException, FileNotFoundException, ParserConfigurationException {
         int symbolCount = 0;
         Element symbolsElement = getSubElementByName(document, "symbols");
         if (symbolsElement == null) {
             return symbolCount;
         }
         List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
+        File libraryDir = sourceDir.toPath().resolve("LIBRARY").toFile();
         for (int i = includes.size() - 1; i >= 0; i--) {
             Element include = includes.get(i);
             if (!include.hasAttribute("href")) {
@@ -544,7 +538,8 @@ public class ContentsGenerator extends AbstractGenerator {
                 itemID = symbolElement.getAttribute("itemID");
             }
 
-            useClass("CDocumentPage", 0x01, 0x01, 0x19, fg, definedClasses);
+            useClass("CDocumentPage", 0x01, 0x01, fg, definedClasses);
+            fg.write(0x19);
             //fg.write(0x01, 0x80, 0x19);
             fg.writeLenUnicodeString(symbolFile);
             fg.write(0xFF, 0xFE, 0xFF);
@@ -600,7 +595,7 @@ public class ContentsGenerator extends AbstractGenerator {
             InputStream domDocumentIs,
             InputStream publishSettingsIs,
             InputStream metadataIs,
-            File libraryDir,
+            File sourceDir,
             File outputDir
     ) throws SAXException, IOException, ParserConfigurationException {
 
@@ -669,7 +664,8 @@ public class ContentsGenerator extends AbstractGenerator {
                 }
                 String sceneName = domTimeline.getAttribute("name");
 
-                useClass("CDocumentPage", 1, 0x01, 0x19, fg, definedClasses);
+                useClass("CDocumentPage", 1, 0x01, fg, definedClasses);
+                fg.write(0x19);
 
                 pageCount++;
 
@@ -764,22 +760,21 @@ public class ContentsGenerator extends AbstractGenerator {
                 currentTimeline = Integer.parseInt(document.getAttribute("currentTimeline"));
             }
 
-            int nextSceneIdentifier = timelinesElements.size() + 1;
+            /*int nextSceneIdentifier = timelinesElements.size() + 1;
             if (document.hasAttribute("nextSceneIdentifier")) {
                 nextSceneIdentifier = Integer.parseInt(document.getAttribute("nextSceneIdentifier"));
-            }
-
-            fg.write(nextSceneIdentifier,
+            }*/
+            fg.write(1 + pageCount + 1, //?
                     0x00,
                     0x01, 0x00,
-                    1 + currentTimeline,
+                    1 + pageCount, //?
                     0x00);
 
-            int symbolCount = writeSymbols(fg, document, docBuilder, libraryDir, outputDir, generatedItemIdOrder, definedClasses);
+            int symbolCount = writeSymbols(fg, document, docBuilder, sourceDir, outputDir, generatedItemIdOrder, definedClasses);
 
             fg.write(0x00, 0x00);
 
-            int mediaCount = writeMedia(fg, document, generatedItemIdOrder, pageCount, symbolCount, definedClasses, outputDir, libraryDir);
+            int mediaCount = writeMedia(fg, document, generatedItemIdOrder, pageCount, symbolCount, definedClasses, outputDir, sourceDir);
             fg.write(
                     rulerUnitType,
                     0x00, 0x00, 0x00,
@@ -921,199 +916,217 @@ public class ContentsGenerator extends AbstractGenerator {
         return itemID;
     }
 
-    protected int writeMedia(FlaCs4Writer dw, Element document, Reference<Long> generatedItemIdOrder, int pageCount, int symbolCount, List<String> definedClasses, File outputDir, File libraryDir) throws IOException {
-        Element mediaElement = getSubElementByName(document, "media");
-        /*
-        <media>
-          <DOMBitmapItem name="bitmapfill.jpg" itemID="66d4468f-000004f3" sourceExternalFilepath=".\LIBRARY\bitmapfill.jpg" sourceLastImported="1667390241" externalFileSize="12213" quality="50" href="bitmapfill.jpg" bitmapDataHRef="M 2 1725187727.dat" frameRight="640" frameBottom="1280" isJPEG="true"/>
-     </media>
-         */
-        List<Element> domBitmapItems = new ArrayList<>();
-        if (mediaElement != null) {
-            domBitmapItems = getAllSubElementsByName(mediaElement, "DOMBitmapItem");
+    protected void writeDomVideoItem(FlaCs4Writer dw, Element domVideoItem, int pageCount, int symbolCount, List<String> definedClasses, int mediaCount, Reference<Long> generatedItemIdOrder, File outputDir, File sourceDir) throws IOException {
+        useClass("CMediaVideoStream", pageCount, 2 + pageCount + symbolCount, dw, definedClasses);
+        dw.write(0x07);
+        String mediaFile = "M " + mediaCount + " " + timeCreated;
+        dw.writeLenUnicodeString(mediaFile);
+        dw.write(0xFF, 0xFE, 0xFF);
+        String name = "";
+        if (domVideoItem.hasAttribute("name")) {
+            name = domVideoItem.getAttribute("name");
         }
+        dw.writeLenUnicodeString(name);
 
-        dw.write(1 + pageCount + symbolCount + domBitmapItems.size());
-        dw.write(0x00);
-        int mediaCount = 0;
-        for (Element domBitmapItem : domBitmapItems) {
-            useClass("CMediaBits", 1, 2 + pageCount + symbolCount, 0x07, dw, definedClasses);
-            mediaCount++;
-            String mediaFile = "M " + mediaCount + " " + timeCreated;
-            dw.writeLenUnicodeString(mediaFile);
-            String sourceExternalFilepath = domBitmapItem.getAttribute("sourceExternalFilepath");
-            final String LIBRARY_PREFIX = ".\\LIBRARY\\";
-            String sourceFile = sourceExternalFilepath;
-            if (sourceFile.startsWith(LIBRARY_PREFIX)) {
-                sourceFile = sourceFile.substring(LIBRARY_PREFIX.length());
-            }
-            dw.write(0xFF, 0xFE, 0xFF);
-            dw.writeLenUnicodeString(sourceFile);
-            String importFilePath = "";
-            dw.write(mediaCount, 0x00,
-                    0xFF, 0xFE, 0xFF);
-            dw.writeLenUnicodeString(importFilePath);
-            dw.writeUI32(timeCreated);
-            dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+        String importFilePath = "";
+        dw.write(mediaCount, 0x00,
+                0xFF, 0xFE, 0xFF);
+        dw.writeLenUnicodeString(importFilePath);
+        dw.writeUI32(timeCreated);
+        dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+        String itemID = generateItemID(generatedItemIdOrder);
+        if (domVideoItem.hasAttribute("itemID")) {
+            itemID = domVideoItem.getAttribute("itemID");
+        }
+        dw.writeItemID(itemID);
+        dw.write(0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00);
+        dw.write(0xFF, 0xFE, 0xFF, 0x00);
+        dw.write(0xFF, 0xFE, 0xFF, 0x00);
+        dw.write(0xFF, 0xFE, 0xFF, 0x00);
+        dw.write(0x00, 0x02, 0x00, 0x00, 0x00);
+        dw.write(0xFF, 0xFE, 0xFF, 0x00);
+        dw.write(0xFF, 0xFE, 0xFF, 0x00);
+        dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+        dw.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+        dw.write(0xFF, 0xFF, 0xFF, 0xFF, 0x00);
+        dw.write(0xFF, 0xFE, 0xFF, 0x00);
+        dw.write(0x00, 0x01, 0x00, 0x00, 0x00);
 
-            String itemID = generateItemID(generatedItemIdOrder);
-            if (domBitmapItem.hasAttribute("itemID")) {
-                itemID = domBitmapItem.getAttribute("itemID");
-            }
-            dw.writeItemID(itemID);
-
-            boolean allowSmoothing = false;
-
-            if (domBitmapItem.hasAttribute("allowSmoothing")) {
-                allowSmoothing = "true".equals(domBitmapItem.getAttribute("allowSmoothing"));
-            }
-
-            int quality = 50;
-            if (domBitmapItem.hasAttribute("quality")) {
-                quality = Integer.parseInt(domBitmapItem.getAttribute("quality"));
-            }
-
-            boolean useImportedJPEGData = true;
-
-            if (domBitmapItem.hasAttribute("useImportedJPEGData")) {
-                useImportedJPEGData = "true".equals(domBitmapItem.getAttribute("useImportedJPEGData"));
-            }
-
-            boolean useDeblocking = false;
-            if (domBitmapItem.hasAttribute("useDeblocking")) {
-                useDeblocking = "true".equals(domBitmapItem.getAttribute("useDeblocking"));
-            }
-
-            long externalFileSize = 0;
-            if (domBitmapItem.hasAttribute("externalFileSize")) {
-                externalFileSize = Long.parseLong(domBitmapItem.getAttribute("externalFileSize"));
-            }
-
-            boolean isJPEG = false;
-            if (domBitmapItem.hasAttribute("isJPEG")) {
-                isJPEG = "true".equals(domBitmapItem.getAttribute("isJPEG"));
-            }
-
-            int frameLeft = 0;
-            if (domBitmapItem.hasAttribute("frameLeft")) {
-                frameLeft = Integer.parseInt(domBitmapItem.getAttribute("frameLeft"));
-            }
-            int frameRight = 0;
-            if (domBitmapItem.hasAttribute("frameRight")) {
-                frameRight = Integer.parseInt(domBitmapItem.getAttribute("frameRight"));
-            }
-            int frameTop = 0;
-            if (domBitmapItem.hasAttribute("frameTop")) {
-                frameTop = Integer.parseInt(domBitmapItem.getAttribute("frameTop"));
-            }
-            int frameBottom = 0;
-            if (domBitmapItem.hasAttribute("frameBottom")) {
-                frameBottom = Integer.parseInt(domBitmapItem.getAttribute("frameBottom"));
-            }
-
-            BufferedImage bimg = ImageIO.read(libraryDir.toPath().resolve(sourceFile).toFile());
-
-            if (frameLeft == -115200
-                    && frameRight == -115200
-                    && frameTop == -115200
-                    && frameBottom == -115200 //Error in CS5
-                    ) {
-                frameLeft = 0;
-                frameTop = 0;
-                frameRight = 20 * bimg.getWidth();
-                frameBottom = 20 * bimg.getHeight();
-            }
-
-            if (sourceFile.toLowerCase().endsWith(".jpg")) {
-                isJPEG = true;
-            }
-
-            if (isJPEG) {
-                try (FileOutputStream fos = new FileOutputStream(outputDir.toPath().resolve(mediaFile).toFile()); FileInputStream fis = new FileInputStream(libraryDir.toPath().resolve(sourceFile).toFile());) {
+        boolean hasBinData = false;
+        if (domVideoItem.hasAttribute("videoDataHRef")) {
+            String videoDataHRef = domVideoItem.getAttribute("videoDataHRef");
+            File videDataFile = sourceDir.toPath().resolve("bin").resolve(videoDataHRef).toFile();
+            if (videDataFile.exists()) {
+                //copy the data file
+                try (FileOutputStream fos = new FileOutputStream(outputDir.toPath().resolve(mediaFile).toFile()); FileInputStream fis = new FileInputStream(videDataFile);) {
                     byte[] buf = new byte[4096];
                     int cnt;
                     while ((cnt = fis.read(buf)) > 0) {
                         fos.write(buf, 0, cnt);
                     }
-                    FlaCs4Writer dw2 = new FlaCs4Writer(fos);
-                    dw2.writeUI32(frameLeft);
-                    dw2.writeUI32(frameRight);
-                    dw2.writeUI32(frameTop);
-                    dw2.writeUI32(frameBottom);
                 }
-            } else {
-                try (FileOutputStream fos = new FileOutputStream(outputDir.toPath().resolve(mediaFile).toFile())) {
-                    //https://stackoverflow.com/questions/4082812/xfl-what-are-the-bin-dat-files/4082907#4082907
-                    fos.write(0x03);
-                    fos.write(0x05);
-                    FlaCs4Writer w = new FlaCs4Writer(fos);
+                hasBinData = true;
+            }
+        }
 
-                    int decRowLen = 4 * bimg.getWidth();
-                    w.writeUI16(decRowLen);
+        if (!hasBinData) {
+            Logger.getLogger(ContentsGenerator.class.getName()).log(Level.WARNING, "Missing bin/*.dat file for {0}", name);
+        }
+    }
 
-                    w.writeUI16(bimg.getWidth());
-                    w.writeUI16(bimg.getHeight());
+    protected void writeDomBitmapItem(FlaCs4Writer dw, Element domBitmapItem, int pageCount, int symbolCount, List<String> definedClasses, int mediaCount, Reference<Long> generatedItemIdOrder, File outputDir, File sourceDir) throws IOException {
 
-                    w.writeUI32(frameLeft);
-                    w.writeUI32(frameRight);
-                    w.writeUI32(frameTop);
-                    w.writeUI32(frameBottom);
+        /*
+        <media>
+          <DOMBitmapItem name="bitmapfill.jpg" itemID="66d4468f-000004f3" sourceExternalFilepath=".\LIBRARY\bitmapfill.jpg" sourceLastImported="1667390241" externalFileSize="12213" quality="50" href="bitmapfill.jpg" bitmapDataHRef="M 2 1725187727.dat" frameRight="640" frameBottom="1280" isJPEG="true"/>
+     </media>
+         */
+        useClass("CMediaBits", 1, 2 + pageCount + symbolCount, dw, definedClasses);
+        dw.write(0x07);
+        String mediaFile = "M " + mediaCount + " " + timeCreated;
+        dw.writeLenUnicodeString(mediaFile);
 
-                    w.write(0x01); //has transparency
-                    w.write(0x01); //compressed variant
+        String name = "";
+        if (domBitmapItem.hasAttribute("name")) {
+            name = domBitmapItem.getAttribute("name");
+        }
+        String sourceExternalFilepath = domBitmapItem.getAttribute("sourceExternalFilepath");
+        dw.write(0xFF, 0xFE, 0xFF);
+        dw.writeLenUnicodeString(name);
+        String importFilePath = "";
+        dw.write(mediaCount, 0x00,
+                0xFF, 0xFE, 0xFF);
+        dw.writeLenUnicodeString(importFilePath);
+        dw.writeUI32(timeCreated);
+        dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
 
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    DeflaterOutputStream def = new DeflaterOutputStream(baos, new Deflater(1));
+        String itemID = generateItemID(generatedItemIdOrder);
+        if (domBitmapItem.hasAttribute("itemID")) {
+            itemID = domBitmapItem.getAttribute("itemID");
+        }
+        dw.writeItemID(itemID);
 
-                    for (int y = 0; y < bimg.getHeight(); y++) {
-                        for (int x = 0; x < bimg.getWidth(); x++) {
-                            int rgba = bimg.getRGB(x, y);
-                            def.write((rgba >> 24) & 0xFF); //a 
-                            def.write((rgba >> 16) & 0xFF); //b
-                            def.write((rgba >> 8) & 0xFF); //g
-                            def.write(rgba & 0xFF); //r                                                       
-                        }
+        boolean allowSmoothing = false;
+
+        if (domBitmapItem.hasAttribute("allowSmoothing")) {
+            allowSmoothing = "true".equals(domBitmapItem.getAttribute("allowSmoothing"));
+        }
+
+        int quality = 50;
+        if (domBitmapItem.hasAttribute("quality")) {
+            quality = Integer.parseInt(domBitmapItem.getAttribute("quality"));
+        }
+
+        boolean useImportedJPEGData = true;
+
+        if (domBitmapItem.hasAttribute("useImportedJPEGData")) {
+            useImportedJPEGData = "true".equals(domBitmapItem.getAttribute("useImportedJPEGData"));
+        }
+
+        boolean useDeblocking = false;
+        if (domBitmapItem.hasAttribute("useDeblocking")) {
+            useDeblocking = "true".equals(domBitmapItem.getAttribute("useDeblocking"));
+        }
+
+        long externalFileSize = 0;
+        if (domBitmapItem.hasAttribute("externalFileSize")) {
+            externalFileSize = Long.parseLong(domBitmapItem.getAttribute("externalFileSize"));
+        }
+
+        boolean isJPEG = false;
+        if (domBitmapItem.hasAttribute("isJPEG")) {
+            isJPEG = "true".equals(domBitmapItem.getAttribute("isJPEG"));
+        }
+
+        int frameLeft = 0;
+        if (domBitmapItem.hasAttribute("frameLeft")) {
+            frameLeft = Integer.parseInt(domBitmapItem.getAttribute("frameLeft"));
+        }
+        int frameRight = 0;
+        if (domBitmapItem.hasAttribute("frameRight")) {
+            frameRight = Integer.parseInt(domBitmapItem.getAttribute("frameRight"));
+        }
+        int frameTop = 0;
+        if (domBitmapItem.hasAttribute("frameTop")) {
+            frameTop = Integer.parseInt(domBitmapItem.getAttribute("frameTop"));
+        }
+        int frameBottom = 0;
+        if (domBitmapItem.hasAttribute("frameBottom")) {
+            frameBottom = Integer.parseInt(domBitmapItem.getAttribute("frameBottom"));
+        }
+
+        boolean hasBinData = false;
+        if (domBitmapItem.hasAttribute("bitmapDataHRef")) {
+            String bitmapDataHRef = domBitmapItem.getAttribute("bitmapDataHRef");
+            File bitmapDataFile = sourceDir.toPath().resolve("bin").resolve(bitmapDataHRef).toFile();
+            if (bitmapDataFile.exists()) {
+                //copy the data file
+                try (FileOutputStream fos = new FileOutputStream(outputDir.toPath().resolve(mediaFile).toFile()); FileInputStream fis = new FileInputStream(bitmapDataFile);) {
+                    byte[] buf = new byte[4096];
+                    int cnt;
+                    while ((cnt = fis.read(buf)) > 0) {
+                        fos.write(buf, 0, cnt);
                     }
-                    def.flush();
-                    def.finish();
-                    byte[] data = baos.toByteArray();
-                    int pos = 0;
-                    while (pos < data.length) {
-                        int cnt = 2048; //it seems that using large chunk sizes like 0xFFFF crashes flash. 2024 is used in CS5.
-                        if (pos + cnt > data.length) {
-                            cnt = data.length - pos;
-                        }
-                        w.writeUI16(cnt);
-                        fos.write(data, pos, cnt);
-                        pos += cnt;
-                    }
-                    w.writeUI16(0);
                 }
+                hasBinData = true;
+            }
+        }
+
+        if (!hasBinData) {
+            Logger.getLogger(ContentsGenerator.class.getName()).log(Level.WARNING, "Missing bin/*.dat file for {0}", name);
+        }
+
+        writeAsLinkage(dw, domBitmapItem);
+        dw.write(0x00, 0x01, 0x00, 0x00, 0x00, 0x04);
+        if (isJPEG) {
+            if (useImportedJPEGData) {
+                dw.write(0x00);
+            } else {
+                dw.write(0x02);
+            }
+        } else {
+            dw.write(0x01);
+        }
+        dw.write(quality, allowSmoothing ? 1 : 0);
+        if (isJPEG) {
+            dw.writeUI32(externalFileSize);
+        } else {
+            dw.writeUI32(0);
+        }
+        dw.write(useDeblocking ? 1 : 0);
+    }
+
+    protected int writeMedia(FlaCs4Writer dw, Element document, Reference<Long> generatedItemIdOrder, int pageCount, int symbolCount, List<String> definedClasses, File outputDir, File sourceDir) throws IOException {
+        Element mediaElement = getSubElementByName(document, "media");
+
+        List<Element> media = new ArrayList<>();
+
+        if (mediaElement != null) {
+            media = getAllSubElements(mediaElement);
+        }
+
+        dw.write(1 + media.size());
+        dw.write(0x00);
+
+        int mediaCount = 0;
+
+        for (Element mediaItem : media) {
+            mediaCount++;
+            switch (mediaItem.getTagName()) {
+                case "DOMBitmapItem":
+                    writeDomBitmapItem(dw, mediaItem, pageCount, symbolCount, definedClasses, mediaCount, generatedItemIdOrder, outputDir, sourceDir);
+                    break;
+                case "DOMVideoItem":
+                    writeDomVideoItem(dw, mediaItem, pageCount, symbolCount, definedClasses, mediaCount, generatedItemIdOrder, outputDir, sourceDir);
+                    break;
             }
 
-            writeAsLinkage(dw, domBitmapItem);
-            dw.write(0x00, 0x01, 0x00, 0x00, 0x00, 0x04);
-            if (isJPEG) {
-                if (useImportedJPEGData) {
-                    dw.write(0x00);
-                } else {
-                    dw.write(0x02);
-                }
-            } else {
-                dw.write(0x01);
-            }
-            dw.write(quality, allowSmoothing ? 1 : 0);
-            if (isJPEG) {
-                dw.writeUI32(externalFileSize);
-            } else {
-                dw.writeUI32(0);
-            }
-            dw.write(useDeblocking ? 1 : 0);
         }
 
         dw.write(0x00, 0x00,
-                1 + domBitmapItems.size(), 0x00);
+                1 + mediaCount, 0x00);
         return mediaCount;
     }
 
@@ -1228,7 +1241,8 @@ public class ContentsGenerator extends AbstractGenerator {
 
         //254 swatches        
         for (int s = 0; s < solidSwatches.size(); s++) {
-            useClass("CColorDef", 0x00, 0x03 + pageCount + symbolCount + mediaCount, lastByte, dw, definedClasses);
+            useClass("CColorDef", 0x00, 0x03 + pageCount + symbolCount + mediaCount, dw, definedClasses);
+            dw.write(lastByte);
             SolidSwatchItem sw = solidSwatches.get(s);
             dw.write(sw.red, sw.green, sw.blue, 0xFF, 0x00, 0x00, sw.hue, 0x00, sw.saturation, 0x00, sw.brightness);
             dw.write(0x00);
@@ -1243,7 +1257,8 @@ public class ContentsGenerator extends AbstractGenerator {
 
         for (int x = 0; x < extendedSwatches.size(); x++) {
             ExtendedSwatchItem ex = extendedSwatches.get(x);
-            useClass("CColorDef", 0x00, 0x03 + pageCount + symbolCount + mediaCount, lastByte, dw, definedClasses);
+            useClass("CColorDef", 0x00, 0x03 + pageCount + symbolCount + mediaCount, dw, definedClasses);
+            dw.write(lastByte);
             if (x == 5) {
                 dw.write(0xFF, 0xFF, 0xFF);
             } else if (x == 6) {
@@ -1301,10 +1316,10 @@ public class ContentsGenerator extends AbstractGenerator {
             File domDocumentFile,
             File publishSettingsFile,
             File metadataFile,
-            File libraryDir,
+            File sourceDir,
             File outputDir) throws IOException, SAXException, ParserConfigurationException {
         try (FileInputStream domDocumentIs = new FileInputStream(domDocumentFile); FileInputStream publishSettingsIs = publishSettingsFile == null ? null : new FileInputStream(publishSettingsFile); FileInputStream metadataIs = metadataFile == null ? null : new FileInputStream(metadataFile)) {
-            generate(domDocumentIs, publishSettingsIs, metadataIs, libraryDir, outputDir);
+            generate(domDocumentIs, publishSettingsIs, metadataIs, sourceDir, outputDir);
         }
     }
 
@@ -1563,7 +1578,7 @@ public class ContentsGenerator extends AbstractGenerator {
                 + "<?xpacket end=\"w\"?>";
     }
 
-    protected void useClass(String className, int defineNum, int firstByte, int lastByte, FlaCs4Writer os,
+    protected void useClass(String className, int defineNum, int firstByte, FlaCs4Writer os,
             List<String> definedClasses
     ) throws IOException {
         if (definedClasses.contains(className)) {
@@ -1574,6 +1589,10 @@ public class ContentsGenerator extends AbstractGenerator {
             os.writeLenAsciiString(className);
             definedClasses.add(className);
         }
-        os.write(lastByte);
+    }
+
+    public static void main(String[] args) {
+        int f = Float.floatToIntBits(-0.0f);
+        System.out.println("" + Integer.toHexString(f));
     }
 }

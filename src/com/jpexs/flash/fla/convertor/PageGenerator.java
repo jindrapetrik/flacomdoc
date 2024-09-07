@@ -248,6 +248,57 @@ public class PageGenerator extends AbstractGenerator {
         return ret;
     }
 
+    protected void handleVideoInstance(Element videoInstance,
+            FlaCs4Writer fg,
+            List<String> definedClasses) throws IOException {
+        useClass("CPicVideoStream", fg, definedClasses);
+
+        boolean selected = false;
+        if (videoInstance.hasAttribute("selected")) {
+            selected = "true".equals(videoInstance.getAttribute("selected"));
+        }
+        
+        boolean locked = false;
+        if (videoInstance.hasAttribute("locked")) {
+            locked = "true".equals(videoInstance.getAttribute("locked"));
+        }
+
+        instanceHeader(videoInstance, fg, 0x04);
+       
+        long frameLeft = 0;
+        if (videoInstance.hasAttribute("frameLeft")) {
+            frameLeft = Long.parseLong(videoInstance.getAttribute("frameLeft"));
+        }
+        long frameRight = 0;
+        if (videoInstance.hasAttribute("frameRight")) {
+            frameRight = Long.parseLong(videoInstance.getAttribute("frameRight"));
+        }
+        long frameTop = 0;
+        if (videoInstance.hasAttribute("frameTop")) {
+            frameTop = Long.parseLong(videoInstance.getAttribute("frameTop"));
+        }
+        long frameBottom = 0;
+        if (videoInstance.hasAttribute("frameBottom")) {
+            frameBottom = Long.parseLong(videoInstance.getAttribute("frameBottom"));
+        }
+
+        String name = "";
+        if (videoInstance.hasAttribute("name")) {
+            name = videoInstance.getAttribute("name");
+        }
+
+        fg.writeUI32(frameLeft);
+        fg.writeUI32(frameRight);
+        fg.writeUI32(frameTop);
+        fg.writeUI32(frameBottom);
+        fg.write(
+                0x00,
+                0xFF, 0xFE, 0xFF, 0x00,
+                0xFF, 0xFE, 0xFF);
+        fg.writeLenUnicodeString(name);
+        fg.write(0x01, 0x00, 0x00, 0x00, 0x01, 0x00);
+    }
+
     protected void handleBitmapInstance(Element bitmapInstance,
             FlaCs4Writer fg,
             List<String> definedClasses) throws IOException {
@@ -277,20 +328,8 @@ public class PageGenerator extends AbstractGenerator {
             return;
         }
 
-        boolean selected = false;
-        if (bitmapInstance.hasAttribute("selected")) {
-            selected = "true".equals(bitmapInstance.getAttribute("selected"));
-        }
-
         useClass("CPicBitmap", fg, definedClasses);
-        Matrix placeMatrix = parseMatrix(getSubElementByName(bitmapInstance, "matrix"));
-
-        fg.write(0x05);
-        fg.write(selected ? 0x02 : 0, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x80,
-                0x00, 0x00, 0x00, 0x80,
-                0x00, 0x00, 0x02);
-        fg.writeMatrix(placeMatrix);
+        instanceHeader(bitmapInstance, fg, 0x02);
         fg.writeUI16(bitmapId);
         fg.write(0x00);
     }
@@ -311,6 +350,9 @@ public class PageGenerator extends AbstractGenerator {
                     break;
                 case "DOMBitmapInstance":
                     handleBitmapInstance(instance, fg, definedClasses);
+                    break;
+                case "DOMVideoInstance":
+                    handleVideoInstance(instance, fg, definedClasses);
                     break;
                 case "DOMStaticText":
                 case "DOMDynamicText":
@@ -429,21 +471,7 @@ public class PageGenerator extends AbstractGenerator {
         if (symbolInstance.hasAttribute("centerPoint3DY")) {
             centerPoint3DY = Double.parseDouble(symbolInstance.getAttribute("centerPoint3DY"));
         }
-
-        Matrix placeMatrix = parseMatrix(getSubElementByName(symbolInstance, "matrix"));
-        double transformationPointX = 0;
-        double transformationPointY = 0;
-        Element transformationPointElement = getSubElementByName(symbolInstance, "transformationPoint");
-        if (transformationPointElement != null) {
-            Element pointElement = getSubElementByName(transformationPointElement, "Point");
-            if (pointElement.hasAttribute("x")) {
-                transformationPointX = Double.parseDouble(pointElement.getAttribute("x"));
-            }
-            if (pointElement.hasAttribute("y")) {
-                transformationPointY = Double.parseDouble(pointElement.getAttribute("y"));
-            }
-        }
-
+        
         ColorEffectInterface colorEffect = new NoColorEffect();
 
         Element colorElement = getSubElementByName(symbolInstance, "color");
@@ -530,12 +558,7 @@ public class PageGenerator extends AbstractGenerator {
                         "erase",
                         "overlay",
                         "hardlight"
-                ), "normal");
-
-        boolean cacheAsBitmap = false;
-        if (symbolInstance.hasAttribute("cacheAsBitmap")) {
-            cacheAsBitmap = "true".equals(symbolInstance.getAttribute("cacheAsBitmap"));
-        }
+                ), "normal");       
 
         List<FilterInterface> filterList = new ArrayList<>();
         Element filtersElement = getSubElementByName(symbolInstance, "filters");
@@ -786,30 +809,15 @@ public class PageGenerator extends AbstractGenerator {
             copiedComponentPathRef.setVal(copiedComponentPathRef.getVal() + 1);
         }
 
-        boolean selected = false;
-        if (symbolInstance.hasAttribute("selected")) {
-            selected = "true".equals(symbolInstance.getAttribute("selected"));
-        }
+        
 
         int symbolInstanceId = fg.generateRandomId();
 
         long centerPoint3DXLong = Math.round(centerPoint3DX * 20);
         long centerPoint3DYLong = Math.round(centerPoint3DY * 20);
 
-        Point2D transformationPoint = new Point2D.Double(transformationPointX, transformationPointY);
-        Point2D transformationPointTransformed = placeMatrix.transform(transformationPoint);
-
-        long tptX = Math.round(transformationPointTransformed.getX() * 20);
-        long tptY = Math.round(transformationPointTransformed.getY() * 20);
-        fg.write(0x05);
-        fg.write(
-                (selected ? 0x02 : 0x00), 0x00, 0x00,
-                (int) (tptX & 0xFF), (int) ((tptX >> 8) & 0xFF), (int) ((tptX >> 16) & 0xFF), (int) ((tptX >> 24) & 0xFF),
-                (int) (tptY & 0xFF), (int) ((tptY >> 8) & 0xFF), (int) ((tptY >> 16) & 0xFF), (int) ((tptY >> 24) & 0xFF),
-                0x00, (cacheAsBitmap ? 1 : 0), 0x16
-        );
-        fg.writeMatrix(placeMatrix);
-
+        instanceHeader(symbolInstance, fg, 0x16);
+        
         fg.write((firstFrame & 0xFF), ((firstFrame >> 8) & 0xFF));
         switch (symbolType) {
             case SYMBOLTYPE_SPRITE:
@@ -933,6 +941,53 @@ public class PageGenerator extends AbstractGenerator {
         fg.writeLenUnicodeString(componentTxt);
     }
 
+    private void instanceHeader(Element element, FlaCs4Writer fg, int instanceType) throws IOException {
+        
+        Matrix placeMatrix = parseMatrix(getSubElementByName(element, "matrix"));
+        
+        boolean selected = false;
+        if (element.hasAttribute("selected")) {
+            selected = "true".equals(element.getAttribute("selected"));
+        }
+        
+        boolean locked = false;
+        if (element.hasAttribute("locked")) {
+            locked = "true".equals(element.getAttribute("locked"));
+        }
+        
+        boolean cacheAsBitmap = false;
+        if ("DOMSymbolInstance".equals(element.getTagName()) && element.hasAttribute("cacheAsBitmap")) {
+            cacheAsBitmap = "true".equals(element.getAttribute("cacheAsBitmap"));
+        }
+        
+        double transformationPointX = -0.0;
+        double transformationPointY = -0.0;
+        Element transformationPointElement = getSubElementByName(element, "transformationPoint");
+        if (transformationPointElement != null) {
+            Element pointElement = getSubElementByName(transformationPointElement, "Point");
+            if (pointElement.hasAttribute("x")) {
+                transformationPointX = Double.parseDouble(pointElement.getAttribute("x"));
+            }
+            if (pointElement.hasAttribute("y")) {
+                transformationPointY = Double.parseDouble(pointElement.getAttribute("y"));
+            }
+        }
+        
+        Point2D transformationPoint = new Point2D.Double(transformationPointX, transformationPointY);
+        Point2D transformationPointTransformed = placeMatrix.transform(transformationPoint);
+
+        long tptX = Math.round(transformationPointTransformed.getX() * 20);
+        long tptY = Math.round(transformationPointTransformed.getY() * 20);
+        fg.write(0x05);
+        fg.write(
+                (selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00), 0x00, 0x00,
+                (int) (tptX & 0xFF), (int) ((tptX >> 8) & 0xFF), (int) ((tptX >> 16) & 0xFF), (int) ((tptX >> 24) & 0xFF),
+                (int) (tptY & 0xFF), (int) ((tptY >> 8) & 0xFF), (int) ((tptY >> 16) & 0xFF), (int) ((tptY >> 24) & 0xFF)
+        );       
+        fg.write(0x00, cacheAsBitmap ? 1 : 0, instanceType);
+        fg.writeMatrix(placeMatrix);
+    }
+    
     private void handleText(Element element, FlaCs4Writer fg, List<String> definedClasses) throws IOException {
         if ("DOMStaticText".equals(element.getTagName())
                 || "DOMDynamicText".equals(element.getTagName())
@@ -1048,8 +1103,7 @@ public class PageGenerator extends AbstractGenerator {
 
             int fontRenderingMode = FONTRENDERING_DEFAULT;
             boolean isSelectable = true;
-            Matrix matrix = new Matrix();
-
+            
             float left = 0f;
             float width = 0f;
             float top = 0f;
@@ -1094,7 +1148,7 @@ public class PageGenerator extends AbstractGenerator {
             if (element.hasAttribute("height")) {
                 height = Float.parseFloat(element.getAttribute("height"));
             }
-            matrix = parseMatrix(getSubElementByName(element, "matrix"));
+            
 
             if (!isInput && element.hasAttribute("isSelectable")) {
                 isSelectable = !"false".equals(element.getAttribute("isSelectable"));
@@ -1117,12 +1171,6 @@ public class PageGenerator extends AbstractGenerator {
                         break;
                 }
             }
-
-            boolean selected = false;
-            if (element.hasAttribute("selected")) {
-                selected = "true".equals(element.getAttribute("selected"));
-            }
-
             boolean scrollable = false;
             if (element.hasAttribute("scrollable")) {
                 scrollable = "true".equals(element.getAttribute("scrollable"));
@@ -1130,12 +1178,7 @@ public class PageGenerator extends AbstractGenerator {
 
             //orientation="vertical right to left", "vertical left to right"
             //fontRenderingMode="device" , "bitmap", "standard", "customThicknessSharpness"
-            fg.write(0x05);
-            fg.write(selected ? 0x02 : 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x80,
-                    0x00, 0x00, 0x00, 0x80,
-                    0x00, 0x00, 0x0E);
-            fg.writeMatrix(matrix);
+            instanceHeader(element, fg, 0x0E);
             fg.writeUI32((int) Math.round(left * 20));
             fg.writeUI32((int) Math.round((left + width) * 20));
             fg.writeUI32((int) Math.round(top * 20));

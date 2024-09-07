@@ -42,15 +42,14 @@ public class XflToCs4Converter {
     }
 
     public static void main(String[] args) throws ParserConfigurationException, SAXException, IOException {
-        //FlaCfbExtractor.initLog();
-        File dir = new File(FlaCfbExtractor.getProperty("convert.xfl.dir"));
+        FlaCfbExtractor.initLog();
+        File sourceDir = new File(FlaCfbExtractor.getProperty("convert.xfl.dir"));
 
         File outputDir = new File(FlaCfbExtractor.getProperty("convert.xfl.output.dir"));
-        File domDocumentFile = dir.toPath().resolve("DOMDocument.xml").toFile();
-        File publishSettingsFile = dir.toPath().resolve("PublishSettings.xml").toFile();
-        File metadataFile = dir.toPath().resolve("META-INF/metadata.xml").toFile();
-        File libraryDir = dir.toPath().resolve("LIBRARY").toFile();
-
+        File domDocumentFile = sourceDir.toPath().resolve("DOMDocument.xml").toFile();
+        File publishSettingsFile = sourceDir.toPath().resolve("PublishSettings.xml").toFile();
+        File metadataFile = sourceDir.toPath().resolve("META-INF/metadata.xml").toFile();
+        
         if (!publishSettingsFile.exists()) {
             publishSettingsFile = null;
         }
@@ -64,7 +63,7 @@ public class XflToCs4Converter {
         outputDir.mkdirs();
 
         ContentsGenerator contentsGenerator = new ContentsGenerator();
-        contentsGenerator.generate(domDocumentFile, publishSettingsFile, metadataFile, libraryDir, outputDir);
+        contentsGenerator.generate(domDocumentFile, publishSettingsFile, metadataFile, sourceDir, outputDir);
         try (CompoundFileBinary cfb = new CompoundFileBinary(outputFlaFile, true)) {
             cfb.addDirectoryContents("", outputDir);
         }
