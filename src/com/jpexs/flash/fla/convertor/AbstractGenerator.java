@@ -182,6 +182,9 @@ public abstract class AbstractGenerator {
         }
 
         if (!hasAccessibleData) {
+            if (mainDocument) {
+                fg.write(0);
+            }
             return;
         }
 
@@ -192,49 +195,41 @@ public abstract class AbstractGenerator {
         String shortcut = "";
         boolean autoLabeling = true;
         boolean forceSimple = false; //"Make child objects accessible" checkbox (inverted)
-        if (hasAccessibleData) {
-            if (element.hasAttribute("silent")) {
-                silent = "true".equals(element.getAttribute("silent"));
-            }
-            if (element.hasAttribute("description")) {
-                description = element.getAttribute("description");
-            }
-            if (element.hasAttribute("tabIndex")) {
-                tabIndex = element.getAttribute("tabIndex");
-            }
-            if (element.hasAttribute("accName")) {
-                accName = element.getAttribute("accName");
-            }
-            if (element.hasAttribute("shortcut")) {
-                shortcut = element.getAttribute("shortcut");
-            }
-            if (element.hasAttribute("forceSimple")) {
-                forceSimple = "true".equals(element.getAttribute("forceSimple"));
-            }
-            if (element.hasAttribute("autoLabeling")) {
-                autoLabeling = !"false".equals(element.getAttribute("autoLabeling"));
-            }
+        if (element.hasAttribute("silent")) {
+            silent = "true".equals(element.getAttribute("silent"));
         }
-        if (hasAccessibleData) {
-            fg.write(0x02, 0x00);
-            fg.write(0x00, 0x00, silent ? 1 : 0, 0x00, 0x00, 0x00);
-            fg.write(0xFF, 0xFE, 0xFF);
-            fg.writeLenUnicodeString(accName);
-            fg.write(0xFF, 0xFE, 0xFF);
-            fg.writeLenUnicodeString(description);
-            fg.write(0xFF, 0xFE, 0xFF);
-            fg.writeLenUnicodeString(shortcut);
-            fg.write(0xFF, 0xFE, 0xFF);
-            fg.writeLenUnicodeString(tabIndex);
-            fg.write(0xFF, 0xFE, 0xFF, 0x00);
-            fg.write(forceSimple ? 1 : 0, 0x00, 0x00, 0x00);
-            if (mainDocument) {
-                fg.write(autoLabeling ? 0 : 1);
-            }
-        } else {
-            if (mainDocument) {
-                fg.write(0);
-            }
+        if (element.hasAttribute("description")) {
+            description = element.getAttribute("description");
+        }
+        if (element.hasAttribute("tabIndex")) {
+            tabIndex = element.getAttribute("tabIndex");
+        }
+        if (element.hasAttribute("accName")) {
+            accName = element.getAttribute("accName");
+        }
+        if (element.hasAttribute("shortcut")) {
+            shortcut = element.getAttribute("shortcut");
+        }
+        if (element.hasAttribute("forceSimple")) {
+            forceSimple = "true".equals(element.getAttribute("forceSimple"));
+        }
+        if (element.hasAttribute("autoLabeling")) {
+            autoLabeling = !"false".equals(element.getAttribute("autoLabeling"));
+        }
+        fg.write(0x02, 0x00);
+        fg.write(0x00, 0x00, silent ? 1 : 0, 0x00, 0x00, 0x00);
+        fg.write(0xFF, 0xFE, 0xFF);
+        fg.writeLenUnicodeString(accName);
+        fg.write(0xFF, 0xFE, 0xFF);
+        fg.writeLenUnicodeString(description);
+        fg.write(0xFF, 0xFE, 0xFF);
+        fg.writeLenUnicodeString(shortcut);
+        fg.write(0xFF, 0xFE, 0xFF);
+        fg.writeLenUnicodeString(tabIndex);
+        fg.write(0xFF, 0xFE, 0xFF, 0x00);
+        fg.write(forceSimple ? 1 : 0, 0x00, 0x00, 0x00);
+        if (mainDocument) {
+            fg.write(autoLabeling ? 0 : 1);
         }
     }
 
