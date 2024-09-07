@@ -435,10 +435,10 @@ public class ContentsGenerator extends AbstractGenerator {
             linkageImportForRS = "true".equals(element.getAttribute("linkageImportForRS"));
         }
 
-        /*String sourceLibraryItemHRef = "";
+        String sourceLibraryItemHRef = "";
         if (element.hasAttribute("sourceLibraryItemHRef")) {
             sourceLibraryItemHRef = element.getAttribute("sourceLibraryItemHRef");
-        }*/
+        }
         String linkageIdentifier = "";
         if (element.hasAttribute("linkageIdentifier")) {
             linkageIdentifier = element.getAttribute("linkageIdentifier");
@@ -467,8 +467,8 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.write(linkageFlags,
                 0x02, 0x00, 0x00, 0x00,
                 0xFF, 0xFE, 0xFF, 0x00,
-                0xFF, 0xFE, 0xFF, 0x00);
-        //dw.writeLenUnicodeString(sourceLibraryItemHRef);
+                0xFF, 0xFE, 0xFF);
+        dw.writeLenUnicodeString(sourceLibraryItemHRef);
         dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0xFF, 0xFF, 0xFF, 0xFF, 0x00,
@@ -476,7 +476,7 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.writeLenUnicodeString(linkageBaseClass);
     }
 
-    private int writeSymbols(FlaCs4Writer fg, Element document, DocumentBuilder docBuilder, File sourceDir, File outputDir, Reference<Long> generatedItemIdOrder, List<String> definedClasses) throws SAXException, IOException, FileNotFoundException, ParserConfigurationException {
+    private int writeSymbols(FlaCs4Writer fg, Element document, DocumentBuilder docBuilder, File sourceDir, File outputDir, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws SAXException, IOException, FileNotFoundException, ParserConfigurationException {
         int symbolCount = 0;
         Element symbolsElement = getSubElementByName(document, "symbols");
         if (symbolsElement == null) {
@@ -538,7 +538,7 @@ public class ContentsGenerator extends AbstractGenerator {
                 itemID = symbolElement.getAttribute("itemID");
             }
 
-            useClass("CDocumentPage", 0x01, 0x01, fg, definedClasses);
+            useClass("CDocumentPage", 0x01, fg, definedClasses, objectsCount);
             fg.write(0x19);
             //fg.write(0x01, 0x80, 0x19);
             fg.writeLenUnicodeString(symbolFile);
@@ -639,7 +639,8 @@ public class ContentsGenerator extends AbstractGenerator {
 
         List<Element> timelinesElements = getAllSubElementsByName(document, "timelines");
 
-        List<String> definedClasses = new ArrayList<>();
+        Map<String, Integer> definedClasses = new HashMap<>();
+        Reference<Integer> objectsCount = new Reference<>(0);
 
         File contentsFile = outputDir.toPath().resolve("Contents").toFile();
         try (FileOutputStream os = new FileOutputStream(contentsFile)) {
@@ -664,7 +665,7 @@ public class ContentsGenerator extends AbstractGenerator {
                 }
                 String sceneName = domTimeline.getAttribute("name");
 
-                useClass("CDocumentPage", 1, 0x01, fg, definedClasses);
+                useClass("CDocumentPage", 1, fg, definedClasses, objectsCount);
                 fg.write(0x19);
 
                 pageCount++;
@@ -764,17 +765,17 @@ public class ContentsGenerator extends AbstractGenerator {
             if (document.hasAttribute("nextSceneIdentifier")) {
                 nextSceneIdentifier = Integer.parseInt(document.getAttribute("nextSceneIdentifier"));
             }*/
-            fg.write(1 + pageCount + 1, //?
+            fg.write(1 + pageCount, //?
                     0x00,
                     0x01, 0x00,
                     1 + pageCount, //?
                     0x00);
 
-            int symbolCount = writeSymbols(fg, document, docBuilder, sourceDir, outputDir, generatedItemIdOrder, definedClasses);
+            int symbolCount = writeSymbols(fg, document, docBuilder, sourceDir, outputDir, generatedItemIdOrder, definedClasses, objectsCount);
 
             fg.write(0x00, 0x00);
 
-            int mediaCount = writeMedia(fg, document, generatedItemIdOrder, pageCount, symbolCount, definedClasses, outputDir, sourceDir);
+            int mediaCount = writeMedia(fg, document, generatedItemIdOrder, definedClasses, objectsCount, outputDir, sourceDir);
             fg.write(
                     rulerUnitType,
                     0x00, 0x00, 0x00,
@@ -784,9 +785,15 @@ public class ContentsGenerator extends AbstractGenerator {
             fg.write(0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00);
             fg.writeUI16(height * 20);
+
+            boolean rulerVisible = false;
+            if (document.hasAttribute("rulerVisible")) {
+                rulerVisible = "true".equals(document.getAttribute("rulerVisible"));
+            }
+
             fg.write(0x00, 0x00, 0x00, 0x00,
                     0xC8, 0x00, //?, was 68 01
-                    0x03, 0x00,
+                    0x03, rulerVisible ? 1 : 0,
                     timelinesElements.size() > 1 ? 1 : 0, //?? something like "Did you ever used multiple scenes"
                     0x8D, 0x00, 0x68,
                     0x01, 0x00, 0x00, 0x68, 0x01, 0x00, 0x00, 0x68,
@@ -833,7 +840,7 @@ public class ContentsGenerator extends AbstractGenerator {
             fg.write(0xFF, 0xFE, 0xFF, 0x00);
             fg.write(0xFF, 0xFE, 0xFF, 0x00);
             fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFC, 0x00);
-            writeColorDef(fg, pageCount, symbolCount, mediaCount, 0x04, true, definedClasses);
+            writeColorDef(fg, 0x04, true, definedClasses, objectsCount);
             fg.write(0x00,
                     0xFF, 0xFE, 0xFF);
             fg.writeLenUnicodeString("PublishQTProperties::QTSndSettings");
@@ -864,7 +871,7 @@ public class ContentsGenerator extends AbstractGenerator {
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01,
                     0x00, 0x00, 0x00,
-                    0x00, //??
+                    0x00, //?? 4?
                     0x00, 0x00, 0x00, 0x01,
                     0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
                     0xFF, 0xFE, 0xFF,
@@ -916,8 +923,8 @@ public class ContentsGenerator extends AbstractGenerator {
         return itemID;
     }
 
-    protected void writeDomVideoItem(FlaCs4Writer dw, Element domVideoItem, int pageCount, int symbolCount, List<String> definedClasses, int mediaCount, Reference<Long> generatedItemIdOrder, File outputDir, File sourceDir) throws IOException {
-        useClass("CMediaVideoStream", pageCount, 2 + pageCount + symbolCount, dw, definedClasses);
+    protected void writeDomVideoItem(FlaCs4Writer dw, Element domVideoItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, File outputDir, File sourceDir) throws IOException {
+        useClass("CMediaVideoStream", 1, dw, definedClasses, objectsCount);
         dw.write(0x07);
         String mediaFile = "M " + mediaCount + " " + timeCreated;
         dw.writeLenUnicodeString(mediaFile);
@@ -975,14 +982,14 @@ public class ContentsGenerator extends AbstractGenerator {
         }
     }
 
-    protected void writeDomBitmapItem(FlaCs4Writer dw, Element domBitmapItem, int pageCount, int symbolCount, List<String> definedClasses, int mediaCount, Reference<Long> generatedItemIdOrder, File outputDir, File sourceDir) throws IOException {
+    protected void writeDomBitmapItem(FlaCs4Writer dw, Element domBitmapItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, File outputDir, File sourceDir) throws IOException {
 
         /*
         <media>
           <DOMBitmapItem name="bitmapfill.jpg" itemID="66d4468f-000004f3" sourceExternalFilepath=".\LIBRARY\bitmapfill.jpg" sourceLastImported="1667390241" externalFileSize="12213" quality="50" href="bitmapfill.jpg" bitmapDataHRef="M 2 1725187727.dat" frameRight="640" frameBottom="1280" isJPEG="true"/>
      </media>
          */
-        useClass("CMediaBits", 1, 2 + pageCount + symbolCount, dw, definedClasses);
+        useClass("CMediaBits", 1, dw, definedClasses, objectsCount);
         dw.write(0x07);
         String mediaFile = "M " + mediaCount + " " + timeCreated;
         dw.writeLenUnicodeString(mediaFile);
@@ -1038,6 +1045,10 @@ public class ContentsGenerator extends AbstractGenerator {
         boolean isJPEG = false;
         if (domBitmapItem.hasAttribute("isJPEG")) {
             isJPEG = "true".equals(domBitmapItem.getAttribute("isJPEG"));
+        }
+
+        if (sourceExternalFilepath != null && sourceExternalFilepath.toLowerCase().endsWith(".jpg")) {
+            isJPEG = true;
         }
 
         int frameLeft = 0;
@@ -1098,7 +1109,7 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.write(useDeblocking ? 1 : 0);
     }
 
-    protected int writeMedia(FlaCs4Writer dw, Element document, Reference<Long> generatedItemIdOrder, int pageCount, int symbolCount, List<String> definedClasses, File outputDir, File sourceDir) throws IOException {
+    protected int writeMedia(FlaCs4Writer dw, Element document, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, File outputDir, File sourceDir) throws IOException {
         Element mediaElement = getSubElementByName(document, "media");
 
         List<Element> media = new ArrayList<>();
@@ -1107,7 +1118,14 @@ public class ContentsGenerator extends AbstractGenerator {
             media = getAllSubElements(mediaElement);
         }
 
-        dw.write(1 + media.size());
+        int imageCount = 0;
+        for (Element mediaItem : media) {
+            if ("DOMBitmapItem".equals(mediaItem.getTagName())) {
+                imageCount++;
+            }
+        }
+
+        dw.write(imageCount);
         dw.write(0x00);
 
         int mediaCount = 0;
@@ -1116,10 +1134,10 @@ public class ContentsGenerator extends AbstractGenerator {
             mediaCount++;
             switch (mediaItem.getTagName()) {
                 case "DOMBitmapItem":
-                    writeDomBitmapItem(dw, mediaItem, pageCount, symbolCount, definedClasses, mediaCount, generatedItemIdOrder, outputDir, sourceDir);
+                    writeDomBitmapItem(dw, mediaItem, definedClasses, objectsCount, mediaCount, generatedItemIdOrder, outputDir, sourceDir);
                     break;
                 case "DOMVideoItem":
-                    writeDomVideoItem(dw, mediaItem, pageCount, symbolCount, definedClasses, mediaCount, generatedItemIdOrder, outputDir, sourceDir);
+                    writeDomVideoItem(dw, mediaItem, definedClasses, objectsCount, mediaCount, generatedItemIdOrder, outputDir, sourceDir);
                     break;
             }
 
@@ -1237,11 +1255,11 @@ public class ContentsGenerator extends AbstractGenerator {
 
     }
 
-    protected void writeColorDef(FlaCs4Writer dw, int pageCount, int symbolCount, int mediaCount, int lastByte, boolean cs4, List<String> definedClasses) throws IOException {
+    protected void writeColorDef(FlaCs4Writer dw, int lastByte, boolean cs4, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws IOException {
 
         //254 swatches        
         for (int s = 0; s < solidSwatches.size(); s++) {
-            useClass("CColorDef", 0x00, 0x03 + pageCount + symbolCount + mediaCount, dw, definedClasses);
+            useClass("CColorDef", 0x00, dw, definedClasses, objectsCount);
             dw.write(lastByte);
             SolidSwatchItem sw = solidSwatches.get(s);
             dw.write(sw.red, sw.green, sw.blue, 0xFF, 0x00, 0x00, sw.hue, 0x00, sw.saturation, 0x00, sw.brightness);
@@ -1257,7 +1275,7 @@ public class ContentsGenerator extends AbstractGenerator {
 
         for (int x = 0; x < extendedSwatches.size(); x++) {
             ExtendedSwatchItem ex = extendedSwatches.get(x);
-            useClass("CColorDef", 0x00, 0x03 + pageCount + symbolCount + mediaCount, dw, definedClasses);
+            useClass("CColorDef", 0x00, dw, definedClasses, objectsCount);
             dw.write(lastByte);
             if (x == 5) {
                 dw.write(0xFF, 0xFF, 0xFF);
@@ -1578,17 +1596,19 @@ public class ContentsGenerator extends AbstractGenerator {
                 + "<?xpacket end=\"w\"?>";
     }
 
-    protected void useClass(String className, int defineNum, int firstByte, FlaCs4Writer os,
-            List<String> definedClasses
+    protected void useClass(String className, int defineNum, FlaCs4Writer os,
+            Map<String, Integer> definedClasses,
+            Reference<Integer> totalObjectCount
     ) throws IOException {
-        if (definedClasses.contains(className)) {
-            os.write(firstByte);
+        if (definedClasses.containsKey(className)) {
+            os.write(definedClasses.get(className));
             os.write(0x80);
         } else {
             os.write(0xFF, 0xFF, defineNum, 0x00);
             os.writeLenAsciiString(className);
-            definedClasses.add(className);
+            definedClasses.put(className, 1 + definedClasses.size() + totalObjectCount.getVal());
         }
+        totalObjectCount.setVal(totalObjectCount.getVal() + 1);
     }
 
     public static void main(String[] args) {
