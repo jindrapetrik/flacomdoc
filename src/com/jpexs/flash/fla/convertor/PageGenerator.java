@@ -257,14 +257,14 @@ public class PageGenerator extends AbstractGenerator {
         if (videoInstance.hasAttribute("selected")) {
             selected = "true".equals(videoInstance.getAttribute("selected"));
         }
-        
+
         boolean locked = false;
         if (videoInstance.hasAttribute("locked")) {
             locked = "true".equals(videoInstance.getAttribute("locked"));
         }
 
         instanceHeader(videoInstance, fg, 0x04);
-       
+
         long frameLeft = 0;
         if (videoInstance.hasAttribute("frameLeft")) {
             frameLeft = Long.parseLong(videoInstance.getAttribute("frameLeft"));
@@ -364,6 +364,244 @@ public class PageGenerator extends AbstractGenerator {
                     break;
             }
         }
+    }
+
+    protected List<FilterInterface> parseFilters(Element filtersElement) {
+        List<FilterInterface> filterList = new ArrayList<>();
+        if (filtersElement == null) {
+            return filterList;
+        }
+        List<Element> filters = getAllSubElements(filtersElement);
+        for (Element filter : filters) {
+            boolean enabled = true;
+            if (filter.hasAttribute("isEnabled")) {
+                enabled = !"false".equals(filter.getAttribute("isEnabled"));
+            }
+            switch (filter.getNodeName()) {
+                case "DropShadowFilter": {
+                    float blurX = 5;
+                    float blurY = 5;
+                    float strength = 1;
+                    int quality = 1; //low
+                    float angle = 45;
+                    float distance = 5;
+                    boolean knockout = false;
+                    boolean inner = false;
+                    boolean hideObject = false;
+                    Color color = Color.black;
+
+                    if (filter.hasAttribute("blurX")) {
+                        blurX = Float.parseFloat(filter.getAttribute("blurX"));
+                    }
+                    if (filter.hasAttribute("blurY")) {
+                        blurY = Float.parseFloat(filter.getAttribute("blurY"));
+                    }
+                    if (filter.hasAttribute("strength")) {
+                        strength = Float.parseFloat(filter.getAttribute("strength"));
+                    }
+                    if (filter.hasAttribute("quality")) {
+                        quality = Integer.parseInt(filter.getAttribute("quality"));
+                    }
+                    if (filter.hasAttribute("angle")) {
+                        angle = Float.parseFloat(filter.getAttribute("angle"));
+                    }
+                    if (filter.hasAttribute("distance")) {
+                        distance = Float.parseFloat(filter.getAttribute("distance"));
+                    }
+                    if (filter.hasAttribute("knockout")) {
+                        knockout = "true".equals(filter.getAttribute("knockout"));
+                    }
+                    if (filter.hasAttribute("inner")) {
+                        inner = "true".equals(filter.getAttribute("inner"));
+                    }
+                    if (filter.hasAttribute("hideObject")) {
+                        hideObject = "true".equals(filter.getAttribute("hideObject"));
+                    }
+                    color = parseColorWithAlpha(filter, color);
+                    filterList.add(new DropShadowFilter(blurX, blurY, strength, quality, angle, distance, knockout, inner, hideObject, color, enabled));
+                }
+                break;
+                case "BlurFilter": {
+                    float blurX = 5;
+                    float blurY = 5;
+                    int quality = 1;
+                    if (filter.hasAttribute("blurX")) {
+                        blurX = Float.parseFloat(filter.getAttribute("blurX"));
+                    }
+                    if (filter.hasAttribute("blurY")) {
+                        blurY = Float.parseFloat(filter.getAttribute("blurY"));
+                    }
+                    if (filter.hasAttribute("quality")) {
+                        quality = Integer.parseInt(filter.getAttribute("quality"));
+                    }
+                    filterList.add(new BlurFilter(blurX, blurY, quality, enabled));
+                }
+                break;
+                case "GlowFilter": {
+                    float blurX = 5;
+                    float blurY = 5;
+                    Color color = Color.red;
+                    boolean inner = false;
+                    boolean knockout = false;
+                    int quality = 1;
+                    float strength = 1;
+
+                    if (filter.hasAttribute("blurX")) {
+                        blurX = Float.parseFloat(filter.getAttribute("blurX"));
+                    }
+                    if (filter.hasAttribute("blurY")) {
+                        blurY = Float.parseFloat(filter.getAttribute("blurY"));
+                    }
+                    if (filter.hasAttribute("strength")) {
+                        strength = Float.parseFloat(filter.getAttribute("strength"));
+                    }
+                    color = parseColorWithAlpha(filter, color);
+                    if (filter.hasAttribute("inner")) {
+                        inner = "true".equals(filter.getAttribute("inner"));
+                    }
+                    if (filter.hasAttribute("knockout")) {
+                        knockout = "true".equals(filter.getAttribute("knockout"));
+                    }
+                    if (filter.hasAttribute("quality")) {
+                        quality = Integer.parseInt(filter.getAttribute("quality"));
+                    }
+
+                    filterList.add(new GlowFilter(blurX, blurY, color, inner, knockout, quality, strength, enabled));
+                }
+                break;
+                case "BevelFilter": {
+                    float blurX = 5;
+                    float blurY = 5;
+                    float strength = 1;
+                    int quality = 1;
+                    Color shadowColor = Color.black;
+                    Color highlightColor = Color.white;
+                    float angle = 45;
+                    float distance = 5;
+                    boolean knockout = false;
+                    int type = BevelFilter.TYPE_INNER;
+
+                    if (filter.hasAttribute("blurX")) {
+                        blurX = Float.parseFloat(filter.getAttribute("blurX"));
+                    }
+                    if (filter.hasAttribute("blurY")) {
+                        blurY = Float.parseFloat(filter.getAttribute("blurY"));
+                    }
+                    if (filter.hasAttribute("strength")) {
+                        strength = Float.parseFloat(filter.getAttribute("strength"));
+                    }
+                    if (filter.hasAttribute("quality")) {
+                        quality = Integer.parseInt(filter.getAttribute("quality"));
+                    }
+                    shadowColor = parseColorWithAlpha(filter, shadowColor, "shadowColor", "shadowAlpha");
+                    highlightColor = parseColorWithAlpha(filter, highlightColor, "highlightColor", "highlightAlpha");
+                    if (filter.hasAttribute("angle")) {
+                        angle = Float.parseFloat(filter.getAttribute("angle"));
+                    }
+                    if (filter.hasAttribute("distance")) {
+                        distance = Float.parseFloat(filter.getAttribute("distance"));
+                    }
+                    if (filter.hasAttribute("knockout")) {
+                        knockout = "true".equals(filter.getAttribute("knockout"));
+                    }
+                    if (filter.hasAttribute("type")) {
+                        switch (filter.getAttribute("type")) {
+                            case "inner":
+                                type = BevelFilter.TYPE_INNER;
+                                break;
+                            case "outer":
+                                type = BevelFilter.TYPE_OUTER;
+                                break;
+                            case "full":
+                                type = BevelFilter.TYPE_FULL;
+                                break;
+                        }
+                    }
+
+                    filterList.add(new BevelFilter(blurX, blurY, strength, quality, shadowColor, highlightColor, angle, distance, knockout, type, enabled));
+                }
+                break;
+                case "GradientGlowFilter":
+                case "GradientBevelFilter": {
+                    float blurX = 5;
+                    float blurY = 5;
+                    float strength = 1;
+                    int quality = 1;
+                    float angle = 45;
+                    float distance = 5;
+                    boolean knockout = false;
+                    int type = "GradientGlowFilter".equals(filter.getNodeName()) ? GradientGlowFilter.TYPE_OUTER : GradientBevelFilter.TYPE_INNER;
+                    List<GradientEntry> gradientEntries = new ArrayList<>();
+
+                    if (filter.hasAttribute("blurX")) {
+                        blurX = Float.parseFloat(filter.getAttribute("blurX"));
+                    }
+                    if (filter.hasAttribute("blurY")) {
+                        blurY = Float.parseFloat(filter.getAttribute("blurY"));
+                    }
+                    if (filter.hasAttribute("strength")) {
+                        strength = Float.parseFloat(filter.getAttribute("strength"));
+                    }
+                    if (filter.hasAttribute("quality")) {
+                        quality = Integer.parseInt(filter.getAttribute("quality"));
+                    }
+                    if (filter.hasAttribute("angle")) {
+                        angle = Float.parseFloat(filter.getAttribute("angle"));
+                    }
+                    if (filter.hasAttribute("distance")) {
+                        distance = Float.parseFloat(filter.getAttribute("distance"));
+                    }
+                    if (filter.hasAttribute("knockout")) {
+                        knockout = "true".equals(filter.getAttribute("knockout"));
+                    }
+                    if (filter.hasAttribute("type")) {
+                        switch (filter.getAttribute("type")) {
+                            case "inner":
+                                type = GradientGlowFilter.TYPE_INNER;
+                                break;
+                            case "outer":
+                                type = GradientGlowFilter.TYPE_OUTER;
+                                break;
+                            case "full":
+                                type = GradientGlowFilter.TYPE_FULL;
+                                break;
+                        }
+                    }
+                    gradientEntries = parseGradientEntries(filter);
+
+                    if ("GradientGlowFilter".equals(filter.getNodeName())) {
+                        filterList.add(new GradientGlowFilter(blurX, blurY, strength, quality, angle, distance, knockout, type, gradientEntries, enabled));
+                    } else {
+                        filterList.add(new GradientBevelFilter(blurX, blurY, strength, quality, angle, distance, knockout, type, gradientEntries, enabled));
+                    }
+
+                }
+                break;
+                case "AdjustColorFilter": {
+                    //brightness="-50" contrast="75" saturation="50" hue="180"
+                    float brightness = 0;
+                    float contrast = 0;
+                    float saturation = 0;
+                    float hue = 0;
+                    if (filter.hasAttribute("brightness")) {
+                        brightness = Float.parseFloat(filter.getAttribute("brightness"));
+                    }
+                    if (filter.hasAttribute("contrast")) {
+                        contrast = Float.parseFloat(filter.getAttribute("contrast"));
+                    }
+                    if (filter.hasAttribute("saturation")) {
+                        saturation = Float.parseFloat(filter.getAttribute("saturation"));
+                    }
+                    if (filter.hasAttribute("hue")) {
+                        hue = Float.parseFloat(filter.getAttribute("hue"));
+                    }
+
+                    filterList.add(new AdjustColorFilter(brightness, contrast, saturation, hue, enabled));
+                }
+                break;
+            }
+        }
+        return filterList;
     }
 
     protected void handleSymbolInstance(
@@ -471,7 +709,7 @@ public class PageGenerator extends AbstractGenerator {
         if (symbolInstance.hasAttribute("centerPoint3DY")) {
             centerPoint3DY = Double.parseDouble(symbolInstance.getAttribute("centerPoint3DY"));
         }
-        
+
         ColorEffectInterface colorEffect = new NoColorEffect();
 
         Element colorElement = getSubElementByName(symbolInstance, "color");
@@ -558,242 +796,9 @@ public class PageGenerator extends AbstractGenerator {
                         "erase",
                         "overlay",
                         "hardlight"
-                ), "normal");       
+                ), "normal");
 
-        List<FilterInterface> filterList = new ArrayList<>();
-        Element filtersElement = getSubElementByName(symbolInstance, "filters");
-        if (filtersElement != null) {
-            List<Element> filters = getAllSubElements(filtersElement);
-            for (Element filter : filters) {
-                boolean enabled = true;
-                if (filter.hasAttribute("isEnabled")) {
-                    enabled = !"false".equals(filter.getAttribute("isEnabled"));
-                }
-                switch (filter.getNodeName()) {
-                    case "DropShadowFilter": {
-                        float blurX = 5;
-                        float blurY = 5;
-                        float strength = 1;
-                        int quality = 1; //low
-                        float angle = 45;
-                        float distance = 5;
-                        boolean knockout = false;
-                        boolean inner = false;
-                        boolean hideObject = false;
-                        Color color = Color.black;
-
-                        if (filter.hasAttribute("blurX")) {
-                            blurX = Float.parseFloat(filter.getAttribute("blurX"));
-                        }
-                        if (filter.hasAttribute("blurY")) {
-                            blurY = Float.parseFloat(filter.getAttribute("blurY"));
-                        }
-                        if (filter.hasAttribute("strength")) {
-                            strength = Float.parseFloat(filter.getAttribute("strength"));
-                        }
-                        if (filter.hasAttribute("quality")) {
-                            quality = Integer.parseInt(filter.getAttribute("quality"));
-                        }
-                        if (filter.hasAttribute("angle")) {
-                            angle = Float.parseFloat(filter.getAttribute("angle"));
-                        }
-                        if (filter.hasAttribute("distance")) {
-                            distance = Float.parseFloat(filter.getAttribute("distance"));
-                        }
-                        if (filter.hasAttribute("knockout")) {
-                            knockout = "true".equals(filter.getAttribute("knockout"));
-                        }
-                        if (filter.hasAttribute("inner")) {
-                            inner = "true".equals(filter.getAttribute("inner"));
-                        }
-                        if (filter.hasAttribute("hideObject")) {
-                            hideObject = "true".equals(filter.getAttribute("hideObject"));
-                        }
-                        color = parseColorWithAlpha(filter, color);
-                        filterList.add(new DropShadowFilter(blurX, blurY, strength, quality, angle, distance, knockout, inner, hideObject, color, enabled));
-                    }
-                    break;
-                    case "BlurFilter": {
-                        float blurX = 5;
-                        float blurY = 5;
-                        int quality = 1;
-                        if (filter.hasAttribute("blurX")) {
-                            blurX = Float.parseFloat(filter.getAttribute("blurX"));
-                        }
-                        if (filter.hasAttribute("blurY")) {
-                            blurY = Float.parseFloat(filter.getAttribute("blurY"));
-                        }
-                        if (filter.hasAttribute("quality")) {
-                            quality = Integer.parseInt(filter.getAttribute("quality"));
-                        }
-                        filterList.add(new BlurFilter(blurX, blurY, quality, enabled));
-                    }
-                    break;
-                    case "GlowFilter": {
-                        float blurX = 5;
-                        float blurY = 5;
-                        Color color = Color.red;
-                        boolean inner = false;
-                        boolean knockout = false;
-                        int quality = 1;
-                        float strength = 1;
-
-                        if (filter.hasAttribute("blurX")) {
-                            blurX = Float.parseFloat(filter.getAttribute("blurX"));
-                        }
-                        if (filter.hasAttribute("blurY")) {
-                            blurY = Float.parseFloat(filter.getAttribute("blurY"));
-                        }
-                        if (filter.hasAttribute("strength")) {
-                            strength = Float.parseFloat(filter.getAttribute("strength"));
-                        }
-                        color = parseColorWithAlpha(filter, color);
-                        if (filter.hasAttribute("inner")) {
-                            inner = "true".equals(filter.getAttribute("inner"));
-                        }
-                        if (filter.hasAttribute("knockout")) {
-                            knockout = "true".equals(filter.getAttribute("knockout"));
-                        }
-                        if (filter.hasAttribute("quality")) {
-                            quality = Integer.parseInt(filter.getAttribute("quality"));
-                        }
-
-                        filterList.add(new GlowFilter(blurX, blurY, color, inner, knockout, quality, strength, enabled));
-                    }
-                    break;
-                    case "BevelFilter": {
-                        float blurX = 5;
-                        float blurY = 5;
-                        float strength = 1;
-                        int quality = 1;
-                        Color shadowColor = Color.black;
-                        Color highlightColor = Color.white;
-                        float angle = 45;
-                        float distance = 5;
-                        boolean knockout = false;
-                        int type = BevelFilter.TYPE_INNER;
-
-                        if (filter.hasAttribute("blurX")) {
-                            blurX = Float.parseFloat(filter.getAttribute("blurX"));
-                        }
-                        if (filter.hasAttribute("blurY")) {
-                            blurY = Float.parseFloat(filter.getAttribute("blurY"));
-                        }
-                        if (filter.hasAttribute("strength")) {
-                            strength = Float.parseFloat(filter.getAttribute("strength"));
-                        }
-                        if (filter.hasAttribute("quality")) {
-                            quality = Integer.parseInt(filter.getAttribute("quality"));
-                        }
-                        shadowColor = parseColorWithAlpha(filter, shadowColor, "shadowColor", "shadowAlpha");
-                        highlightColor = parseColorWithAlpha(filter, highlightColor, "highlightColor", "highlightAlpha");
-                        if (filter.hasAttribute("angle")) {
-                            angle = Float.parseFloat(filter.getAttribute("angle"));
-                        }
-                        if (filter.hasAttribute("distance")) {
-                            distance = Float.parseFloat(filter.getAttribute("distance"));
-                        }
-                        if (filter.hasAttribute("knockout")) {
-                            knockout = "true".equals(filter.getAttribute("knockout"));
-                        }
-                        if (filter.hasAttribute("type")) {
-                            switch (filter.getAttribute("type")) {
-                                case "inner":
-                                    type = BevelFilter.TYPE_INNER;
-                                    break;
-                                case "outer":
-                                    type = BevelFilter.TYPE_OUTER;
-                                    break;
-                                case "full":
-                                    type = BevelFilter.TYPE_FULL;
-                                    break;
-                            }
-                        }
-
-                        filterList.add(new BevelFilter(blurX, blurY, strength, quality, shadowColor, highlightColor, angle, distance, knockout, type, enabled));
-                    }
-                    break;
-                    case "GradientGlowFilter":
-                    case "GradientBevelFilter": {
-                        float blurX = 5;
-                        float blurY = 5;
-                        float strength = 1;
-                        int quality = 1;
-                        float angle = 45;
-                        float distance = 5;
-                        boolean knockout = false;
-                        int type = "GradientGlowFilter".equals(filter.getNodeName()) ? GradientGlowFilter.TYPE_OUTER : GradientBevelFilter.TYPE_INNER;
-                        List<GradientEntry> gradientEntries = new ArrayList<>();
-
-                        if (filter.hasAttribute("blurX")) {
-                            blurX = Float.parseFloat(filter.getAttribute("blurX"));
-                        }
-                        if (filter.hasAttribute("blurY")) {
-                            blurY = Float.parseFloat(filter.getAttribute("blurY"));
-                        }
-                        if (filter.hasAttribute("strength")) {
-                            strength = Float.parseFloat(filter.getAttribute("strength"));
-                        }
-                        if (filter.hasAttribute("quality")) {
-                            quality = Integer.parseInt(filter.getAttribute("quality"));
-                        }
-                        if (filter.hasAttribute("angle")) {
-                            angle = Float.parseFloat(filter.getAttribute("angle"));
-                        }
-                        if (filter.hasAttribute("distance")) {
-                            distance = Float.parseFloat(filter.getAttribute("distance"));
-                        }
-                        if (filter.hasAttribute("knockout")) {
-                            knockout = "true".equals(filter.getAttribute("knockout"));
-                        }
-                        if (filter.hasAttribute("type")) {
-                            switch (filter.getAttribute("type")) {
-                                case "inner":
-                                    type = GradientGlowFilter.TYPE_INNER;
-                                    break;
-                                case "outer":
-                                    type = GradientGlowFilter.TYPE_OUTER;
-                                    break;
-                                case "full":
-                                    type = GradientGlowFilter.TYPE_FULL;
-                                    break;
-                            }
-                        }
-                        gradientEntries = parseGradientEntries(filter);
-
-                        if ("GradientGlowFilter".equals(filter.getNodeName())) {
-                            filterList.add(new GradientGlowFilter(blurX, blurY, strength, quality, angle, distance, knockout, type, gradientEntries, enabled));
-                        } else {
-                            filterList.add(new GradientBevelFilter(blurX, blurY, strength, quality, angle, distance, knockout, type, gradientEntries, enabled));
-                        }
-
-                    }
-                    break;
-                    case "AdjustColorFilter": {
-                        //brightness="-50" contrast="75" saturation="50" hue="180"
-                        float brightness = 0;
-                        float contrast = 0;
-                        float saturation = 0;
-                        float hue = 0;
-                        if (filter.hasAttribute("brightness")) {
-                            brightness = Float.parseFloat(filter.getAttribute("brightness"));
-                        }
-                        if (filter.hasAttribute("contrast")) {
-                            contrast = Float.parseFloat(filter.getAttribute("contrast"));
-                        }
-                        if (filter.hasAttribute("saturation")) {
-                            saturation = Float.parseFloat(filter.getAttribute("saturation"));
-                        }
-                        if (filter.hasAttribute("hue")) {
-                            hue = Float.parseFloat(filter.getAttribute("hue"));
-                        }
-
-                        filterList.add(new AdjustColorFilter(brightness, contrast, saturation, hue, enabled));
-                    }
-                    break;
-                }
-            }
-        }
+        List<FilterInterface> filters = parseFilters(getSubElementByName(symbolInstance, "filters"));
 
         String actionScript = "";
 
@@ -809,15 +814,13 @@ public class PageGenerator extends AbstractGenerator {
             copiedComponentPathRef.setVal(copiedComponentPathRef.getVal() + 1);
         }
 
-        
-
         int symbolInstanceId = fg.generateRandomId();
 
         long centerPoint3DXLong = Math.round(centerPoint3DX * 20);
         long centerPoint3DYLong = Math.round(centerPoint3DY * 20);
 
         instanceHeader(symbolInstance, fg, 0x16);
-        
+
         fg.write((firstFrame & 0xFF), ((firstFrame >> 8) & 0xFF));
         switch (symbolType) {
             case SYMBOLTYPE_SPRITE:
@@ -872,10 +875,10 @@ public class PageGenerator extends AbstractGenerator {
                 0x00, 0x00, 0x00
         );
 
-        if (!filterList.isEmpty()) {
+        if (!filters.isEmpty()) {
             fg.write(0x01,
-                    filterList.size(), 0x00, 0x00, 0x00);
-            for (FilterInterface filter : filterList) {
+                    filters.size(), 0x00, 0x00, 0x00);
+            for (FilterInterface filter : filters) {
                 filter.write(fg);
             }
         } else {
@@ -942,26 +945,26 @@ public class PageGenerator extends AbstractGenerator {
     }
 
     private void instanceHeader(Element element, FlaCs4Writer fg, int instanceType) throws IOException {
-        
+
         Matrix placeMatrix = parseMatrix(getSubElementByName(element, "matrix"));
-        
+
         boolean selected = false;
         if (element.hasAttribute("selected")) {
             selected = "true".equals(element.getAttribute("selected"));
         }
-        
+
         boolean locked = false;
         if (element.hasAttribute("locked")) {
             locked = "true".equals(element.getAttribute("locked"));
         }
-        
+
         boolean cacheAsBitmap = false;
         if ("DOMSymbolInstance".equals(element.getTagName()) && element.hasAttribute("cacheAsBitmap")) {
             cacheAsBitmap = "true".equals(element.getAttribute("cacheAsBitmap"));
         }
-        
-        double transformationPointX = -0.0;
-        double transformationPointY = -0.0;
+
+        Double transformationPointX = null;
+        Double transformationPointY = null;
         Element transformationPointElement = getSubElementByName(element, "transformationPoint");
         if (transformationPointElement != null) {
             Element pointElement = getSubElementByName(transformationPointElement, "Point");
@@ -972,22 +975,28 @@ public class PageGenerator extends AbstractGenerator {
                 transformationPointY = Double.parseDouble(pointElement.getAttribute("y"));
             }
         }
-        
-        Point2D transformationPoint = new Point2D.Double(transformationPointX, transformationPointY);
-        Point2D transformationPointTransformed = placeMatrix.transform(transformationPoint);
 
-        long tptX = Math.round(transformationPointTransformed.getX() * 20);
-        long tptY = Math.round(transformationPointTransformed.getY() * 20);
         fg.write(0x05);
         fg.write(
-                (selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00), 0x00, 0x00,
-                (int) (tptX & 0xFF), (int) ((tptX >> 8) & 0xFF), (int) ((tptX >> 16) & 0xFF), (int) ((tptX >> 24) & 0xFF),
-                (int) (tptY & 0xFF), (int) ((tptY >> 8) & 0xFF), (int) ((tptY >> 16) & 0xFF), (int) ((tptY >> 24) & 0xFF)
-        );       
+                (selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00), 0x00, 0x00);
+        if (transformationPointX == null) {
+            fg.write(0x00, 0x00, 0x00, 0x80);
+            fg.write(0x00, 0x00, 0x00, 0x80);
+        } else {
+            Point2D transformationPoint = new Point2D.Double(transformationPointX, transformationPointY);
+            Point2D transformationPointTransformed = placeMatrix.transform(transformationPoint);
+
+            long tptX = Math.round(transformationPointTransformed.getX() * 20);
+            long tptY = Math.round(transformationPointTransformed.getY() * 20);
+            fg.write(
+                    (int) (tptX & 0xFF), (int) ((tptX >> 8) & 0xFF), (int) ((tptX >> 16) & 0xFF), (int) ((tptX >> 24) & 0xFF),
+                    (int) (tptY & 0xFF), (int) ((tptY >> 8) & 0xFF), (int) ((tptY >> 16) & 0xFF), (int) ((tptY >> 24) & 0xFF)
+            );
+        }
         fg.write(0x00, cacheAsBitmap ? 1 : 0, instanceType);
         fg.writeMatrix(placeMatrix);
     }
-    
+
     private void handleText(Element element, FlaCs4Writer fg, List<String> definedClasses) throws IOException {
         if ("DOMStaticText".equals(element.getTagName())
                 || "DOMDynamicText".equals(element.getTagName())
@@ -1103,7 +1112,7 @@ public class PageGenerator extends AbstractGenerator {
 
             int fontRenderingMode = FONTRENDERING_DEFAULT;
             boolean isSelectable = true;
-            
+
             float left = 0f;
             float width = 0f;
             float top = 0f;
@@ -1148,7 +1157,6 @@ public class PageGenerator extends AbstractGenerator {
             if (element.hasAttribute("height")) {
                 height = Float.parseFloat(element.getAttribute("height"));
             }
-            
 
             if (!isInput && element.hasAttribute("isSelectable")) {
                 isSelectable = !"false".equals(element.getAttribute("isSelectable"));
@@ -1292,7 +1300,7 @@ public class PageGenerator extends AbstractGenerator {
                                                        </textAttrs>
                                                   </DOMTextRun>
              */
-            List<FilterInterface> filters = new ArrayList<>();
+            List<FilterInterface> filters = parseFilters(getSubElementByName(element, "filters"));
 
             for (Element textRun : domTextRuns) {
                 String characters = "";
@@ -1524,8 +1532,10 @@ public class PageGenerator extends AbstractGenerator {
                 for (FilterInterface filter : filters) {
                     filter.write(fg);
                 }
+            } else {
+                fg.write(0x00);
             }
-            fg.write(0x00, 0x00, 0x00);
+            fg.write(0x00, 0x00);
         }
     }
 
