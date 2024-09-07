@@ -287,6 +287,25 @@ public class PageGenerator extends AbstractGenerator {
             name = videoInstance.getAttribute("name");
         }
 
+        String libraryItemName = videoInstance.getAttribute("libraryItemName");
+
+        Element mediaElement = getSubElementByName(videoInstance.getOwnerDocument().getDocumentElement(), "media");
+        if (mediaElement == null) {
+            return;
+        }
+
+        List<Element> mediaItems = getAllSubElements(mediaElement);
+        int videoId = 0;
+        for (int i = 0; i < mediaItems.size(); i++) {
+            Element mediaItem = mediaItems.get(i);
+            if ("DOMVideoItem".equals(mediaItem.getTagName()) && mediaItem.hasAttribute("name")) {
+                if (libraryItemName.equals(mediaItem.getAttribute("name"))) {
+                    videoId = i + 1;
+                    break;
+                }
+            }
+        }
+
         fg.writeUI32(frameLeft);
         fg.writeUI32(frameRight);
         fg.writeUI32(frameTop);
@@ -296,7 +315,8 @@ public class PageGenerator extends AbstractGenerator {
                 0xFF, 0xFE, 0xFF, 0x00,
                 0xFF, 0xFE, 0xFF);
         fg.writeLenUnicodeString(name);
-        fg.write(0x01, 0x00, 0x00, 0x00, 0x01, 0x00);
+        fg.write(0x01, 0x00, 0x00, 0x00);
+        fg.writeUI16(videoId);
     }
 
     protected void handleBitmapInstance(Element bitmapInstance,
@@ -312,12 +332,12 @@ public class PageGenerator extends AbstractGenerator {
         if (mediaElement == null) {
             return;
         }
-        List<Element> domBitmapItems = getAllSubElementsByName(mediaElement, "DOMBitmapItem");
+        List<Element> mediaItems = getAllSubElements(mediaElement);
         int bitmapId = 0;
-        for (int i = 0; i < domBitmapItems.size(); i++) {
-            Element domBitmapItem = domBitmapItems.get(i);
-            if (domBitmapItem.hasAttribute("name")) {
-                if (libraryItemName.equals(domBitmapItem.getAttribute("name"))) {
+        for (int i = 0; i < mediaItems.size(); i++) {
+            Element mediaItem = mediaItems.get(i);
+            if ("DOMBitmapItem".equals(mediaItem.getTagName()) && mediaItem.hasAttribute("name")) {
+                if (libraryItemName.equals(mediaItem.getAttribute("name"))) {
                     bitmapId = i + 1;
                     break;
                 }
@@ -2607,7 +2627,11 @@ public class PageGenerator extends AbstractGenerator {
                 }
             }
         }
-        fg.writePageFooter(nextLayerId, nextFolderId, 0);
+        int currentFrame = 0;
+        if (domTimeLine.hasAttribute("currentFrame")) {
+            currentFrame = Integer.parseInt(domTimeLine.getAttribute("currentFrame"));
+        }
+        fg.writePageFooter(nextLayerId, nextFolderId, currentFrame);
     }
 
     public void generatePageFile(Element domTimeline, File outputFile) throws FileNotFoundException, IOException, SAXException, ParserConfigurationException {

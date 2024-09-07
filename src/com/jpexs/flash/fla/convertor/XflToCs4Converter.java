@@ -49,7 +49,7 @@ public class XflToCs4Converter {
         File domDocumentFile = sourceDir.toPath().resolve("DOMDocument.xml").toFile();
         File publishSettingsFile = sourceDir.toPath().resolve("PublishSettings.xml").toFile();
         File metadataFile = sourceDir.toPath().resolve("META-INF/metadata.xml").toFile();
-        
+
         if (!publishSettingsFile.exists()) {
             publishSettingsFile = null;
         }
