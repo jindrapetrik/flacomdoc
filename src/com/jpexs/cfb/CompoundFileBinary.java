@@ -103,6 +103,8 @@ public class CompoundFileBinary implements AutoCloseable {
     private long miniStreamCutoffSize;
     private long miniStreamSize;
     private int sectorLength;
+    
+    private long firstDifatSectorLocation;
 
     public CompoundFileBinary(File file) throws IOException {
         this(file, false);
@@ -264,7 +266,7 @@ public class CompoundFileBinary implements AutoCloseable {
         miniStreamCutoffSize = 4096;
         long firstMiniFatSectorLocation = 2; //ENDOFCHAIN;
         long numMiniFatSectors = 1; //
-        long firstDifatSectorLocation = ENDOFCHAIN;
+        firstDifatSectorLocation = ENDOFCHAIN;
         long numDifatSectors = 0;
         writeUI32(numFatSectors);   //0x2C
         writeUI32(firstDirectorySectorLocation); //0x30
@@ -923,10 +925,8 @@ public class CompoundFileBinary implements AutoCloseable {
         if (prevSector != null) {
             long sectorId = 0;
             loopF:
-            for (long fatSect : difat) {
-                if (fatSect == FREESECT) {
-                    continue;
-                }
+            for (int d = 0; d < difat.size(); d++) {
+                long fatSect = difat.get(d);
                 for (int i = 0; i < sectorLength; i += 4) {
                     if (sectorId == prevSector) {
                         raf.seek((1 + fatSect) * sectorLength + i);
@@ -945,27 +945,7 @@ public class CompoundFileBinary implements AutoCloseable {
     private List<Long> allocateNewLength(long length) throws IOException {
 
         int numSectors = (int) Math.ceil(length / (float) sectorLength);
-
-        raf.seek(0x4C);
-        List<Long> difat = new ArrayList<>();
-        for (int i = 0; i < 109; i++) {
-            difat.add(readUI32());
-        }
-
-        raf.seek(0x44);
-        long firstDifatSectorLocation = readUI32();
-
-        long difatSectorLocation = firstDifatSectorLocation;
-
-        while (difatSectorLocation != ENDOFCHAIN) {
-            raf.seek((1 + difatSectorLocation) * sectorLength);
-            for (int i = 0; i < sectorLength - 4; i += 4) {
-                long df = readUI32();
-                difat.add(df);
-            }
-            difatSectorLocation = readUI32();
-        }
-
+        
         List<Long> newSectorIds = new ArrayList<>();
         long sectorId = 0;
         Long lastSectorFatFileOffset = null;
@@ -1002,14 +982,17 @@ public class CompoundFileBinary implements AutoCloseable {
             //we need to enlarge difat
             raf.seek(0x4C);
             boolean inMainDiFat = false;
+            int diFatIndex = 0;
             for (int i = 0; i < 109; i++) {
                 long difatval = readUI32();
                 if (difatval == FREESECT) {
                     raf.seek(0x4C + i * 4);
                     writeUI32(sectorId);
-                    inMainDiFat = true;
+                    inMainDiFat = true;                    
+                    difat.set(diFatIndex, sectorId);
                     break;
                 }
+                diFatIndex++;
             }
             boolean diFatSectorAdded = false;
             if (!inMainDiFat) {
@@ -1018,18 +1001,20 @@ public class CompoundFileBinary implements AutoCloseable {
 
                 boolean inSecondaryDiFat = false;
 
-                difatSectorLocation = firstDifatSectorLocation;
+                long difatSectorLocation = firstDifatSectorLocation;
                 loopsec:
                 while (difatSectorLocation != ENDOFCHAIN) {
                     for (int i = 0; i < sectorLength - 4; i += 4) {
                         raf.seek((1 + difatSectorLocation) * sectorLength + i);
                         long fatSector = readUI32();
-                        if (fatSector == FREESECT) {
+                        if (fatSector == FREESECT) {                            
                             raf.seek((1 + difatSectorLocation) * sectorLength + i);
                             writeUI32(newFatSectorId);
                             inSecondaryDiFat = true;
+                            difat.set(diFatIndex, newFatSectorId);
                             break loopsec;
                         }
+                        diFatIndex++;
                     }
                     difatSectorLocation = readUI32();
                 }
@@ -1057,8 +1042,10 @@ public class CompoundFileBinary implements AutoCloseable {
                     }
                     raf.seek((1 + newDiFatSectorId) * sectorLength);
                     writeUI32(newFatSectorId);
+                    difat.add(newFatSectorId);
                     for (int i = 4; i < sectorLength - 4; i += 4) {
                         writeUI32(FREESECT);
+                        difat.add(FREESECT);
                     }
                     writeUI32(ENDOFCHAIN);
                     fat.put(newDiFatSectorId, DIFSECT);
