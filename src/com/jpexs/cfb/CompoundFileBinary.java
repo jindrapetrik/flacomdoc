@@ -730,29 +730,40 @@ public class CompoundFileBinary implements AutoCloseable {
             }
         }
 
-        Long sectorId = null;
         Long firstSectorId = null;
-        int pos = 0;
-        while (pos < data.length) {
-            int sectorSize;
-            if (data.length < miniStreamCutoffSize) {
+        if (data.length < miniStreamCutoffSize) {
+            Long sectorId = null;
+
+            int pos = 0;
+            while (pos < data.length) {
+                int sectorSize = 64;
                 sectorId = allocateNewMiniSector(sectorId);
                 seekToMiniStream(sectorId);
-                sectorSize = 64;
-            } else {
-                sectorId = allocateNewSector(sectorId);
+                if (firstSectorId == null) {
+                    firstSectorId = sectorId;
+                }
+                int len = sectorSize;
+                if (pos + len > data.length) {
+                    len = data.length - pos;
+                }
+                raf.write(data, pos, len);
+                pos += len;
+            }
+        } else {
+            List<Long> sectors = allocateNewLength(data.length);
+            int sectorSize = sectorLength;
+
+            int pos = 0;
+            for (Long sectorId : sectors) {
                 raf.seek((1 + sectorId) * sectorLength);
-                sectorSize = sectorLength;
+                int len = sectorSize;
+                if (pos + len > data.length) {
+                    len = data.length - pos;
+                }
+                raf.write(data, pos, len);
+                pos += len;
             }
-            if (firstSectorId == null) {
-                firstSectorId = sectorId;
-            }
-            int len = sectorSize;
-            if (pos + len > data.length) {
-                len = data.length - pos;
-            }
-            raf.write(data, pos, len);
-            pos += len;
+            firstSectorId = sectors.get(0);
         }
 
         if (data.length == 0) {
@@ -1025,8 +1036,146 @@ public class CompoundFileBinary implements AutoCloseable {
             }
             fat.put(prevSector, newSectorId);
         }
-        Logger.getLogger(CompoundFileBinary.class.getName()).log(Level.FINE, "allocated new long sector {0}({1}) after sector {2}", new Object[]{newSectorId, String.format("%1$04X", (1 + newSectorId) * sectorLength), prevSector});
+        Logger.getLogger(CompoundFileBinary.class.getName()).log(Level.FINE, "allocated new long sector {0,number,#}({1}) after sector {2,number,#}", new Object[]{newSectorId, String.format("%1$04X", (1 + newSectorId) * sectorLength), prevSector});
         return newSectorId;
+    }
+
+    private List<Long> allocateNewLength(long length) throws IOException {
+
+        int numSectors = (int) Math.ceil(length / (float) sectorLength);
+
+        raf.seek(0x4C);
+        List<Long> difat = new ArrayList<>();
+        for (int i = 0; i < 109; i++) {
+            difat.add(readUI32());
+        }
+
+        raf.seek(0x44);
+        long firstDifatSectorLocation = readUI32();
+
+        long difatSectorLocation = firstDifatSectorLocation;
+
+        while (difatSectorLocation != ENDOFCHAIN) {
+            raf.seek((1 + difatSectorLocation) * sectorLength);
+            for (int i = 0; i < sectorLength - 4; i += 4) {
+                difat.add(readUI32());
+            }
+            difatSectorLocation = readUI32();
+        }
+
+        List<Long> newSectorIds = new ArrayList<>();
+        long sectorId = 0;
+        Long lastSectorFatFileOffset = null;
+        long lastSectorId = -1;
+        for (long fatSect : difat) {
+            if (fatSect == FREESECT) {
+                continue;
+            }
+            for (int i = 0; i < sectorLength; i += 4) {
+                raf.seek((1 + fatSect) * sectorLength + i);
+                long sect = readUI32();
+                if (sect == FREESECT) {
+                    newSectorIds.add(sectorId);
+                    raf.seek((1 + fatSect) * sectorLength + i);
+                    writeUI32(ENDOFCHAIN);
+                    fat.put(sectorId, ENDOFCHAIN);
+                    if (lastSectorFatFileOffset != null) {
+                        raf.seek(lastSectorFatFileOffset);
+                        writeUI32(sectorId);
+                        fat.put(lastSectorId, sectorId);
+                    }
+                    lastSectorFatFileOffset = (1 + fatSect) * sectorLength + i;
+                    lastSectorId = sectorId;
+                    if (newSectorIds.size() == numSectors) {
+                        break;
+                    }
+                }
+                sectorId++;
+            }
+        }
+        while (newSectorIds.size() < numSectors) {
+            int numNewSectors = 1;
+            Long newFatSectorId = sectorId;
+            //we need to enlarge difat
+            raf.seek(0x4C);
+            boolean inMainDiFat = false;
+            for (int i = 0; i < 109; i++) {
+                long difatval = readUI32();
+                if (difatval == FREESECT) {
+                    raf.seek(0x4C + i * 4);
+                    writeUI32(sectorId);
+                    inMainDiFat = true;
+                    break;
+                }
+            }
+            if (!inMainDiFat) {
+                numNewSectors++;
+                long newDiFatSectorId = sectorId;
+                newFatSectorId = newDiFatSectorId++;
+                if (firstDifatSectorLocation == ENDOFCHAIN) {
+                    raf.seek(0x44);
+                    writeUI32(newDiFatSectorId);
+                } else {
+                    difatSectorLocation = firstDifatSectorLocation;
+                    while (difatSectorLocation != ENDOFCHAIN) {
+                        raf.seek((1 + difatSectorLocation) * sectorLength + sectorLength - 4);
+                        long newDifatSectorLocation = readUI32();
+                        if (newDifatSectorLocation == ENDOFCHAIN) {
+                            raf.seek((1 + difatSectorLocation) * sectorLength + sectorLength - 4);
+                            writeUI32(newDiFatSectorId);
+                        }
+                        difatSectorLocation = newDifatSectorLocation;
+                    }
+                }
+                raf.seek((1 + newDiFatSectorId) * sectorLength);
+                writeUI32(newFatSectorId);
+                for (int i = 4; i < sectorLength - 4; i += 4) {
+                    writeUI32(FREESECT);
+                }
+                writeUI32(ENDOFCHAIN);
+                fat.put(newDiFatSectorId, ENDOFCHAIN);
+            }
+            fat.put(newFatSectorId, ENDOFCHAIN);
+            //newSectorId = newFatSectorId + 1;
+            raf.seek((1 + newFatSectorId) * sectorLength);
+            for (int i = 0; i < numNewSectors; i++) {
+                writeUI32(ENDOFCHAIN);
+            }
+
+            sectorId += numNewSectors;
+
+            for (int i = numNewSectors * 4; i < sectorLength; i += 4) {
+                raf.seek((1 + newFatSectorId) * sectorLength + i);
+                if (newSectorIds.size() < numSectors) {
+                    if (lastSectorFatFileOffset != null) {
+                        raf.seek(lastSectorFatFileOffset);
+                        writeUI32(sectorId);
+                        fat.put(lastSectorId, sectorId);
+                    }
+                    lastSectorFatFileOffset = (1 + newFatSectorId) * sectorLength + i;
+                    lastSectorId = sectorId;
+                    writeUI32(ENDOFCHAIN);
+                    newSectorIds.add(sectorId);
+                } else {
+                    writeUI32(FREESECT);
+                }
+                sectorId++;
+            }
+            raf.seek(0x2C);
+            long numFatSectors = readUI32();
+            numFatSectors++;
+            raf.seek(0x2C);
+            writeUI32(numFatSectors);
+        }
+        for (long newSectorId : newSectorIds) {
+            raf.seek((1 + sectorId) * sectorLength);
+            for (int i = 0; i < sectorLength; i++) {
+                write(0);
+            }
+        }
+
+        Logger.getLogger(CompoundFileBinary.class.getName()).log(Level.FINE, "allocated new sectors of size {0,number,#}", length);
+        return newSectorIds;
     }
 
     private void writeEmptyDirectoryEntry() throws IOException {
