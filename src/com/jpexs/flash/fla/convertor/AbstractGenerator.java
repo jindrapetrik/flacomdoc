@@ -18,6 +18,7 @@
  */
 package com.jpexs.flash.fla.convertor;
 
+import com.jpexs.helpers.Reference;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.GraphicsEnvironment;
@@ -239,4 +240,25 @@ public abstract class AbstractGenerator {
         }
     }
 
+    protected void useClass(String className, int defineNum, FlaCs4Writer os,
+            Map<String, Integer> definedClasses,
+            Reference<Integer> totalObjectCount
+    ) throws IOException {
+        if (definedClasses.containsKey(className)) {
+            os.write(definedClasses.get(className));
+            os.write(0x80);
+        } else {
+            os.write(0xFF, 0xFF, defineNum, 0x00);
+            os.writeLenAsciiString(className);
+            definedClasses.put(className, 1 + definedClasses.size() + totalObjectCount.getVal());
+        }
+        totalObjectCount.setVal(totalObjectCount.getVal() + 1);
+    }
+    
+    protected void useClass(String className, FlaCs4Writer os,
+            Map<String, Integer> definedClasses,
+            Reference<Integer> totalObjectCount
+    ) throws IOException {
+        useClass(className, 1, os, definedClasses, totalObjectCount);
+    }
 }

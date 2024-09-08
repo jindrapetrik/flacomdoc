@@ -18,12 +18,6 @@
  */
 package com.jpexs.flash.fla.convertor;
 
-import static com.jpexs.flash.fla.convertor.FlaCs4Writer.LOOPMODE_LOOP;
-import static com.jpexs.flash.fla.convertor.FlaCs4Writer.LOOPMODE_PLAY_ONCE;
-import static com.jpexs.flash.fla.convertor.FlaCs4Writer.LOOPMODE_SINGLE_FRAME;
-import static com.jpexs.flash.fla.convertor.FlaCs4Writer.SYMBOLTYPE_BUTTON;
-import static com.jpexs.flash.fla.convertor.FlaCs4Writer.SYMBOLTYPE_GRAPHIC;
-import static com.jpexs.flash.fla.convertor.FlaCs4Writer.SYMBOLTYPE_SPRITE;
 import com.jpexs.flash.fla.convertor.coloreffects.AdvancedColorEffect;
 import com.jpexs.flash.fla.convertor.coloreffects.AlphaColorEffect;
 import com.jpexs.flash.fla.convertor.coloreffects.BrightnessColorEffect;
@@ -53,11 +47,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Stack;
+import java.util.Set;
 import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -70,13 +64,9 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import org.w3c.dom.Attr;
-import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.NodeList;
-import org.w3c.dom.TypeInfo;
-import org.w3c.dom.UserDataHandler;
 
 /**
  *
@@ -84,7 +74,7 @@ import org.w3c.dom.UserDataHandler;
  */
 public class PageGenerator extends AbstractGenerator {
 
-    protected void useClass(String className, FlaCs4Writer os, List<String> definedClasses) throws IOException {
+    /*protected void useClass(String className, FlaCs4Writer os, Map<String, Integer> definedClasses,            Reference<Integer> totalObjectCount) throws IOException {
         if (definedClasses.contains(className)) {
             os.write(1 + 2 * definedClasses.indexOf(className));
             os.write(0x80);
@@ -93,8 +83,7 @@ public class PageGenerator extends AbstractGenerator {
             os.writeLenAsciiString(className);
             definedClasses.add(className);
         }
-    }
-
+    }*/
     private void handleFill(Node fillStyleVal, FlaCs4Writer fg) throws IOException {
         switch (fillStyleVal.getNodeName()) {
             case "SolidColor":
@@ -206,12 +195,13 @@ public class PageGenerator extends AbstractGenerator {
         }
     }
 
+    /*
     private void handleParentLayer(
             Element layer,
             FlaCs4Writer fg,
             Map<Integer, Integer> layerIndexToRevLayerIndex,
             boolean isEmpty,
-            List<String> definedClasses,
+            Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
             Reference<Integer> totalFramesCountRef) throws IOException {
         int parentLayerIndex = -1;
@@ -226,7 +216,7 @@ public class PageGenerator extends AbstractGenerator {
         if (layer.hasAttribute("open")) {
             open = !"false".equals(layer.getAttribute("open"));
         }
-        writeLayerContents(layer, fg, definedClasses, copiedComponentPathRef, totalFramesCountRef);
+        writeLayerContents(layer, fg, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef);
 
         int reverseParentLayerIndex = parentLayerIndex == -1 ? -1 : layerIndexToRevLayerIndex.get(parentLayerIndex);
         fg.writeLayerEnd2(reverseParentLayerIndex, open, autoNamed, 0);
@@ -235,8 +225,7 @@ public class PageGenerator extends AbstractGenerator {
             fg.write(0x01);
             fg.write(0x00);
         }
-    }
-
+    }*/
     private List<GradientEntry> parseGradientEntries(Element element) {
         List<GradientEntry> ret = new ArrayList<>();
         List<Element> entries = getAllSubElementsByName(element, "GradientEntry");
@@ -253,19 +242,8 @@ public class PageGenerator extends AbstractGenerator {
 
     protected void handleVideoInstance(Element videoInstance,
             FlaCs4Writer fg,
-            List<String> definedClasses) throws IOException {
-        useClass("CPicVideoStream", fg, definedClasses);
-
-        boolean selected = false;
-        if (videoInstance.hasAttribute("selected")) {
-            selected = "true".equals(videoInstance.getAttribute("selected"));
-        }
-
-        boolean locked = false;
-        if (videoInstance.hasAttribute("locked")) {
-            locked = "true".equals(videoInstance.getAttribute("locked"));
-        }
-
+            Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
+        useClass("CPicVideoStream", fg, definedClasses, totalObjectCount);       
         instanceHeader(videoInstance, fg, 0x04);
 
         long frameLeft = 0;
@@ -324,7 +302,7 @@ public class PageGenerator extends AbstractGenerator {
 
     protected void handleBitmapInstance(Element bitmapInstance,
             FlaCs4Writer fg,
-            List<String> definedClasses) throws IOException {
+            Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
         if (!bitmapInstance.hasAttribute("libraryItemName")) {
             return;
         }
@@ -351,7 +329,7 @@ public class PageGenerator extends AbstractGenerator {
             return;
         }
 
-        useClass("CPicBitmap", fg, definedClasses);
+        useClass("CPicBitmap", fg, definedClasses, totalObjectCount);
         instanceHeader(bitmapInstance, fg, 0x02);
         fg.writeUI16(bitmapId);
         fg.write(0x00);
@@ -359,7 +337,7 @@ public class PageGenerator extends AbstractGenerator {
 
     protected void handleElements(Element elementsNode,
             FlaCs4Writer fg,
-            List<String> definedClasses,
+            Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef) throws IOException {
         if (elementsNode == null) {
             return;
@@ -369,18 +347,18 @@ public class PageGenerator extends AbstractGenerator {
             Element instance = instances.get(instanceIndex);
             switch (instance.getTagName()) {
                 case "DOMSymbolInstance":
-                    handleSymbolInstance(instance, fg, definedClasses, copiedComponentPathRef);
+                    handleSymbolInstance(instance, fg, definedClasses, totalObjectCount, copiedComponentPathRef);
                     break;
                 case "DOMBitmapInstance":
-                    handleBitmapInstance(instance, fg, definedClasses);
+                    handleBitmapInstance(instance, fg, definedClasses, totalObjectCount);
                     break;
                 case "DOMVideoInstance":
-                    handleVideoInstance(instance, fg, definedClasses);
+                    handleVideoInstance(instance, fg, definedClasses, totalObjectCount);
                     break;
                 case "DOMStaticText":
                 case "DOMDynamicText":
                 case "DOMInputText":
-                    handleText(instance, fg, definedClasses);
+                    handleText(instance, fg, definedClasses, totalObjectCount);
                     break;
                 case "DOMTLFText":
                     Logger.getLogger(PageGenerator.class.getName()).warning("DOMTLFText element is not supported");
@@ -554,7 +532,6 @@ public class PageGenerator extends AbstractGenerator {
                     float distance = 5;
                     boolean knockout = false;
                     int type = "GradientGlowFilter".equals(filter.getNodeName()) ? GradientGlowFilter.TYPE_OUTER : GradientBevelFilter.TYPE_INNER;
-                    List<GradientEntry> gradientEntries = new ArrayList<>();
 
                     if (filter.hasAttribute("blurX")) {
                         blurX = Float.parseFloat(filter.getAttribute("blurX"));
@@ -590,7 +567,7 @@ public class PageGenerator extends AbstractGenerator {
                                 break;
                         }
                     }
-                    gradientEntries = parseGradientEntries(filter);
+                    List<GradientEntry> gradientEntries = parseGradientEntries(filter);
 
                     if ("GradientGlowFilter".equals(filter.getNodeName())) {
                         filterList.add(new GradientGlowFilter(blurX, blurY, strength, quality, angle, distance, knockout, type, gradientEntries, enabled));
@@ -630,7 +607,7 @@ public class PageGenerator extends AbstractGenerator {
     protected void handleSymbolInstance(
             Element symbolInstance,
             FlaCs4Writer fg,
-            List<String> definedClasses,
+            Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef
     ) throws IOException {
 
@@ -690,12 +667,12 @@ public class PageGenerator extends AbstractGenerator {
         int firstFrame = 0; //zero-based
 
         if (symbolType == FlaCs4Writer.SYMBOLTYPE_BUTTON) {
-            useClass("CPicButton", fg, definedClasses);
+            useClass("CPicButton", fg, definedClasses, totalObjectCount);
             if (symbolInstance.hasAttribute("trackAsMenu")) {
                 trackAsMenu = "true".equals(symbolInstance.getAttribute("trackAsMenu"));
             }
         } else if (symbolType == FlaCs4Writer.SYMBOLTYPE_GRAPHIC) {
-            useClass("CPicSymbol", fg, definedClasses);
+            useClass("CPicSymbol", fg, definedClasses, totalObjectCount);
 
             if (symbolInstance.hasAttribute("loop")) {
                 switch (symbolInstance.getAttribute("loop")) {
@@ -714,7 +691,7 @@ public class PageGenerator extends AbstractGenerator {
                 firstFrame = Integer.parseInt(symbolInstance.getAttribute("firstFrame"));
             }
         } else {
-            useClass("CPicSprite", fg, definedClasses);
+            useClass("CPicSprite", fg, definedClasses, totalObjectCount);
         }
 
         String instanceName = "";
@@ -846,21 +823,21 @@ public class PageGenerator extends AbstractGenerator {
 
         fg.write((firstFrame & 0xFF), ((firstFrame >> 8) & 0xFF));
         switch (symbolType) {
-            case SYMBOLTYPE_SPRITE:
+            case FlaCs4Writer.SYMBOLTYPE_SPRITE:
                 fg.write(0x02);
                 break;
-            case SYMBOLTYPE_BUTTON:
+            case FlaCs4Writer.SYMBOLTYPE_BUTTON:
                 fg.write(0x00);
                 break;
-            case SYMBOLTYPE_GRAPHIC:
+            case FlaCs4Writer.SYMBOLTYPE_GRAPHIC:
                 switch (loop) {
-                    case LOOPMODE_LOOP:
+                    case FlaCs4Writer.LOOPMODE_LOOP:
                         fg.write(0x00);
                         break;
-                    case LOOPMODE_PLAY_ONCE:
+                    case FlaCs4Writer.LOOPMODE_PLAY_ONCE:
                         fg.write(0x01);
                         break;
-                    case LOOPMODE_SINGLE_FRAME:
+                    case FlaCs4Writer.LOOPMODE_SINGLE_FRAME:
                         fg.write(0x02);
                         break;
                 }
@@ -918,7 +895,7 @@ public class PageGenerator extends AbstractGenerator {
                 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
-        if (symbolType != SYMBOLTYPE_SPRITE) {
+        if (symbolType != FlaCs4Writer.SYMBOLTYPE_SPRITE) {
             fg.write(
                     0x00, 0x00, 0x00, 0x80,
                     0x00, 0x00, 0x00, 0x80);
@@ -931,24 +908,24 @@ public class PageGenerator extends AbstractGenerator {
 
         fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
-        if (symbolType == SYMBOLTYPE_GRAPHIC) {
+        if (symbolType == FlaCs4Writer.SYMBOLTYPE_GRAPHIC) {
             return;
         }
 
-        fg.write((symbolType == SYMBOLTYPE_BUTTON ? 0x0B : 0x08), 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+        fg.write((symbolType == FlaCs4Writer.SYMBOLTYPE_BUTTON ? 0x0B : 0x08), 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
                 0x00,
                 (symbolInstanceId & 0xFF), ((symbolInstanceId >> 8) & 0xFF),
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0xFF, 0xFE, 0xFF);
         fg.writeLenUnicodeString(actionScript);
-        if (symbolType == SYMBOLTYPE_BUTTON) {
+        if (symbolType == FlaCs4Writer.SYMBOLTYPE_BUTTON) {
             fg.write((int) (trackAsMenu ? 1 : 0));
         }
         fg.write(0xFF, 0xFE, 0xFF);
 
         fg.writeLenUnicodeString(instanceName);
 
-        if (symbolType == SYMBOLTYPE_BUTTON) {
+        if (symbolType == FlaCs4Writer.SYMBOLTYPE_BUTTON) {
             fg.write(0x00, 0x00, 0x00, 0x00);
             return;
         }
@@ -992,10 +969,10 @@ public class PageGenerator extends AbstractGenerator {
         if (transformationPointElement != null) {
             Element pointElement = getSubElementByName(transformationPointElement, "Point");
             if (pointElement.hasAttribute("x")) {
-                transformationPointX = Double.parseDouble(pointElement.getAttribute("x"));
+                transformationPointX = Double.valueOf(pointElement.getAttribute("x"));
             }
             if (pointElement.hasAttribute("y")) {
-                transformationPointY = Double.parseDouble(pointElement.getAttribute("y"));
+                transformationPointY = Double.valueOf(pointElement.getAttribute("y"));
             }
         }
 
@@ -1020,11 +997,11 @@ public class PageGenerator extends AbstractGenerator {
         fg.writeMatrix(placeMatrix);
     }
 
-    private void handleText(Element element, FlaCs4Writer fg, List<String> definedClasses) throws IOException {
+    private void handleText(Element element, FlaCs4Writer fg, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
         if ("DOMStaticText".equals(element.getTagName())
                 || "DOMDynamicText".equals(element.getTagName())
                 || "DOMInputText".equals(element.getTagName())) {
-            useClass("CPicText", fg, definedClasses);
+            useClass("CPicText", fg, definedClasses, totalObjectCount);
 
             boolean isDynamic = "DOMDynamicText".equals(element.getTagName());
             boolean isInput = "DOMInputText".equals(element.getTagName());
@@ -1676,11 +1653,11 @@ public class PageGenerator extends AbstractGenerator {
     private void writeLayerContents(
             Element layer,
             FlaCs4Writer fg,
-            List<String> definedClasses,
+            Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
             Reference<Integer> totalFramesCountRef
     ) throws IOException {
-        useClass("CPicLayer", fg, definedClasses);
+        useClass("CPicLayer", fg, definedClasses, totalObjectCount);
         fg.write(0x05);
         fg.write(0x00);
 
@@ -1690,6 +1667,9 @@ public class PageGenerator extends AbstractGenerator {
             switch (layerTypeStr) {
                 case "folder":
                     layerType = FlaCs4Writer.LAYERTYPE_FOLDER;
+                    break;
+                case "mask":
+                    layerType = FlaCs4Writer.LAYERTYPE_MASK;
                     break;
                 case "guide":
                     layerType = FlaCs4Writer.LAYERTYPE_GUIDE;
@@ -1702,7 +1682,7 @@ public class PageGenerator extends AbstractGenerator {
         } else {
             List<Element> frames = getAllSubElementsByName(framesNode, "DOMFrame");
             for (int f = 0; f < frames.size(); f++) {
-                useClass("CPicFrame", fg, definedClasses);
+                useClass("CPicFrame", fg, definedClasses, totalObjectCount);
                 fg.write(0x05);
                 fg.write(0x00);
                 totalFramesCountRef.setVal(totalFramesCountRef.getVal() + 1);
@@ -1710,7 +1690,7 @@ public class PageGenerator extends AbstractGenerator {
 
                 Element elementsNode = getSubElementByName(frame, "elements");
 
-                handleElements(elementsNode, fg, definedClasses, copiedComponentPathRef);
+                handleElements(elementsNode, fg, definedClasses, totalObjectCount, copiedComponentPathRef);
                 List<Element> elements = new ArrayList<>();
                 if (elementsNode != null) {
                     elements = getAllSubElements(elementsNode);
@@ -1994,7 +1974,6 @@ public class PageGenerator extends AbstractGenerator {
                 if (frame.hasAttribute("name")) {
                     name = frame.getAttribute("name");
                 }
-                int labelType = 0;
                 boolean comment = false;
                 boolean anchor = false;
                 if (frame.hasAttribute("labelType")) {
@@ -2063,10 +2042,9 @@ public class PageGenerator extends AbstractGenerator {
                 fg.writeUI16(keyMode);
                 fg.writeUI16(acceleration);
 
-                String soundName = null;
                 int soundId = 0;
                 if (frame.hasAttribute("soundName")) {
-                    soundName = frame.getAttribute("soundName");
+                    String soundName = frame.getAttribute("soundName");
 
                     Element mediaEl = getSubElementByName(frame.getOwnerDocument().getDocumentElement(), "media");
                     if (mediaEl != null) {
@@ -2181,7 +2159,7 @@ public class PageGenerator extends AbstractGenerator {
                 if (morphShape == null) {
                     fg.write(0x00, 0x00);
                 } else {
-                    useClass("CPicMorphShape", fg, definedClasses);
+                    useClass("CPicMorphShape", fg, definedClasses, totalObjectCount);
 
                     fg.write(
                             0x02, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
@@ -2197,7 +2175,7 @@ public class PageGenerator extends AbstractGenerator {
                     List<Element> morphSegments = getAllSubElementsByName(morphSegmentsElement, "MorphSegment");
                     fg.writeUI16(morphSegments.size());
                     for (Element morphSegment : morphSegments) {
-                        useClass("CMorphSegment", fg, definedClasses);
+                        useClass("CMorphSegment", fg, definedClasses, totalObjectCount);
 
                         Point2D startpointA = fg.parsePoint(morphSegment.getAttribute("startPointA"));
                         Point2D startpointB = fg.parsePoint(morphSegment.getAttribute("startPointB"));
@@ -2228,7 +2206,7 @@ public class PageGenerator extends AbstractGenerator {
                         List<Element> morphCurvesList = getAllSubElementsByName(morphSegment, "MorphCurves");
                         fg.writeUI16(morphCurvesList.size());
                         for (Element morphCurves : morphCurvesList) {
-                            useClass("CMorphCurve", fg, definedClasses);
+                            useClass("CMorphCurve", fg, definedClasses, totalObjectCount);
                             Point2D controlPointA = fg.parsePoint(morphCurves.getAttribute("controlPointA"));
                             Point2D anchorPointA = fg.parsePoint(morphCurves.getAttribute("anchorPointA"));
                             Point2D controlPointB = fg.parsePoint(morphCurves.getAttribute("controlPointB"));
@@ -2378,7 +2356,7 @@ public class PageGenerator extends AbstractGenerator {
                     List<String> properties = Arrays.asList("position", "rotation", "scale", "color", "filters", "all");
 
                     if (tweensElement == null) {
-                        for (String property : properties) {
+                        for (int i = 0; i < properties.size(); i++) {
                             fg.writeUI32(0);
                         }
                     } else {
@@ -2589,107 +2567,108 @@ public class PageGenerator extends AbstractGenerator {
         return innerXml.toString();
     }
 
-    private static Map<Integer, Integer> calculateReverseParentLayerIndices(List<Element> layers) {
-        Map<Integer, Integer> layerIndexToRevLayerIndex = new HashMap<>();
-        Map<Integer, Integer> folderToEndLayer = new HashMap<>();
+    private void writeLayer(
+            FlaCs4Writer fg,
+            List<Element> layers,
+            int layerIndex,
+            Set<Integer> writtenLayers,
+            Map<String, Integer> definedClasses,
+            Reference<Integer> totalObjectCount,
+            Reference<Integer> copiedComponentPathRef,
+            Reference<Integer> totalFramesCountRef,
+            Map<Integer, Integer> layerIndexToNValue
+    ) throws IOException {
+        if (writtenLayers.contains(layerIndex)) {
+            return;
+        }
+        writtenLayers.add(layerIndex);
+        Element layer = layers.get(layerIndex);
 
-        for (int layerIndex = 0; layerIndex < layers.size(); layerIndex++) {
-            Element layer = layers.get(layerIndex);
-            boolean canHaveSubLayers = false;
-            if (layer.hasAttribute("layerType")) {
-                String layerTypeStr = layer.getAttribute("layerType");
-                switch (layerTypeStr) {
-                    case "folder":
-                    case "guide":
-                        canHaveSubLayers = true;
-                        break;
-                }
-            }
+        boolean autoNamed = true;
+        if (layer.hasAttribute("autoNamed")) {
+            autoNamed = !"false".equals(layer.getAttribute("autoNamed"));
+        }
 
-            if (canHaveSubLayers) {
-                Stack<Integer> subs = new Stack<>();
-                subs.push(layerIndex);
-                int endLayer = layers.size();
-                for (int layerIndex2 = layerIndex + 1; layerIndex2 < layers.size(); layerIndex2++) {
-                    Element layer2 = layers.get(layerIndex2);
-                    boolean canHaveSubLayers2 = false;
-                    if (layer2.hasAttribute("layerType")) {
-                        String layerTypeStr = layer2.getAttribute("layerType");
-                        switch (layerTypeStr) {
-                            case "folder":
-                            case "guide":
-                                canHaveSubLayers2 = true;
-                                break;
-                        }
-                    }
-
-                    int parentLayerIndex2 = -1;
-                    Node parentLayerIndexAttr2 = layer2.getAttributes().getNamedItem("parentLayerIndex");
-                    if (parentLayerIndexAttr2 != null) {
-                        parentLayerIndex2 = Integer.parseInt(parentLayerIndexAttr2.getTextContent());
-                    }
-                    if (parentLayerIndex2 > -1) {
-                        while (subs.contains(parentLayerIndex2) && subs.peek() != parentLayerIndex2) {
-                            subs.pop();
-                        }
-                        if (!subs.contains(parentLayerIndex2)) {
-                            endLayer = layerIndex2;
-                            break;
-                        }
-                    } else {
-                        endLayer = layerIndex2;
-                        break;
-                    }
-                    if (canHaveSubLayers2) {
-                        subs.push(layerIndex2);
-                    }
-                }
-
-                folderToEndLayer.put(layerIndex, endLayer);
+        boolean canHaveSubLayers = false;
+        if (layer.hasAttribute("layerType")) {
+            String layerTypeStr = layer.getAttribute("layerType");
+            switch (layerTypeStr) {
+                case "folder":
+                case "mask":
+                case "guide":
+                    canHaveSubLayers = true;
+                    break;
             }
         }
 
-        for (int folderLayerIndex : folderToEndLayer.keySet()) {
-            int endLayer = folderToEndLayer.get(folderLayerIndex);
-            int reverseParent = 0;
-            for (int layerIndex3 = endLayer; layerIndex3 < layers.size(); layerIndex3++) {
-                Element layer3 = layers.get(layerIndex3);
-                boolean isFolder = false;
-                if (layer3.hasAttribute("layerType")) {
-                    String layerTypeStr = layer3.getAttribute("layerType");
-                    isFolder = "folder".equals(layerTypeStr);
-                }
-                if (isFolder) {
-                    reverseParent++;
-                } else {
-                    reverseParent += 2;
-                }
-            }
+        boolean open = true;
+        if (layer.hasAttribute("open")) {
+            open = !"false".equals(layer.getAttribute("open"));
+        }
 
-            Element layer3 = layers.get(folderLayerIndex);
-            while (layer3.hasAttribute("parentLayerIndex")) {
-                reverseParent++;
-                int parentLayerIndex = Integer.parseInt(layer3.getAttribute("parentLayerIndex"));
-                if (parentLayerIndex >= 0 && parentLayerIndex < layers.size()) {
-                    layer3 = layers.get(parentLayerIndex);
+        int parentLayerIndex = -1;
+        if (layer.hasAttribute("parentLayerIndex")) {
+            parentLayerIndex = Integer.parseInt(layer.getAttribute("parentLayerIndex"));
+        }
+
+        int animationType = 0;
+        if (layer.hasAttribute("animationType")) {
+            switch (layer.getAttribute("animationType")) {
+                case "motion object":
+                    animationType = 1;
+                    break;
+                case "IK pose":
+                    //?
+                    break;
+            }
+        }
+
+        int nValue = 1 + definedClasses.size() + totalObjectCount.getVal();
+        layerIndexToNValue.put(layerIndex, nValue);
+
+        writeLayerContents(layer, fg, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef);
+        if (parentLayerIndex > -1 && !writtenLayers.contains(parentLayerIndex)) {
+            writeLayer(fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue);
+        } else {            
+            if (parentLayerIndex > -1) {
+                fg.writeUI16(layerIndexToNValue.get(parentLayerIndex));                
+            } else {
+                fg.writeUI16(0);
+            }
+        }
+
+        fg.write(open ? 1 : 0);
+        fg.write(autoNamed ? 1 : 0);
+        fg.write(animationType);
+
+        if (!canHaveSubLayers) {
+            int pi = parentLayerIndex;
+            int li = layerIndex;
+            while (pi > -1) {
+                if (li == pi + 1) {
+                    fg.writeUI16(layerIndexToNValue.get(pi));
                 } else {
                     break;
                 }
+                Element player = layers.get(pi);
+                li = pi;
+                if (player.hasAttribute("parentLayerIndex")) {
+                    pi = Integer.parseInt(player.getAttribute("parentLayerIndex"));
+                } else {
+                    pi = -1;
+                }
             }
-
-            layerIndexToRevLayerIndex.put(folderLayerIndex, reverseParent);
         }
-        return layerIndexToRevLayerIndex;
     }
 
     private void generatePageFile(Element domTimeLine, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
         FlaCs4Writer fg = new FlaCs4Writer(os);
         fg.setDebugRandom(debugRandom);
-
-        List<String> definedClasses = new ArrayList<>();
+        Map<String, Integer> definedClasses = new HashMap<>();
+        Reference<Integer> totalObjectCount = new Reference<>(0);
 
         fg.write(0x01);
-        useClass("CPicPage", fg, definedClasses);
+        useClass("CPicPage", fg, definedClasses, totalObjectCount);
         fg.write(0x05);
         fg.write(0x00);
 
@@ -2702,92 +2681,12 @@ public class PageGenerator extends AbstractGenerator {
         if (layersNode != null) {
             List<Element> layers = getAllSubElementsByName(layersNode, "DOMLayer");
 
-            Map<Integer, Integer> layerIndexToRevLayerIndex = calculateReverseParentLayerIndices(layers);
-            Stack<Integer> openedParentLayers = new Stack<>();
+            Map<Integer, Integer> layerIndexToNValue = new HashMap<>();
+            
+            Set<Integer> writtenLayers = new HashSet<>();
 
             for (int layerIndex = layers.size() - 1; layerIndex >= 0; layerIndex--) {
-                Element layer = layers.get(layerIndex);
-
-                boolean autoNamed = true;
-                if (layer.hasAttribute("autoNamed")) {
-                    autoNamed = !"false".equals(layer.getAttribute("autoNamed"));
-                }
-
-                boolean canHaveSubLayers = false;
-                if (layer.hasAttribute("layerType")) {
-                    String layerTypeStr = layer.getAttribute("layerType");
-                    switch (layerTypeStr) {
-                        case "folder":
-                        case "guide":
-                            canHaveSubLayers = true;
-                            break;
-                    }
-                }
-
-                if (canHaveSubLayers) {
-                    nextFolderId++;
-
-                    boolean noSubLayers = true;
-                    for (int layerIndex2 = layerIndex + 1; layerIndex2 < layers.size(); layerIndex2++) {
-                        Node layer2 = layers.get(layerIndex2);
-                        int parentLayerIndex2 = -1;
-                        Node parentLayerIndexAttr2 = layer2.getAttributes().getNamedItem("parentLayerIndex");
-                        if (parentLayerIndexAttr2 != null) {
-                            parentLayerIndex2 = Integer.parseInt(parentLayerIndexAttr2.getTextContent());
-                        }
-                        if (parentLayerIndex2 == layerIndex) {
-                            noSubLayers = false;
-                            break;
-                        }
-                    }
-                    if (noSubLayers) {
-                        handleParentLayer(layer, fg, layerIndexToRevLayerIndex, true, definedClasses, copiedComponentPathRef, totalFramesCountRef);
-                    }
-
-                    continue;
-                }
-
-                int parentLayerIndex = -1;
-                if (layer.hasAttribute("parentLayerIndex")) {
-                    parentLayerIndex = Integer.parseInt(layer.getAttribute("parentLayerIndex"));
-                }
-
-                nextLayerId++;
-
-                writeLayerContents(layer, fg, definedClasses, copiedComponentPathRef, totalFramesCountRef);
-
-                int animationType = 0;
-                if (layer.hasAttribute("animationType")) {
-                    switch (layer.getAttribute("animationType")) {
-                        case "motion object":
-                            animationType = 1;
-                            break;
-                        case "IK pose":
-                            //?
-                            break;
-                    }
-                }
-
-                if (parentLayerIndex > -1) {
-                    int reverseParentLayerIndex = layerIndexToRevLayerIndex.get(parentLayerIndex);
-                    if (openedParentLayers.contains(parentLayerIndex)) {
-                        fg.writeLayerEnd2(reverseParentLayerIndex, true, autoNamed, animationType);
-                        if (parentLayerIndex == layerIndex - 1) {
-                            fg.writeEndParentLayer(reverseParentLayerIndex);
-                            openedParentLayers.pop();
-                        }
-                    } else {
-                        Element parentLayer = layers.get(parentLayerIndex);
-                        handleParentLayer(parentLayer, fg, layerIndexToRevLayerIndex, false, definedClasses, copiedComponentPathRef, totalFramesCountRef);
-                        if (parentLayerIndex == layerIndex - 1) {
-                            fg.write(7 + reverseParentLayerIndex, 0x00);
-                        } else {
-                            openedParentLayers.push(parentLayerIndex);
-                        }
-                    }
-                } else {
-                    fg.writeLayerEnd2(-1, true, autoNamed, animationType);
-                }
+                writeLayer(fg, layers, layerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue);
             }
         }
         int currentFrame = 0;

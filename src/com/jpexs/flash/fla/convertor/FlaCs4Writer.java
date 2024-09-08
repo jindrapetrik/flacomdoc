@@ -92,7 +92,8 @@ public class FlaCs4Writer {
     public static final int LAYERTYPE_LAYER = 0;
     public static final int LAYERTYPE_GUIDE = 1;
     public static final int LAYERTYPE_FOLDER = 3;
-
+    public static final int LAYERTYPE_MASK = 4;
+    
     private String x = "0";
     private String y = "0";
     private int strokeStyle = 0;
@@ -806,18 +807,7 @@ public class FlaCs4Writer {
         write(layerType);
     }
 
-    public void writeLayerEnd2(int parentLayerIndex, boolean open, boolean autoNamed, int animationType) throws IOException {
-        if (parentLayerIndex > -1) {
-            write(7 + parentLayerIndex);
-        } else {
-            write(0x00);
-        }
-        write(0x00);
-        write(open ? 1 : 0);
-        write(autoNamed ? 1 : 0);
-        write(animationType);
-    }
-
+    
     public void writeLenUnicodeString(String s) throws IOException {
         int len = s.length();
         if (len < 0xFF) {
@@ -842,7 +832,7 @@ public class FlaCs4Writer {
     }
 
     public void writeEndParentLayer(int parentLayerIndex) throws IOException {
-        write(7 + parentLayerIndex);
+        write(parentLayerIndex);
         write(0);
     }
 

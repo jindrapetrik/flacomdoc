@@ -105,7 +105,7 @@ public class ContentsGenerator extends AbstractGenerator {
 
     //protected int contentsSymbolCnt = 0;
     //protected List<Media> media = new ArrayList<>();
-    private Map<String, String> vectorsMap = new LinkedHashMap<>();
+    private final Map<String, String> vectorsMap = new LinkedHashMap<>();
 
     {
 
@@ -1831,20 +1831,7 @@ public class ContentsGenerator extends AbstractGenerator {
                 + "<?xpacket end=\"w\"?>";
     }
 
-    protected void useClass(String className, int defineNum, FlaCs4Writer os,
-            Map<String, Integer> definedClasses,
-            Reference<Integer> totalObjectCount
-    ) throws IOException {
-        if (definedClasses.containsKey(className)) {
-            os.write(definedClasses.get(className));
-            os.write(0x80);
-        } else {
-            os.write(0xFF, 0xFF, defineNum, 0x00);
-            os.writeLenAsciiString(className);
-            definedClasses.put(className, 1 + definedClasses.size() + totalObjectCount.getVal());
-        }
-        totalObjectCount.setVal(totalObjectCount.getVal() + 1);
-    }
+    
 
     public static void main(String[] args) {
         int f = Float.floatToIntBits(-0.0f);
