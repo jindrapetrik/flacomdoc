@@ -254,7 +254,7 @@ public abstract class AbstractGenerator {
         }
         totalObjectCount.setVal(totalObjectCount.getVal() + 1);
     }
-    
+
     protected void useClass(String className, FlaCs4Writer os,
             Map<String, Integer> definedClasses,
             Reference<Integer> totalObjectCount

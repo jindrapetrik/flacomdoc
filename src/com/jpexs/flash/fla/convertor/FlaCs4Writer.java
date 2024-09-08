@@ -93,7 +93,7 @@ public class FlaCs4Writer {
     public static final int LAYERTYPE_GUIDE = 1;
     public static final int LAYERTYPE_FOLDER = 3;
     public static final int LAYERTYPE_MASK = 4;
-    
+
     private String x = "0";
     private String y = "0";
     private int strokeStyle = 0;
@@ -807,7 +807,6 @@ public class FlaCs4Writer {
         write(layerType);
     }
 
-    
     public void writeLenUnicodeString(String s) throws IOException {
         int len = s.length();
         if (len < 0xFF) {

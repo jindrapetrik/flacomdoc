@@ -18,6 +18,10 @@
  */
 package com.jpexs.flash.fla.convertor;
 
+import com.jpexs.flash.fla.convertor.streams.DirectoryInputStorage;
+import com.jpexs.flash.fla.convertor.streams.DirectoryOutputStorage;
+import com.jpexs.flash.fla.convertor.streams.InputStorageInterface;
+import com.jpexs.flash.fla.convertor.streams.OutputStorageInterface;
 import com.jpexs.flash.fla.convertor.swatches.ExtendedSwatchItem;
 import com.jpexs.flash.fla.convertor.swatches.LinearGradientSwatchItem;
 import com.jpexs.flash.fla.convertor.swatches.RadialGradientSwatchItem;
@@ -31,6 +35,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -476,21 +481,20 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.writeLenUnicodeString(linkageBaseClass);
     }
 
-    private int writeSymbols(FlaCs4Writer fg, Element document, DocumentBuilder docBuilder, File sourceDir, File outputDir, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws SAXException, IOException, FileNotFoundException, ParserConfigurationException {
+    private int writeSymbols(FlaCs4Writer fg, Element document, DocumentBuilder docBuilder, InputStorageInterface sourceDir, OutputStorageInterface outputDir, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws SAXException, IOException, FileNotFoundException, ParserConfigurationException {
         int symbolCount = 0;
         Element symbolsElement = getSubElementByName(document, "symbols");
         if (symbolsElement == null) {
             return symbolCount;
         }
         List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
-        File libraryDir = sourceDir.toPath().resolve("LIBRARY").toFile();
         for (int i = includes.size() - 1; i >= 0; i--) {
             Element include = includes.get(i);
             if (!include.hasAttribute("href")) {
                 continue;
             }
             String href = include.getAttribute("href");
-            Document symbolDocument = docBuilder.parse(libraryDir.toPath().resolve(href).toFile());
+            Document symbolDocument = docBuilder.parse(sourceDir.readFile("LIBRARY/" + href));
             Element symbolElement = symbolDocument.getDocumentElement();
             Element timelineElement = getSubElementByName(symbolElement, "timeline");
             if (timelineElement == null) {
@@ -586,19 +590,22 @@ public class ContentsGenerator extends AbstractGenerator {
             );
             PageGenerator symbolPageGenerator = new PageGenerator();
             symbolPageGenerator.setDebugRandom(debugRandom);
-            symbolPageGenerator.generatePageFile(domTimelineElement, outputDir.toPath().resolve(symbolFile).toFile());
+            try (OutputStream sos = outputDir.getOutputStream(symbolFile)) {
+                symbolPageGenerator.generatePageFile(domTimelineElement, sos);
+            }
         }
 
         return symbolCount;
     }
 
     public void generate(
-            InputStream domDocumentIs,
-            InputStream publishSettingsIs,
-            InputStream metadataIs,
-            File sourceDir,
-            File outputDir
+            InputStorageInterface sourceDir,
+            OutputStorageInterface outputDir
     ) throws SAXException, IOException, ParserConfigurationException {
+
+        InputStream domDocumentIs = sourceDir.readFile("DOMDocument.xml");
+        InputStream publishSettingsIs = sourceDir.readFile("PublishSettings.xml");
+        InputStream metadataIs = sourceDir.readFile("META-INF/metadata.xml");
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setIgnoringElementContentWhitespace(false);
@@ -643,8 +650,7 @@ public class ContentsGenerator extends AbstractGenerator {
         Map<String, Integer> definedClasses = new HashMap<>();
         Reference<Integer> objectsCount = new Reference<>(0);
 
-        File contentsFile = outputDir.toPath().resolve("Contents").toFile();
-        try (FileOutputStream os = new FileOutputStream(contentsFile)) {
+        try (OutputStream os = outputDir.getOutputStream("Contents")) {
             FlaCs4Writer fg = new FlaCs4Writer(os);
             fg.write(0x47, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -754,7 +760,9 @@ public class ContentsGenerator extends AbstractGenerator {
 
                 PageGenerator pageGenerator = new PageGenerator();
                 pageGenerator.setDebugRandom(debugRandom);
-                pageGenerator.generatePageFile(domTimeline, outputDir.toPath().resolve(pageName).toFile());
+                try (OutputStream pos = outputDir.getOutputStream(pageName)) {
+                    pageGenerator.generatePageFile(domTimeline, pos);
+                }
             }
 
             int currentTimeline = 1;
@@ -1056,7 +1064,7 @@ public class ContentsGenerator extends AbstractGenerator {
         return itemID;
     }
 
-    protected void writeDomSoundItem(FlaCs4Writer dw, Element domSoundItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, File outputDir, File sourceDir) throws IOException {
+    protected void writeDomSoundItem(FlaCs4Writer dw, Element domSoundItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, OutputStorageInterface outputDir, InputStorageInterface sourceDir) throws IOException {
         useClass("CMediaSound", 1, dw, definedClasses, objectsCount);
         dw.write(0x07);
         String mediaFile = "M " + mediaCount + " " + timeCreated;
@@ -1151,10 +1159,10 @@ public class ContentsGenerator extends AbstractGenerator {
         boolean hasBinData = false;
         if (domSoundItem.hasAttribute("soundDataHRef")) {
             String videoDataHRef = domSoundItem.getAttribute("soundDataHRef");
-            File videDataFile = sourceDir.toPath().resolve("bin").resolve(videoDataHRef).toFile();
-            if (videDataFile.exists()) {
+            //File videDataFile = sourceDir.toPath().resolve("bin").resolve(videoDataHRef).toFile();
+            if (sourceDir.fileExists("bin/" + videoDataHRef)) {
                 //copy the data file
-                try (FileOutputStream fos = new FileOutputStream(outputDir.toPath().resolve(mediaFile).toFile()); FileInputStream fis = new FileInputStream(videDataFile);) {
+                try (OutputStream fos = outputDir.getOutputStream(mediaFile); InputStream fis = sourceDir.readFile("bin/" + videoDataHRef)) {
                     byte[] buf = new byte[4096];
                     int cnt;
                     while ((cnt = fis.read(buf)) > 0) {
@@ -1170,7 +1178,7 @@ public class ContentsGenerator extends AbstractGenerator {
         }
     }
 
-    protected void writeDomVideoItem(FlaCs4Writer dw, Element domVideoItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, File outputDir, File sourceDir) throws IOException {
+    protected void writeDomVideoItem(FlaCs4Writer dw, Element domVideoItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, OutputStorageInterface outputDir, InputStorageInterface sourceDir) throws IOException {
         useClass("CMediaVideoStream", 1, dw, definedClasses, objectsCount);
         dw.write(0x07);
         String mediaFile = "M " + mediaCount + " " + timeCreated;
@@ -1213,10 +1221,10 @@ public class ContentsGenerator extends AbstractGenerator {
         boolean hasBinData = false;
         if (domVideoItem.hasAttribute("videoDataHRef")) {
             String videoDataHRef = domVideoItem.getAttribute("videoDataHRef");
-            File videDataFile = sourceDir.toPath().resolve("bin").resolve(videoDataHRef).toFile();
-            if (videDataFile.exists()) {
+            //File videDataFile = sourceDir.toPath().resolve("bin").resolve(videoDataHRef).toFile();
+            if (sourceDir.fileExists("bin/" + videoDataHRef)) {
                 //copy the data file
-                try (FileOutputStream fos = new FileOutputStream(outputDir.toPath().resolve(mediaFile).toFile()); FileInputStream fis = new FileInputStream(videDataFile);) {
+                try (OutputStream fos = outputDir.getOutputStream(mediaFile); InputStream fis = sourceDir.readFile("bin/" + videoDataHRef)) {
                     byte[] buf = new byte[4096];
                     int cnt;
                     while ((cnt = fis.read(buf)) > 0) {
@@ -1232,7 +1240,7 @@ public class ContentsGenerator extends AbstractGenerator {
         }
     }
 
-    protected void writeDomBitmapItem(FlaCs4Writer dw, Element domBitmapItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, File outputDir, File sourceDir) throws IOException {
+    protected void writeDomBitmapItem(FlaCs4Writer dw, Element domBitmapItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, OutputStorageInterface outputDir, InputStorageInterface sourceDir) throws IOException {
 
         /*
         <media>
@@ -1309,10 +1317,9 @@ public class ContentsGenerator extends AbstractGenerator {
         boolean hasBinData = false;
         if (domBitmapItem.hasAttribute("bitmapDataHRef")) {
             String bitmapDataHRef = domBitmapItem.getAttribute("bitmapDataHRef");
-            File bitmapDataFile = sourceDir.toPath().resolve("bin").resolve(bitmapDataHRef).toFile();
-            if (bitmapDataFile.exists()) {
+            if (sourceDir.fileExists("bin/" + bitmapDataHRef)) {
                 //copy the data file
-                try (FileOutputStream fos = new FileOutputStream(outputDir.toPath().resolve(mediaFile).toFile()); FileInputStream fis = new FileInputStream(bitmapDataFile);) {
+                try (OutputStream fos = outputDir.getOutputStream(mediaFile); InputStream fis = sourceDir.readFile("bin/" + bitmapDataHRef);) {
                     byte[] buf = new byte[4096];
                     int cnt;
                     while ((cnt = fis.read(buf)) > 0) {
@@ -1347,7 +1354,7 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.write(useDeblocking ? 1 : 0);
     }
 
-    protected int writeMedia(FlaCs4Writer dw, Element document, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, File outputDir, File sourceDir) throws IOException {
+    protected int writeMedia(FlaCs4Writer dw, Element document, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, OutputStorageInterface outputDir, InputStorageInterface sourceDir) throws IOException {
         Element mediaElement = getSubElementByName(document, "media");
 
         List<Element> media = new ArrayList<>();
@@ -1563,17 +1570,6 @@ public class ContentsGenerator extends AbstractGenerator {
 
     protected void writeVectors(FlaCs4Writer dw, boolean isUni) throws IOException {
         writeMap(dw, vectorsMap, isUni);
-    }
-
-    public void generate(
-            File domDocumentFile,
-            File publishSettingsFile,
-            File metadataFile,
-            File sourceDir,
-            File outputDir) throws IOException, SAXException, ParserConfigurationException {
-        try (FileInputStream domDocumentIs = new FileInputStream(domDocumentFile); FileInputStream publishSettingsIs = publishSettingsFile == null ? null : new FileInputStream(publishSettingsFile); FileInputStream metadataIs = metadataFile == null ? null : new FileInputStream(metadataFile)) {
-            generate(domDocumentIs, publishSettingsIs, metadataIs, sourceDir, outputDir);
-        }
     }
 
     private Map<String, String> getLegacyProperties() {
@@ -1830,8 +1826,6 @@ public class ContentsGenerator extends AbstractGenerator {
                 + "                           \n"
                 + "<?xpacket end=\"w\"?>";
     }
-
-    
 
     public static void main(String[] args) {
         int f = Float.floatToIntBits(-0.0f);

@@ -32,6 +32,7 @@ import com.jpexs.flash.fla.convertor.filters.FilterInterface;
 import com.jpexs.flash.fla.convertor.filters.GlowFilter;
 import com.jpexs.flash.fla.convertor.filters.GradientBevelFilter;
 import com.jpexs.flash.fla.convertor.filters.GradientGlowFilter;
+import com.jpexs.flash.fla.convertor.streams.OutputStorageInterface;
 import com.jpexs.helpers.Reference;
 import java.awt.Color;
 import java.awt.Font;
@@ -243,7 +244,7 @@ public class PageGenerator extends AbstractGenerator {
     protected void handleVideoInstance(Element videoInstance,
             FlaCs4Writer fg,
             Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
-        useClass("CPicVideoStream", fg, definedClasses, totalObjectCount);       
+        useClass("CPicVideoStream", fg, definedClasses, totalObjectCount);
         instanceHeader(videoInstance, fg, 0x04);
 
         long frameLeft = 0;
@@ -2629,9 +2630,9 @@ public class PageGenerator extends AbstractGenerator {
         writeLayerContents(layer, fg, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef);
         if (parentLayerIndex > -1 && !writtenLayers.contains(parentLayerIndex)) {
             writeLayer(fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue);
-        } else {            
+        } else {
             if (parentLayerIndex > -1) {
-                fg.writeUI16(layerIndexToNValue.get(parentLayerIndex));                
+                fg.writeUI16(layerIndexToNValue.get(parentLayerIndex));
             } else {
                 fg.writeUI16(0);
             }
@@ -2661,7 +2662,7 @@ public class PageGenerator extends AbstractGenerator {
         }
     }
 
-    private void generatePageFile(Element domTimeLine, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
+    public void generatePageFile(Element domTimeLine, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
         FlaCs4Writer fg = new FlaCs4Writer(os);
         fg.setDebugRandom(debugRandom);
         Map<String, Integer> definedClasses = new HashMap<>();
@@ -2682,7 +2683,7 @@ public class PageGenerator extends AbstractGenerator {
             List<Element> layers = getAllSubElementsByName(layersNode, "DOMLayer");
 
             Map<Integer, Integer> layerIndexToNValue = new HashMap<>();
-            
+
             Set<Integer> writtenLayers = new HashSet<>();
 
             for (int layerIndex = layers.size() - 1; layerIndex >= 0; layerIndex--) {
@@ -2721,10 +2722,9 @@ public class PageGenerator extends AbstractGenerator {
 
     }
 
-    public void generatePageFile(Element domTimeline, File outputFile) throws FileNotFoundException, IOException, SAXException, ParserConfigurationException {
+    /*public void generatePageFile(Element domTimeline, File outputFile) throws FileNotFoundException, IOException, SAXException, ParserConfigurationException {
         try (FileOutputStream fos = new FileOutputStream(outputFile)) {
             generatePageFile(domTimeline, fos);
         }
-    }
-
+    }*/
 }

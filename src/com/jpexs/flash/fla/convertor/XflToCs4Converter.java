@@ -18,7 +18,10 @@
  */
 package com.jpexs.flash.fla.convertor;
 
-import com.jpexs.cfb.CompoundFileBinary;
+import com.jpexs.flash.fla.convertor.streams.CfbOutputStorage;
+import com.jpexs.flash.fla.convertor.streams.CombinedOutputStorage;
+import com.jpexs.flash.fla.convertor.streams.DirectoryInputStorage;
+import com.jpexs.flash.fla.convertor.streams.DirectoryOutputStorage;
 import com.jpexs.flash.fla.extractor.FlaCfbExtractor;
 import java.io.File;
 import java.io.IOException;
@@ -51,17 +54,6 @@ public class XflToCs4Converter {
         File sourceDir = new File(FlaCfbExtractor.getProperty("convert.xfl.dir"));
 
         File outputDir = new File(FlaCfbExtractor.getProperty("convert.xfl.output.dir"));
-        File domDocumentFile = sourceDir.toPath().resolve("DOMDocument.xml").toFile();
-        File publishSettingsFile = sourceDir.toPath().resolve("PublishSettings.xml").toFile();
-        File metadataFile = sourceDir.toPath().resolve("META-INF/metadata.xml").toFile();
-
-        if (!publishSettingsFile.exists()) {
-            publishSettingsFile = null;
-        }
-        if (!metadataFile.exists()) {
-            metadataFile = null;
-        }
-
         File outputFlaFile = new File(FlaCfbExtractor.getProperty("convert.xfl.output.fla"));
 
         deleteDir(outputDir);
@@ -69,9 +61,8 @@ public class XflToCs4Converter {
 
         ContentsGenerator contentsGenerator = new ContentsGenerator();
         contentsGenerator.setDebugRandom(DEBUG_RANDOM);
-        contentsGenerator.generate(domDocumentFile, publishSettingsFile, metadataFile, sourceDir, outputDir);
-        try (CompoundFileBinary cfb = new CompoundFileBinary(outputFlaFile, true)) {
-            cfb.addDirectoryContents("", outputDir);
-        }
+        contentsGenerator.generate(new DirectoryInputStorage(sourceDir),
+                new CombinedOutputStorage(new DirectoryOutputStorage(outputDir), new CfbOutputStorage(outputFlaFile))
+        );
     }
 }
