@@ -761,14 +761,14 @@ public class ContentsGenerator extends AbstractGenerator {
                 currentTimeline = Integer.parseInt(document.getAttribute("currentTimeline"));
             }
 
-            /*int nextSceneIdentifier = timelinesElements.size() + 1;
+            int nextSceneIdentifier = timelinesElements.size() + 1;
             if (document.hasAttribute("nextSceneIdentifier")) {
                 nextSceneIdentifier = Integer.parseInt(document.getAttribute("nextSceneIdentifier"));
-            }*/
-            fg.write(1 + pageCount, //?
+            }
+            fg.write(nextSceneIdentifier + pageCount,
                     0x00,
                     0x01, 0x00,
-                    1 + pageCount, //?
+                    1 + currentTimeline,
                     0x00);
 
             int symbolCount = writeSymbols(fg, document, docBuilder, sourceDir, outputDir, generatedItemIdOrder, definedClasses, objectsCount);
@@ -776,6 +776,9 @@ public class ContentsGenerator extends AbstractGenerator {
             fg.write(0x00, 0x00);
 
             int mediaCount = writeMedia(fg, document, generatedItemIdOrder, definedClasses, objectsCount, outputDir, sourceDir);
+            
+            fg.write(0x00, 0x00,
+                1, 0x00); //?
             fg.write(
                     rulerUnitType,
                     0x00, 0x00, 0x00,
@@ -794,7 +797,7 @@ public class ContentsGenerator extends AbstractGenerator {
             fg.write(0x00, 0x00, 0x00, 0x00,
                     0xC8, 0x00, //?, was 68 01
                     0x03, rulerVisible ? 1 : 0,
-                    timelinesElements.size() > 1 ? 1 : 0, //?? something like "Did you ever used multiple scenes"
+                    0, //?? sometimes 1. magic
                     0x8D, 0x00, 0x68,
                     0x01, 0x00, 0x00, 0x68, 0x01, 0x00, 0x00, 0x68,
                     0x01, 0x00, 0x00, 0x68, 0x01, 0x00, 0x00, 0x01,
@@ -1106,14 +1109,14 @@ public class ContentsGenerator extends AbstractGenerator {
             media = getAllSubElements(mediaElement);
         }
 
-        int imageCount = 0;
+        /*int imageCount = 0;
         for (Element mediaItem : media) {
             if ("DOMBitmapItem".equals(mediaItem.getTagName())) {
                 imageCount++;
             }
-        }
+        }*/
 
-        dw.write(imageCount);
+        dw.write(1);
         dw.write(0x00);
 
         int mediaCount = 0;
@@ -1130,9 +1133,7 @@ public class ContentsGenerator extends AbstractGenerator {
             }
 
         }
-
-        dw.write(0x00, 0x00,
-                1 + mediaCount, 0x00);
+        
         return mediaCount;
     }
 
