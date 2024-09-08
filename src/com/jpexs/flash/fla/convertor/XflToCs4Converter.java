@@ -32,6 +32,11 @@ import org.xml.sax.SAXException;
  */
 public class XflToCs4Converter {
 
+    /**
+     * If true, all random ids are generated as 'X' characters
+     */
+    private static final boolean DEBUG_RANDOM = true;
+
     private static void deleteDir(File f) throws IOException {
         if (f.isDirectory()) {
             for (File c : f.listFiles()) {
@@ -63,6 +68,7 @@ public class XflToCs4Converter {
         outputDir.mkdirs();
 
         ContentsGenerator contentsGenerator = new ContentsGenerator();
+        contentsGenerator.setDebugRandom(DEBUG_RANDOM);
         contentsGenerator.generate(domDocumentFile, publishSettingsFile, metadataFile, sourceDir, outputDir);
         try (CompoundFileBinary cfb = new CompoundFileBinary(outputFlaFile, true)) {
             cfb.addDirectoryContents("", outputDir);

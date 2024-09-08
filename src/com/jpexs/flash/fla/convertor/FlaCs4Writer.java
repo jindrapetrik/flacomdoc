@@ -18,14 +18,10 @@
  */
 package com.jpexs.flash.fla.convertor;
 
-import com.jpexs.flash.fla.convertor.coloreffects.ColorEffectInterface;
-import com.jpexs.flash.fla.convertor.coloreffects.NoColorEffect;
-import com.jpexs.flash.fla.convertor.filters.FilterInterface;
 import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -111,6 +107,12 @@ public class FlaCs4Writer {
     private static final Logger logger = Logger.getLogger(FlaCs4Writer.class.getName());
 
     private OutputStream os;
+
+    private boolean debugRandom = false;
+
+    public void setDebugRandom(boolean debugRandom) {
+        this.debugRandom = debugRandom;
+    }
 
     public FlaCs4Writer(OutputStream os) {
         this.os = os;
@@ -767,58 +769,12 @@ public class FlaCs4Writer {
     }
 
     public int generateRandomId() {
-        return ('X' << 8) + 'X';
-        //Random rnd = new Random();
-        //return rnd.nextInt(0x10000);
-    }
-
-    public void writeKeyFrameEnd(int duration, int keyMode, int acceleration, String actionScript, String name, boolean comment, int motionTweenRotate, int motionTweenRotateTimes) throws IOException {
-        int frameId = generateRandomId();
-
-        write(
-                0x00, 0x00, 0x00, 0x00, 0x00,
-                0x1D, duration,
-                0x00);
-
-        /*
-        KEYMODES:
-        
-        normal keymode:
-        0x2600
-
-        classic tween keymode:
-        0x4001 +
-                0x0100	motionTweenOrientToPath = true
-                0x0200	motionTweenScale = true
-                0x0400	motionTweenRotate <> none
-                0x0800	motionTweenSync = true
-                0x1000	motionTweenSnap = true
-        (default: only motionTweenSnap = true)
-
-        shape tween keymode:
-        0x5602
-
-        motion tween keymode:
-        0x2003 +
-                0x0800	motionTweenSync "Sync graphic symbols"
-        
-         */
-        writeUI16(keyMode);
-        writeUI16(acceleration);
-        write(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
-                0xFF, 0xFF, 0x3F, 0xFF, 0xFF,
-                0xFF, 0xFE, 0xFF);
-        writeLenUnicodeString(name);
-        write(0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                0x00, ((frameId >> 8) & 0xFF), (frameId & 0xFF),
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF);
-        writeLenUnicodeString(actionScript);
-        write(motionTweenRotate, 0x00, 0x00, 0x00);
-        writeUI16(motionTweenRotateTimes);
-        write(0x00, 0x00,
-                comment ? 1 : 0, 0x00, 0x00, 0x00
-        );
+        if (debugRandom) {
+            return ('X' << 8) + 'X';
+        } else {
+            Random rnd = new Random();
+            return rnd.nextInt(0x10000);
+        }
     }
 
     public void writeLayerEnd(

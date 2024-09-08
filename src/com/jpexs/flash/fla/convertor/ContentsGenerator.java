@@ -585,6 +585,7 @@ public class ContentsGenerator extends AbstractGenerator {
             fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
             );
             PageGenerator symbolPageGenerator = new PageGenerator();
+            symbolPageGenerator.setDebugRandom(debugRandom);
             symbolPageGenerator.generatePageFile(domTimelineElement, outputDir.toPath().resolve(symbolFile).toFile());
         }
 
@@ -752,6 +753,7 @@ public class ContentsGenerator extends AbstractGenerator {
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
                 PageGenerator pageGenerator = new PageGenerator();
+                pageGenerator.setDebugRandom(debugRandom);
                 pageGenerator.generatePageFile(domTimeline, outputDir.toPath().resolve(pageName).toFile());
             }
 
@@ -1126,7 +1128,7 @@ public class ContentsGenerator extends AbstractGenerator {
             exportBits = Integer.parseInt(domSoundItem.getAttribute("exportBits"));
         }
 
-        writeAsLinkage(dw, domSoundItem);        
+        writeAsLinkage(dw, domSoundItem);
         dw.write(0x00, 0x01, 0x00, 0x00, 0x00, 0x0A,
                 formatAsNum, 0x00);
         dw.writeUI32(sampleCount);

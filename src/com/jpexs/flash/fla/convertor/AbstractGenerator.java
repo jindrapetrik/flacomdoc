@@ -38,6 +38,8 @@ import org.w3c.dom.NodeList;
  */
 public abstract class AbstractGenerator {
 
+    protected boolean debugRandom = false;
+
     protected static final Map<String, Font> psNameToFontName = new HashMap<>();
 
     static {
@@ -46,6 +48,10 @@ public abstract class AbstractGenerator {
         for (Font font : fonts) {
             psNameToFontName.put(font.getPSName(), font);
         }
+    }
+
+    public void setDebugRandom(boolean debugRandom) {
+        this.debugRandom = debugRandom;
     }
 
     protected Element getFirstSubElement(Node n) {

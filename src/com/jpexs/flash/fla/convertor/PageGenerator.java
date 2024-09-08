@@ -2030,7 +2030,152 @@ public class PageGenerator extends AbstractGenerator {
                 //motionTweenOrientToPath, motionTweenScale, motionTweenSnap, motionTweenSync
                 //and also motionTweenRotate=none/auto
                 //atributes are part of the keymode
-                fg.writeKeyFrameEnd(duration, keyMode, acceleration, actionScript, name, comment, motionTweenRotate, motionTweenRotateTimes);
+                int frameId = fg.generateRandomId();
+
+                fg.write(
+                        0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x1D, duration,
+                        0x00);
+
+                /*
+        KEYMODES:
+        
+        normal keymode:
+        0x2600
+
+        classic tween keymode:
+        0x4001 +
+                0x0100	motionTweenOrientToPath = true
+                0x0200	motionTweenScale = true
+                0x0400	motionTweenRotate <> none
+                0x0800	motionTweenSync = true
+                0x1000	motionTweenSnap = true
+        (default: only motionTweenSnap = true)
+
+        shape tween keymode:
+        0x5602
+
+        motion tween keymode:
+        0x2003 +
+                0x0800	motionTweenSync "Sync graphic symbols"
+        
+                 */
+                fg.writeUI16(keyMode);
+                fg.writeUI16(acceleration);
+
+                String soundName = null;
+                int soundId = 0;
+                if (frame.hasAttribute("soundName")) {
+                    soundName = frame.getAttribute("soundName");
+
+                    Element mediaEl = getSubElementByName(frame.getOwnerDocument().getDocumentElement(), "media");
+                    if (mediaEl != null) {
+                        List<Element> media = getAllSubElements(mediaEl);
+                        for (int i = 0; i < media.size(); i++) {
+                            Element mediaItem = media.get(i);
+                            if (mediaItem.hasAttribute("name")) {
+                                String mediaName = mediaItem.getAttribute("name");
+                                if (soundName.equals(mediaName)) {
+                                    soundId = i + 1;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (soundId > 0) {
+                    fg.writeUI16(soundId);
+
+                    Element soundEnvelope = getSubElementByName(frame, "SoundEnvelope");
+                    if (soundEnvelope == null) {
+                        fg.writeUI16(1);
+                        fg.writeUI32(0);
+                        fg.writeUI16(0x8000);
+                        fg.writeUI16(0x8000);
+                    } else {
+                        List<Element> soundEnvelopePoints = getAllSubElementsByName(soundEnvelope, "SoundEnvelopePoint");
+                        fg.writeUI16(soundEnvelopePoints.size());
+                        for (Element soundEnvelopePoint : soundEnvelopePoints) {
+                            long mark44 = 0;
+                            if (soundEnvelopePoint.hasAttribute("mark44")) {
+                                mark44 = Long.parseLong(soundEnvelopePoint.getAttribute("mark44"));
+                            }
+                            int level0 = 0;
+                            if (soundEnvelopePoint.hasAttribute("level0")) {
+                                level0 = Integer.parseInt(soundEnvelopePoint.getAttribute("level0"));
+                            }
+                            int level1 = 0;
+                            if (soundEnvelopePoint.hasAttribute("level1")) {
+                                level1 = Integer.parseInt(soundEnvelopePoint.getAttribute("level1"));
+                            }
+                            fg.writeUI32(mark44);
+                            fg.writeUI16(level0);
+                            fg.writeUI16(level1);
+                        }
+                    }
+                } else {
+                    fg.write(0x00, 0x00, 0x00, 0x00);
+                }
+                long inPoint44 = 0;
+                if (soundId > 0 && frame.hasAttribute("inPoint44")) {
+                    inPoint44 = Long.parseLong(frame.getAttribute("inPoint44"));
+                }
+                long outPoint44 = 0x3FFFFFFF;
+                if (soundId > 0 && frame.hasAttribute("outPoint44")) {
+                    outPoint44 = Long.parseLong(frame.getAttribute("outPoint44"));
+                }
+                int soundZoomLevel = -1;
+                if (frame.hasAttribute("soundZoomLevel")) {
+                    soundZoomLevel = Integer.parseInt(frame.getAttribute("soundZoomLevel"));
+                }
+
+                int soundSync = 0;
+                if (frame.hasAttribute("soundSync")) {
+                    switch (frame.getAttribute("soundSync")) {
+                        case "start":
+                            soundSync = 1;
+                            break;
+                        case "stop":
+                            soundSync = 2;
+                            break;
+                        case "stream":
+                            soundSync = 3;
+                            break;
+                    }
+                }
+
+                int soundLoop = 1;
+                if (frame.hasAttribute("soundLoop")) {
+                    soundLoop = Integer.parseInt(frame.getAttribute("soundLoop"));
+                }
+
+                boolean loop = false;
+                if (frame.hasAttribute("soundLoopMode")) {
+                    loop = "loop".equals(frame.getAttribute("soundLoopMode"));
+                }
+                if (loop) {
+                    soundLoop = 32767;
+                }
+
+                fg.writeUI16(soundLoop);
+                fg.write(soundSync);
+                fg.writeUI32(inPoint44);
+                fg.writeUI32(outPoint44);
+                fg.writeUI16(soundZoomLevel);
+
+                fg.write(0xFF, 0xFE, 0xFF);
+                fg.writeLenUnicodeString(name);
+                fg.write(0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+                        0x00, ((frameId >> 8) & 0xFF), (frameId & 0xFF),
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF);
+                fg.writeLenUnicodeString(actionScript);
+                fg.write(motionTweenRotate, 0x00, 0x00, 0x00);
+                fg.writeUI16(motionTweenRotateTimes);
+                fg.write(0x00, 0x00,
+                        comment ? 1 : 0, 0x00, 0x00, 0x00
+                );
 
                 Element morphShape = getSubElementByName(frame, "MorphShape");
                 if (morphShape == null) {
@@ -2201,8 +2346,22 @@ public class PageGenerator extends AbstractGenerator {
                     useSingleEaseCurve = !"false".equals(frame.getAttribute("useSingleEaseCurve"));
                 }
 
+                int soundEffect = getAttributeAsInt(frame, "soundEffect",
+                        Arrays.asList(
+                                "none",
+                                "left channel",
+                                "right channel",
+                                "fade left to right",
+                                "fade right to left",
+                                "fade in",
+                                "fade out",
+                                "custom"
+                        ), "none");
+
                 fg.write(
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x01, 0x00, 0x00, 0x00,
+                        soundEffect,
+                        0x00, 0x00,
                         0x00,
                         anchor ? 1 : 0,
                         0x00, 0x00, 0x00,
@@ -2525,6 +2684,7 @@ public class PageGenerator extends AbstractGenerator {
 
     private void generatePageFile(Element domTimeLine, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
         FlaCs4Writer fg = new FlaCs4Writer(os);
+        fg.setDebugRandom(debugRandom);
 
         List<String> definedClasses = new ArrayList<>();
 
