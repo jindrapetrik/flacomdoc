@@ -31,7 +31,7 @@ import java.nio.file.StandardCopyOption;
  */
 public class DirectoryOutputStorage implements OutputStorageInterface {
 
-    private File outputDir;
+    private final File outputDir;
 
     public DirectoryOutputStorage(File outputDir) {
         this.outputDir = outputDir;
