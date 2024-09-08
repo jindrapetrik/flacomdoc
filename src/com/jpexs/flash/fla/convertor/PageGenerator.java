@@ -1708,7 +1708,7 @@ public class PageGenerator extends AbstractGenerator {
                             fillStyles = getAllSubElementsByName(fillsNode, "FillStyle");
                         }
 
-                        Comparator<Node> indexComparator = new Comparator<>() {
+                        Comparator<Node> indexComparator = new Comparator<Node>() {
                             @Override
                             public int compare(Node o1, Node o2) {
                                 Node indexAttr1Node = o1.getAttributes().getNamedItem("index");
