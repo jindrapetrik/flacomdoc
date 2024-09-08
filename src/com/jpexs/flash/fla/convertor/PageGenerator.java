@@ -42,6 +42,7 @@ import com.jpexs.helpers.Reference;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.geom.Point2D;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -62,6 +63,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 import java.util.logging.Logger;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
@@ -2631,7 +2634,32 @@ public class PageGenerator extends AbstractGenerator {
         if (domTimeLine.hasAttribute("currentFrame")) {
             currentFrame = Integer.parseInt(domTimeLine.getAttribute("currentFrame"));
         }
-        fg.writePageFooter(nextLayerId, nextFolderId, currentFrame);
+
+        fg.write(
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
+                0x80, 0x00, 0x00, 0x07, nextLayerId, 0x00, nextFolderId, 0x00, currentFrame, 0x00, 0x00, 0x00
+        );
+        if (domTimeLine.hasAttribute("guides")) {
+            String guidesXml = domTimeLine.getAttribute("guides");
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder docBuilder = factory.newDocumentBuilder();
+            Document guidesDocument = docBuilder.parse(new ByteArrayInputStream(guidesXml.getBytes("UTF-8")));
+            Element guidesRoot = guidesDocument.getDocumentElement();
+            List<Element> guidelines = getAllSubElementsByName(guidesRoot, "guideline");
+            fg.writeUI32(guidelines.size());
+            for (Element guideline : guidelines) {
+                int direction = 0;
+                if (guideline.hasAttribute("direction") && "v".equals(guideline.getAttribute("direction"))) {
+                    direction = 1;
+                }
+                long value = Long.parseLong(guideline.getTextContent()) * 20;
+                fg.writeUI32(direction);
+                fg.writeUI32(value);
+            }
+        } else {
+            fg.write(0x00, 0x00, 0x00, 0x00);
+        }
+
     }
 
     public void generatePageFile(Element domTimeline, File outputFile) throws FileNotFoundException, IOException, SAXException, ParserConfigurationException {

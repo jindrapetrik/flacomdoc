@@ -776,9 +776,9 @@ public class ContentsGenerator extends AbstractGenerator {
             fg.write(0x00, 0x00);
 
             int mediaCount = writeMedia(fg, document, generatedItemIdOrder, definedClasses, objectsCount, outputDir, sourceDir);
-            
+
             fg.write(0x00, 0x00,
-                1, 0x00); //?
+                    1, 0x00); //?
             fg.write(
                     rulerUnitType,
                     0x00, 0x00, 0x00,
@@ -1053,11 +1053,11 @@ public class ContentsGenerator extends AbstractGenerator {
         if (sourceExternalFilepath != null && sourceExternalFilepath.toLowerCase().endsWith(".jpg")) {
             isJPEG = true;
         }
-        
+
         boolean compressionTypeLossless = false;
         if (domBitmapItem.hasAttribute("compressionType")) { //"photo" (default) or "lossless"
-            compressionTypeLossless = "lossless".equals(domBitmapItem.getAttribute("compressionType"));            
-        }       
+            compressionTypeLossless = "lossless".equals(domBitmapItem.getAttribute("compressionType"));
+        }
 
         boolean hasBinData = false;
         if (domBitmapItem.hasAttribute("bitmapDataHRef")) {
@@ -1115,7 +1115,6 @@ public class ContentsGenerator extends AbstractGenerator {
                 imageCount++;
             }
         }*/
-
         dw.write(1);
         dw.write(0x00);
 
@@ -1133,7 +1132,7 @@ public class ContentsGenerator extends AbstractGenerator {
             }
 
         }
-        
+
         return mediaCount;
     }
 
