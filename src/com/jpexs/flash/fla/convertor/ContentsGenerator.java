@@ -1050,23 +1050,11 @@ public class ContentsGenerator extends AbstractGenerator {
         if (sourceExternalFilepath != null && sourceExternalFilepath.toLowerCase().endsWith(".jpg")) {
             isJPEG = true;
         }
-
-        int frameLeft = 0;
-        if (domBitmapItem.hasAttribute("frameLeft")) {
-            frameLeft = Integer.parseInt(domBitmapItem.getAttribute("frameLeft"));
-        }
-        int frameRight = 0;
-        if (domBitmapItem.hasAttribute("frameRight")) {
-            frameRight = Integer.parseInt(domBitmapItem.getAttribute("frameRight"));
-        }
-        int frameTop = 0;
-        if (domBitmapItem.hasAttribute("frameTop")) {
-            frameTop = Integer.parseInt(domBitmapItem.getAttribute("frameTop"));
-        }
-        int frameBottom = 0;
-        if (domBitmapItem.hasAttribute("frameBottom")) {
-            frameBottom = Integer.parseInt(domBitmapItem.getAttribute("frameBottom"));
-        }
+        
+        boolean compressionTypeLossless = false;
+        if (domBitmapItem.hasAttribute("compressionType")) { //"photo" (default) or "lossless"
+            compressionTypeLossless = "lossless".equals(domBitmapItem.getAttribute("compressionType"));            
+        }       
 
         boolean hasBinData = false;
         if (domBitmapItem.hasAttribute("bitmapDataHRef")) {
@@ -1091,14 +1079,14 @@ public class ContentsGenerator extends AbstractGenerator {
 
         writeAsLinkage(dw, domBitmapItem);
         dw.write(0x00, 0x01, 0x00, 0x00, 0x00, 0x04);
-        if (isJPEG) {
+        if (compressionTypeLossless) {
+            dw.write(0x01);
+        } else {
             if (useImportedJPEGData) {
                 dw.write(0x00);
             } else {
                 dw.write(0x02);
             }
-        } else {
-            dw.write(0x01);
         }
         dw.write(quality, allowSmoothing ? 1 : 0);
         if (isJPEG) {
