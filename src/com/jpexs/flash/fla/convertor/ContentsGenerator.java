@@ -779,9 +779,83 @@ public class ContentsGenerator extends AbstractGenerator {
 
             fg.write(0x00, 0x00,
                     1, 0x00); //?
+
+            boolean gridVisible = false;
+            if (document.hasAttribute("gridVisible")) {
+                gridVisible = !"false".equals(document.getAttribute("gridVisible"));
+            }
+
+            boolean gridSnapTo = false;
+            if (document.hasAttribute("gridSnapTo")) {
+                gridSnapTo = !"false".equals(document.getAttribute("gridSnapTo"));
+            }
+
+            boolean snapAlign = true;
+            if (document.hasAttribute("snapAlign")) {
+                snapAlign = !"false".equals(document.getAttribute("snapAlign"));
+            }
+
+            int gridSpacingX = 10;
+            if (document.hasAttribute("gridSpacingX")) {
+                gridSpacingX = Integer.parseInt(document.getAttribute("gridSpacingX"));
+            }
+
+            int gridSpacingY = 10;
+            if (document.hasAttribute("gridSpacingY")) {
+                gridSpacingY = Integer.parseInt(document.getAttribute("gridSpacingY"));
+            }
+
+            int gridSnapAccuracy = 1;
+            if (document.hasAttribute("gridSnapAccuracy")) {
+                switch (document.getAttribute("gridSnapAccuracy")) {
+                    case "Must be close":
+                        gridSnapAccuracy = 0;
+                        break;
+                    case "Can be distant":
+                        gridSnapAccuracy = 2;
+                        break;
+                    case "Always snap":
+                        gridSnapAccuracy = 3;
+                        break;
+                }
+            }
+
+            boolean pixelSnap = false;
+            if (document.hasAttribute("pixelSnap")) {
+                pixelSnap = "true".equals(document.getAttribute("pixelSnap"));
+            }
+
+            boolean objectsSnapTo = true;
+            if (document.hasAttribute("objectsSnapTo")) {
+                objectsSnapTo = !"false".equals(document.getAttribute("objectsSnapTo"));
+            }
+
+            long snapAlignBorderSpacing = 0;
+            if (document.hasAttribute("snapAlignBorderSpacing")) {
+                snapAlignBorderSpacing = Long.parseLong(document.getAttribute("snapAlignBorderSpacing"));
+            }
+            long snapAlignHorizontalSpacing = 0;
+            if (document.hasAttribute("snapAlignHorizontalSpacing")) {
+                snapAlignHorizontalSpacing = Long.parseLong(document.getAttribute("snapAlignHorizontalSpacing"));
+            }
+            long snapAlignVerticalSpacing = 0;
+            if (document.hasAttribute("snapAlignVerticalSpacing")) {
+                snapAlignVerticalSpacing = Long.parseLong(document.getAttribute("snapAlignVerticalSpacing"));
+            }
+
+            boolean snapAlignHorizontalCenter = false;
+            if (document.hasAttribute("snapAlignHorizontalCenter")) {
+                snapAlignHorizontalCenter = "true".equals(document.getAttribute("snapAlignHorizontalCenter"));
+            }
+
+            boolean snapAlignVerticalCenter = false;
+            if (document.hasAttribute("snapAlignVerticalCenter")) {
+                snapAlignVerticalCenter = "true".equals(document.getAttribute("snapAlignVerticalCenter"));
+            }
+
             fg.write(
                     rulerUnitType,
-                    0x00, 0x00, 0x00,
+                    0x00, gridVisible ? 3 : 0, 0x00,
                     0x00, 0x00, 0x00);
 
             fg.writeUI16(width * 20);
@@ -794,16 +868,22 @@ public class ContentsGenerator extends AbstractGenerator {
                 rulerVisible = "true".equals(document.getAttribute("rulerVisible"));
             }
 
-            fg.write(0x00, 0x00, 0x00, 0x00,
-                    0xC8, 0x00, //?, was 68 01
-                    0x03, rulerVisible ? 1 : 0,
+            Color gridColor = new Color(0x94, 0x94, 0x94);
+            if (document.hasAttribute("gridColor")) {
+                gridColor = parseColor(document.getAttribute("gridColor"));
+            }
+
+            fg.write(0x00, 0x00, 0x00, 0x00);
+            fg.writeUI16(gridSpacingX * 20);
+
+            fg.write(0x03, rulerVisible ? 1 : 0,
                     0, //?? sometimes 1. magic
                     0x8D, 0x00, 0x68,
                     0x01, 0x00, 0x00, 0x68, 0x01, 0x00, 0x00, 0x68,
                     0x01, 0x00, 0x00, 0x68, 0x01, 0x00, 0x00, 0x01,
                     0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
                     0x00, 0x00, 0x00, backgroundColor.getRed(), backgroundColor.getGreen(), backgroundColor.getBlue(), 0xFF,
-                    0x94, 0x94, 0x94, //? some color
+                    gridColor.getRed(), gridColor.getGreen(), gridColor.getBlue(),
                     0xFF, 0x00, (int) Math.round((frameRate - Math.floor(frameRate)) * 256), (int) Math.floor(frameRate), 0x00, 0x00,
                     0x00, 0x03, 0xb4, 0x00, 0x00, 0x00);
             writeMap(fg, getLegacyProperties(), true);
@@ -850,6 +930,34 @@ public class ContentsGenerator extends AbstractGenerator {
             fg.write(0xFF, 0xFF, 0x01, 0x00);
             writeQTAudioSettings(fg, true);
 
+            boolean guidesLocked = false;
+            if (document.hasAttribute("guidesLocked")) {
+                guidesLocked = "true".equals(document.getAttribute("guidesLocked"));
+            }
+
+            boolean guidesVisible = true;
+            if (document.hasAttribute("guidesVisible")) {
+                guidesVisible = !"false".equals(document.getAttribute("guidesVisible"));
+            }
+
+            boolean guidesSnapTo = true;
+            if (document.hasAttribute("guidesSnapTo")) {
+                guidesSnapTo = !"false".equals(document.getAttribute("guidesSnapTo"));
+            }
+
+            Color guidesColor = new Color(0x58, 0xFF, 0xFF);
+            if (document.hasAttribute("guidesColor")) {
+                guidesColor = parseColor(document.getAttribute("guidesColor"));
+            }
+
+            fg.write(guidesColor.getRed(), guidesColor.getGreen(), guidesColor.getBlue());
+            fg.write(0xFF);
+            fg.write(
+                    guidesVisible ? 1 : 0,
+                    guidesLocked ? 1 : 0,
+                    guidesSnapTo ? 1 : 0,
+                    0x00, 0x00, 0x00, 0x00);
+
             int fontCount = writeFonts(fg, document, generatedItemIdOrder);
 
             String sharedLibraryURL = "";
@@ -859,20 +967,40 @@ public class ContentsGenerator extends AbstractGenerator {
 
             fg.write(0xFF, 0xFE, 0xFF);
             fg.writeLenUnicodeString(sharedLibraryURL);
-            fg.write(0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x01,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0xC8, 0x00,//0x68, 0x01,
-                    0xFF, 0xFE, 0xFF,
-                    0x00,
-                    0xFF, 0xFE, 0xFF,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            fg.write(gridSnapTo ? 1 : 0, objectsSnapTo ? 1 : 0, gridSnapAccuracy, 0x00, 0x00, 0x00);
+
+            int guidesSnapAccuracy = 1;
+            if (document.hasAttribute("guidesSnapAccuracy")) {
+                switch (document.getAttribute("guidesSnapAccuracy")) {
+                    case "Must be close":
+                        guidesSnapAccuracy = 0;
+                        break;
+                    case "Can be distant":
+                        guidesSnapAccuracy = 2;
+                        break;
+                }
+            }
+
+            fg.write(guidesSnapAccuracy,
                     0x00, 0x00, 0x00, 0x00, 0x00);
+            fg.writeUI16(gridSpacingY * 20);
+            fg.write(0xFF, 0xFE, 0xFF, 0x00,
+                    0xFF, 0xFE, 0xFF, 0x00,
+                    0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00,
+                    pixelSnap ? 1 : 0, 0x00, 0x00, 0x00);
 
             writeAccessibleData(fg, document, true);
 
             fg.write(0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01,
+                    0x00, 0x00, 0x00, 0x00, 0x00, snapAlign ? 1 : 0,
+                    snapAlignVerticalCenter ? 1 : 0,
+                    snapAlignHorizontalCenter ? 1 : 0,
+                    0x00);
+            fg.writeUI32(snapAlignHorizontalSpacing);
+            fg.writeUI32(snapAlignVerticalSpacing);
+            fg.writeUI32(snapAlignBorderSpacing);
+            fg.write(0x01, 0x00, 0x01,
                     0x00, 0x00, 0x00,
                     0x00, //?? 4?
                     0x00, 0x00, 0x00, 0x01,
@@ -1236,10 +1364,7 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.write(CQTAudioSettings.length(),
                 0x00);
         dw.write(CQTAudioSettings.getBytes());
-        dw.write(
-                0x00, 0x00, 0x00, 0x00, 0x01, 0x00, cs4 ? 0x58 : 0x00, 0xFF,
-                cs4 ? 0xFF : 0x00, 0xFF, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00,
-                0x00);
+        dw.write(0x00, 0x00, 0x00, 0x00, 0x01, 0x00);
 
     }
 
