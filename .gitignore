@@ -6,3 +6,9 @@ Thumbs.db
 *(Selective Sync Conflict*
 /config.properties
 /out/
+/javadoc/
+/coverage/
+/reports/
+/coverage.ec
+/revision.txt
+/releases/
