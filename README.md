@@ -32,7 +32,7 @@ I might add better interface in the future (like commandline arguments instead c
 See [TODO.md](TODO.md) for known missing features.
 
 ## License
-This work is licensed under LGPL v2.1, see [LICENSE.MD](LICENSE.MD) for details.
+This work is licensed under LGPL v2.1, see [LICENSE.md](LICENSE.md) for details.
 
 ## Author
 Jindra Petřík aka JPEXS
