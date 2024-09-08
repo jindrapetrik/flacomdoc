@@ -457,9 +457,9 @@ public class ContentsGenerator extends AbstractGenerator {
         int linkageFlags = 0;
         if (linkageExportForAS) {
             linkageFlags |= 1;
-        }
-        if (linkageExportInFirstFrame) {
-            linkageFlags |= 4;
+            if (linkageExportInFirstFrame) {
+                linkageFlags |= 4;
+            }
         }
         if (linkageExportForRS) {
             linkageFlags |= 2;
@@ -778,7 +778,7 @@ public class ContentsGenerator extends AbstractGenerator {
             int mediaCount = writeMedia(fg, document, generatedItemIdOrder, definedClasses, objectsCount, outputDir, sourceDir);
 
             fg.write(0x00, 0x00,
-                    1, 0x00); //?
+                    1 + mediaCount, 0x00); //?
 
             boolean gridVisible = false;
             if (document.hasAttribute("gridVisible")) {
@@ -1054,6 +1054,120 @@ public class ContentsGenerator extends AbstractGenerator {
         return itemID;
     }
 
+    protected void writeDomSoundItem(FlaCs4Writer dw, Element domSoundItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, File outputDir, File sourceDir) throws IOException {
+        useClass("CMediaSound", 1, dw, definedClasses, objectsCount);
+        dw.write(0x07);
+        String mediaFile = "M " + mediaCount + " " + timeCreated;
+        dw.writeLenUnicodeString(mediaFile);
+        dw.write(0xFF, 0xFE, 0xFF);
+        String name = "";
+        if (domSoundItem.hasAttribute("name")) {
+            name = domSoundItem.getAttribute("name");
+        }
+        dw.writeLenUnicodeString(name);
+
+        String importFilePath = "";
+        dw.writeUI16(mediaCount);
+        dw.write(0xFF, 0xFE, 0xFF);
+        dw.writeLenUnicodeString(importFilePath);
+        dw.writeUI32(timeCreated);
+        dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+        String itemID = generateItemID(generatedItemIdOrder);
+        if (domSoundItem.hasAttribute("itemID")) {
+            itemID = domSoundItem.getAttribute("itemID");
+        }
+        dw.writeItemID(itemID);
+
+        String format = "";
+        if (domSoundItem.hasAttribute("format")) {
+            format = domSoundItem.getAttribute("format");
+        }
+        String[] fparts = format.split(" ", -1);
+        boolean stereo = true;
+        boolean is16bit = true;
+        int samplingRate = 3;
+        if (fparts.length == 3) {
+            if ("Mono".equals(fparts[2])) {
+                stereo = false;
+            }
+            if ("8bit".equals(fparts[1])) {
+                is16bit = false;
+            }
+            switch (fparts[0]) {
+                case "44kHz":
+                    samplingRate = 3;
+                    break;
+                case "22kHz":
+                    samplingRate = 2;
+                    break;
+                case "11kHz":
+                    samplingRate = 1;
+                    break;
+                case "5kHz":
+                    samplingRate = 0;
+                    break;
+            }
+        }
+        int formatAsNum = (samplingRate << 2) + (is16bit ? 2 : 0) + (stereo ? 1 : 0);
+
+        long sampleCount = 0;
+        if (domSoundItem.hasAttribute("sampleCount")) {
+            sampleCount = Long.parseLong(domSoundItem.getAttribute("sampleCount"));
+        }
+
+        int exportFormat = -1;
+        if (domSoundItem.hasAttribute("exportFormat")) {
+            exportFormat = Integer.parseInt(domSoundItem.getAttribute("exportFormat"));
+        }
+        int exportBits = -1;
+        if (domSoundItem.hasAttribute("exportBits")) {
+            exportBits = Integer.parseInt(domSoundItem.getAttribute("exportBits"));
+        }
+
+        writeAsLinkage(dw, domSoundItem);        
+        dw.write(0x00, 0x01, 0x00, 0x00, 0x00, 0x0A,
+                formatAsNum, 0x00);
+        dw.writeUI32(sampleCount);
+
+        dw.writeUI16(exportFormat);
+        dw.writeUI16(exportBits);
+
+        String deviceSoundHRef = "";
+        if (domSoundItem.hasAttribute("deviceSoundHRef")) {
+            deviceSoundHRef = domSoundItem.getAttribute("deviceSoundHRef");
+        }
+
+        dw.write(0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0xFF, 0xFE, 0xFF);
+
+        dw.writeLenUnicodeString(deviceSoundHRef);
+        dw.write(0x00, 0x00, 0x00, 0x00);
+
+        boolean hasBinData = false;
+        if (domSoundItem.hasAttribute("soundDataHRef")) {
+            String videoDataHRef = domSoundItem.getAttribute("soundDataHRef");
+            File videDataFile = sourceDir.toPath().resolve("bin").resolve(videoDataHRef).toFile();
+            if (videDataFile.exists()) {
+                //copy the data file
+                try (FileOutputStream fos = new FileOutputStream(outputDir.toPath().resolve(mediaFile).toFile()); FileInputStream fis = new FileInputStream(videDataFile);) {
+                    byte[] buf = new byte[4096];
+                    int cnt;
+                    while ((cnt = fis.read(buf)) > 0) {
+                        fos.write(buf, 0, cnt);
+                    }
+                }
+                hasBinData = true;
+            }
+        }
+
+        if (!hasBinData) {
+            Logger.getLogger(ContentsGenerator.class.getName()).log(Level.WARNING, "Missing bin/*.dat file for {0}", name);
+        }
+    }
+
     protected void writeDomVideoItem(FlaCs4Writer dw, Element domVideoItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, File outputDir, File sourceDir) throws IOException {
         useClass("CMediaVideoStream", 1, dw, definedClasses, objectsCount);
         dw.write(0x07);
@@ -1067,17 +1181,19 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.writeLenUnicodeString(name);
 
         String importFilePath = "";
-        dw.write(mediaCount, 0x00,
-                0xFF, 0xFE, 0xFF);
+        dw.writeUI16(mediaCount);
+        dw.write(0xFF, 0xFE, 0xFF);
         dw.writeLenUnicodeString(importFilePath);
         dw.writeUI32(timeCreated);
-        dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
         String itemID = generateItemID(generatedItemIdOrder);
         if (domVideoItem.hasAttribute("itemID")) {
             itemID = domVideoItem.getAttribute("itemID");
         }
         dw.writeItemID(itemID);
+
         dw.write(0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00);
         dw.write(0xFF, 0xFE, 0xFF, 0x00);
         dw.write(0xFF, 0xFE, 0xFF, 0x00);
@@ -1089,6 +1205,7 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
         dw.write(0xFF, 0xFF, 0xFF, 0xFF, 0x00);
         dw.write(0xFF, 0xFE, 0xFF, 0x00);
+
         dw.write(0x00, 0x01, 0x00, 0x00, 0x00);
 
         boolean hasBinData = false;
@@ -1133,8 +1250,8 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.write(0xFF, 0xFE, 0xFF);
         dw.writeLenUnicodeString(name);
         String importFilePath = "";
-        dw.write(mediaCount, 0x00,
-                0xFF, 0xFE, 0xFF);
+        dw.writeUI16(mediaCount);
+        dw.write(0xFF, 0xFE, 0xFF);
         dw.writeLenUnicodeString(importFilePath);
         dw.writeUI32(timeCreated);
         dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1253,6 +1370,9 @@ public class ContentsGenerator extends AbstractGenerator {
             switch (mediaItem.getTagName()) {
                 case "DOMBitmapItem":
                     writeDomBitmapItem(dw, mediaItem, definedClasses, objectsCount, mediaCount, generatedItemIdOrder, outputDir, sourceDir);
+                    break;
+                case "DOMSoundItem":
+                    writeDomSoundItem(dw, mediaItem, definedClasses, objectsCount, mediaCount, generatedItemIdOrder, outputDir, sourceDir);
                     break;
                 case "DOMVideoItem":
                     writeDomVideoItem(dw, mediaItem, definedClasses, objectsCount, mediaCount, generatedItemIdOrder, outputDir, sourceDir);
