@@ -78,9 +78,49 @@ public class ContentsGenerator extends AbstractGenerator {
 
     private static final SecureRandom random = new SecureRandom();
 
+    private void writeTime(FlaCs4Writer fg, long time) throws IOException {
+        if (debugRandom) {
+            fg.write('X', 'X', 'X', 'X');
+        } else {
+            fg.writeUI32(time);
+        }
+    }
+
+    private void writeTimeCreated(FlaCs4Writer fg) throws IOException {
+        if (debugRandom) {
+            fg.write('X', 'X', 'X', 'X');
+        } else {
+            fg.writeUI32(timeCreated);
+        }
+    }
+
+    private String getTimeCreatedAsString() {
+        if (debugRandom) {
+            return "XXXXXXXXXX";
+        }
+        return "" + timeCreated;
+    }
+
+    private String getTimeAsString(long time) {
+        if (debugRandom) {
+            return "XXXXXXXXXX";
+        }
+        return "" + time;
+    }
+
     private String generateGUID() {
-        final String HEX_CHARS = "ABCDEF0123456789";
         int length = 32;
+
+        if (debugRandom) {
+            StringBuilder sb = new StringBuilder(length);
+            for (int i = 0; i < length; i++) {
+                sb.append('X');
+            }
+            return sb.toString();
+        }
+
+        final String HEX_CHARS = "ABCDEF0123456789";
+
         StringBuilder sb = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
             int index = random.nextInt(HEX_CHARS.length());
@@ -91,6 +131,14 @@ public class ContentsGenerator extends AbstractGenerator {
 
     private String generateXmppId() {
         int length = 24;
+
+        if (debugRandom) {
+            StringBuilder sb = new StringBuilder(length);
+            for (int i = 0; i < length; i++) {
+                sb.append('X');
+            }
+            return sb.toString();
+        }
 
         StringBuilder sb = new StringBuilder(length);
 
@@ -507,7 +555,7 @@ public class ContentsGenerator extends AbstractGenerator {
             symbolCount++;
             int symbolId = i + 1;
             long symbolTime = timeCreated;
-            String symbolFile = "S " + symbolId + " " + symbolTime;
+            String symbolFile = "S " + symbolId + " " + getTimeAsString(symbolTime);
             String symbolName = "Symbol " + symbolId;
             if (domTimelineElement.hasAttribute("name")) {
                 symbolName = domTimelineElement.getAttribute("name");
@@ -558,7 +606,7 @@ public class ContentsGenerator extends AbstractGenerator {
             writeAsLinkage(fg, symbolElement);
 
             fg.write(0x00);
-            fg.writeUI32(symbolTime);
+            writeTime(fg, symbolTime);
             fg.write(0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
                     0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF,
                     0x00, 0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0xFF, 0xFE,
@@ -677,9 +725,11 @@ public class ContentsGenerator extends AbstractGenerator {
 
                 pageCount++;
 
-                String pageName = "P " + pageCount + " " + timeCreated;
+                String pageName = "P " + pageCount + " " + getTimeCreatedAsString();
+                
+                String debugPageName = "P X " + getTimeCreatedAsString();
 
-                fg.writeLenUnicodeString(pageName);
+                fg.writeLenUnicodeString(debugRandom ? debugPageName : pageName);
                 fg.write(0xFF, 0xFE, 0xFF);
                 fg.writeLenUnicodeString(sceneName);
                 fg.write(
@@ -706,7 +756,7 @@ public class ContentsGenerator extends AbstractGenerator {
                         0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0x00);
-                fg.writeUI32(timeCreated);
+                writeTimeCreated(fg);
                 fg.write(
                         0xFF, 0xFE, 0xFF, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
@@ -923,6 +973,29 @@ public class ContentsGenerator extends AbstractGenerator {
                             if (!properties.containsKey(nsKey)) {
                                 continue;
                             }
+                            if (nsKey.equals("Vector::RSLPreloaderMethod")) {
+                                switch (value) {
+                                    case "wrap":
+                                        value = "0";
+                                        break;
+                                    case "event":
+                                        value = "1";
+                                        break;
+                                }
+                            }
+                            if (nsKey.equals("Vector::DefaultLibraryLinkage")) {
+                                switch (value) {
+                                    case "rsl":
+                                        value = "0";
+                                        break;
+                                    case "merge":
+                                        value = "1";
+                                        break;
+                                }
+                            }
+                            if (nsKey.equals("PublishRNWKProperties::flashBitRate")) {
+                                value = "1200";
+                            }
                             properties.put(nsKey, value);
                         }
                     }
@@ -1050,7 +1123,7 @@ public class ContentsGenerator extends AbstractGenerator {
             }
 
             fg.write(versionInfo.getBytes());
-            String timecount = " timecount = " + timeCreated;
+            String timecount = " timecount = " + getTimeCreatedAsString();
             fg.write(timecount.getBytes());
             fg.write(0x00);
             fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x4B, 0x40, 0x7C, 0x15, 0x00, 0x00, 0xA0, 0x0F, 0x00, 0x00,
@@ -1059,6 +1132,9 @@ public class ContentsGenerator extends AbstractGenerator {
     }
 
     private String generateItemID(Reference<Long> generatedItemIdOrder) {
+        if (debugRandom) {
+            return "XXXXXXXX-XXXXXXXX";
+        }
         String itemID = String.format("%1$08x-%2$08x", timeCreated, generatedItemIdOrder.getVal());
         generatedItemIdOrder.setVal(generatedItemIdOrder.getVal() + 1);
         return itemID;
@@ -1067,7 +1143,7 @@ public class ContentsGenerator extends AbstractGenerator {
     protected void writeDomSoundItem(FlaCs4Writer dw, Element domSoundItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, OutputStorageInterface outputDir, InputStorageInterface sourceDir) throws IOException {
         useClass("CMediaSound", 1, dw, definedClasses, objectsCount);
         dw.write(0x07);
-        String mediaFile = "M " + mediaCount + " " + timeCreated;
+        String mediaFile = "M " + mediaCount + " " + getTimeCreatedAsString();
         dw.writeLenUnicodeString(mediaFile);
         dw.write(0xFF, 0xFE, 0xFF);
         String name = "";
@@ -1080,7 +1156,7 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.writeUI16(mediaCount);
         dw.write(0xFF, 0xFE, 0xFF);
         dw.writeLenUnicodeString(importFilePath);
-        dw.writeUI32(timeCreated);
+        writeTimeCreated(dw);
         dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
@@ -1181,7 +1257,7 @@ public class ContentsGenerator extends AbstractGenerator {
     protected void writeDomVideoItem(FlaCs4Writer dw, Element domVideoItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, OutputStorageInterface outputDir, InputStorageInterface sourceDir) throws IOException {
         useClass("CMediaVideoStream", 1, dw, definedClasses, objectsCount);
         dw.write(0x07);
-        String mediaFile = "M " + mediaCount + " " + timeCreated;
+        String mediaFile = "M " + mediaCount + " " + getTimeCreatedAsString();
         dw.writeLenUnicodeString(mediaFile);
         dw.write(0xFF, 0xFE, 0xFF);
         String name = "";
@@ -1194,7 +1270,7 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.writeUI16(mediaCount);
         dw.write(0xFF, 0xFE, 0xFF);
         dw.writeLenUnicodeString(importFilePath);
-        dw.writeUI32(timeCreated);
+        writeTimeCreated(dw);
         dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
@@ -1249,7 +1325,7 @@ public class ContentsGenerator extends AbstractGenerator {
          */
         useClass("CMediaBits", 1, dw, definedClasses, objectsCount);
         dw.write(0x07);
-        String mediaFile = "M " + mediaCount + " " + timeCreated;
+        String mediaFile = "M " + mediaCount + " " + getTimeCreatedAsString();
         dw.writeLenUnicodeString(mediaFile);
 
         String name = "";
@@ -1263,7 +1339,7 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.writeUI16(mediaCount);
         dw.write(0xFF, 0xFE, 0xFF);
         dw.writeLenUnicodeString(importFilePath);
-        dw.writeUI32(timeCreated);
+        writeTimeCreated(dw);
         dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
 
@@ -1447,7 +1523,7 @@ public class ContentsGenerator extends AbstractGenerator {
                     0xFF, 0xFE, 0xFF);
             dw.writeLenUnicodeString(name);
             dw.writeUI16(id);
-            dw.writeUI32(timeCreated);
+            writeTimeCreated(dw);
             dw.write(0x0F, 0x00, 0x00,
                     0xFF, 0xFE, 0xFF);
 
@@ -1754,10 +1830,18 @@ public class ContentsGenerator extends AbstractGenerator {
         SimpleDateFormat XMPP_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
         String timeCreatedXmpp = XMPP_DATE_FORMAT.format(new Date(timeCreatedMs));
 
+        if (debugRandom) {
+            String timNotRandom = "";
+            for (int i = 0; i < timeCreatedXmpp.length(); i++) {
+                timNotRandom += 'X';
+            }
+            timeCreatedXmpp = timNotRandom;
+        }
         String xmppDocumentId = generateGUID();
         String xmppOriginalDocumentId = generateGUID();
+        String xmppId = generateXmppId();
 
-        return "<?xpacket begin=\"" + (char) 0xFEFF + "\" id=\"" + generateXmppId() + "\"?>\n"
+        return "<?xpacket begin=\"" + (char) 0xFEFF + "\" id=\"" + xmppId + "\"?>\n"
                 + "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 5.0-c060 61.134777, 2010/02/12-17:32:00        \">\n"
                 + "   <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n"
                 + "      <rdf:Description rdf:about=\"\"\n"
@@ -1773,10 +1857,15 @@ public class ContentsGenerator extends AbstractGenerator {
                 + "      </rdf:Description>\n"
                 + "      <rdf:Description rdf:about=\"\"\n"
                 + "            xmlns:xmpMM=\"http://ns.adobe.com/xap/1.0/mm/\"\n"
-                + "            xmlns:stEvt=\"http://ns.adobe.com/xap/1.0/sType/ResourceEvent#\"\n"
-                + "            xmlns:stRef=\"http://ns.adobe.com/xap/1.0/sType/ResourceRef#\">\n"
-                + "         <xmpMM:InstanceID>xmp.iid:" + xmppDocumentId + "</xmpMM:InstanceID>\n"
+                + "            xmlns:stRef=\"http://ns.adobe.com/xap/1.0/sType/ResourceRef#\"\n"
+                + "            xmlns:stEvt=\"http://ns.adobe.com/xap/1.0/sType/ResourceEvent#\">\n"
+                + "         <xmpMM:DerivedFrom rdf:parseType=\"Resource\">\n"
+                + "            <stRef:instanceID>xmp.iid:" + xmppOriginalDocumentId + "</stRef:instanceID>\n"
+                + "            <stRef:documentID>xmp.did:" + xmppOriginalDocumentId + "</stRef:documentID>\n"
+                + "            <stRef:originalDocumentID>xmp.did:" + xmppOriginalDocumentId + "</stRef:originalDocumentID>\n"
+                + "         </xmpMM:DerivedFrom>\n"
                 + "         <xmpMM:DocumentID>xmp.did:" + xmppDocumentId + "</xmpMM:DocumentID>\n"
+                + "         <xmpMM:InstanceID>xmp.iid:" + xmppDocumentId + "</xmpMM:InstanceID>\n"
                 + "         <xmpMM:OriginalDocumentID>xmp.did:" + xmppOriginalDocumentId + "</xmpMM:OriginalDocumentID>\n"
                 + "         <xmpMM:History>\n"
                 + "            <rdf:Seq>\n"
@@ -1784,22 +1873,16 @@ public class ContentsGenerator extends AbstractGenerator {
                 + "                  <stEvt:action>created</stEvt:action>\n"
                 + "                  <stEvt:instanceID>xmp.iid:" + xmppOriginalDocumentId + "</stEvt:instanceID>\n"
                 + "                  <stEvt:when>" + timeCreatedXmpp + "</stEvt:when>\n"
-                + "                  <stEvt:softwareAgent>Adobe Flash Professional CS5</stEvt:softwareAgent>\n"
+                + "                  <stEvt:softwareAgent>" + creatorInfo + "</stEvt:softwareAgent>\n"
                 + "               </rdf:li>\n"
                 + "               <rdf:li rdf:parseType=\"Resource\">\n"
-                + "                  <stEvt:action>saved</stEvt:action>\n"
+                + "                  <stEvt:action>created</stEvt:action>\n"
                 + "                  <stEvt:instanceID>xmp.iid:" + xmppDocumentId + "</stEvt:instanceID>\n"
                 + "                  <stEvt:when>" + timeCreatedXmpp + "</stEvt:when>\n"
-                + "                  <stEvt:softwareAgent>Adobe Flash Professional CS5</stEvt:softwareAgent>\n"
-                + "                  <stEvt:changed>/</stEvt:changed>\n"
+                + "                  <stEvt:softwareAgent>" + creatorInfo + "</stEvt:softwareAgent>\n"
                 + "               </rdf:li>\n"
                 + "            </rdf:Seq>\n"
                 + "         </xmpMM:History>\n"
-                + "         <xmpMM:DerivedFrom rdf:parseType=\"Resource\">\n"
-                + "            <stRef:instanceID>xmp.iid:" + xmppOriginalDocumentId + "</stRef:instanceID>\n"
-                + "            <stRef:documentID>xmp.did:" + xmppOriginalDocumentId + "</stRef:documentID>\n"
-                + "            <stRef:originalDocumentID>xmp.did:" + xmppOriginalDocumentId + "</stRef:originalDocumentID>\n"
-                + "         </xmpMM:DerivedFrom>\n"
                 + "      </rdf:Description>\n"
                 + "   </rdf:RDF>\n"
                 + "</x:xmpmeta>\n"

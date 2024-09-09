@@ -851,6 +851,10 @@ public class FlaCs4Writer {
     }
 
     public void writeItemID(String itemID) throws IOException {
+        if ("XXXXXXXX-XXXXXXXX".equals(itemID)) {
+            write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
+            return;
+        }
         Pattern itemIdPattern = Pattern.compile("^(?<hi>[a-f0-9]{8})-(?<lo>[a-f0-9]{8})$");
         Matcher m = itemIdPattern.matcher(itemID);
         if (!m.matches()) {

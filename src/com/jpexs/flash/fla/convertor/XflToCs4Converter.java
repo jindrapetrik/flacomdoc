@@ -38,7 +38,7 @@ public class XflToCs4Converter {
     /**
      * If true, all random ids are generated as 'X' characters
      */
-    private static final boolean DEBUG_RANDOM = true;
+    private static final boolean DEBUG_RANDOM = false;
 
     private static void deleteDir(File f) throws IOException {
         if (f.isDirectory()) {

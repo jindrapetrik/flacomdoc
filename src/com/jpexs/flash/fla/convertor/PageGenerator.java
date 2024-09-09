@@ -2695,6 +2695,11 @@ public class PageGenerator extends AbstractGenerator {
             currentFrame = Integer.parseInt(domTimeLine.getAttribute("currentFrame"));
         }
 
+        if (debugRandom) {
+            nextLayerId = 'X';
+            nextFolderId = 'X';
+        }
+        
         fg.write(
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
                 0x80, 0x00, 0x00, 0x07, nextLayerId, 0x00, nextFolderId, 0x00, currentFrame, 0x00, 0x00, 0x00
