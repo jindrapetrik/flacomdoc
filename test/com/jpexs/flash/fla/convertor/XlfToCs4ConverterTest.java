@@ -64,7 +64,6 @@ public class XlfToCs4ConverterTest {
         for (int i = 0; i < sourceFilesList.size(); i++) {
             ret[i] = new Object[]{sourceFilesList.get(i).getName()};
         }
-        System.err.println("rl " + ret.length);
         return ret;
     }
 
