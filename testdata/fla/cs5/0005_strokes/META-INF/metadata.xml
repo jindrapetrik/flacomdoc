@@ -4,9 +4,9 @@
       <rdf:Description rdf:about=""
             xmlns:xmp="http://ns.adobe.com/xap/1.0/">
          <xmp:CreatorTool>Adobe Flash Professional CS5</xmp:CreatorTool>
-         <xmp:CreateDate>2024-09-09T06:53:46+02:00</xmp:CreateDate>
-         <xmp:MetadataDate>2024-09-09T17:55:12+02:00</xmp:MetadataDate>
-         <xmp:ModifyDate>2024-09-09T17:55:12+02:00</xmp:ModifyDate>
+         <xmp:CreateDate>2024-09-09T20:27:22+02:00</xmp:CreateDate>
+         <xmp:MetadataDate>2024-09-10T22:41:34+02:00</xmp:MetadataDate>
+         <xmp:ModifyDate>2024-09-10T22:41:34+02:00</xmp:ModifyDate>
       </rdf:Description>
       <rdf:Description rdf:about=""
             xmlns:dc="http://purl.org/dc/elements/1.1/">
@@ -14,27 +14,44 @@
       </rdf:Description>
       <rdf:Description rdf:about=""
             xmlns:xmpMM="http://ns.adobe.com/xap/1.0/mm/"
-            xmlns:stEvt="http://ns.adobe.com/xap/1.0/sType/ResourceEvent#">
-         <xmpMM:DerivedFrom rdf:parseType="Resource"/>
-         <xmpMM:DocumentID>xmp.did:81AFD9CB676EEF118D6DDAF635A9E3B5</xmpMM:DocumentID>
-         <xmpMM:InstanceID>xmp.iid:92EB06D4C36EEF118D6DDAF635A9E3B5</xmpMM:InstanceID>
-         <xmpMM:OriginalDocumentID>xmp.did:81AFD9CB676EEF118D6DDAF635A9E3B5</xmpMM:OriginalDocumentID>
+            xmlns:stEvt="http://ns.adobe.com/xap/1.0/sType/ResourceEvent#"
+            xmlns:stRef="http://ns.adobe.com/xap/1.0/sType/ResourceRef#">
+         <xmpMM:InstanceID>xmp.iid:433D07F5AC6FEF11BD9BD7E79914C443</xmpMM:InstanceID>
+         <xmpMM:DocumentID>xmp.did:F3FAE369A76FEF11BD9BD7E79914C443</xmpMM:DocumentID>
+         <xmpMM:OriginalDocumentID>xmp.did:7695F031D96EEF11B8A5F890DA1A7180</xmpMM:OriginalDocumentID>
          <xmpMM:History>
             <rdf:Seq>
                <rdf:li rdf:parseType="Resource">
                   <stEvt:action>created</stEvt:action>
-                  <stEvt:instanceID>xmp.iid:81AFD9CB676EEF118D6DDAF635A9E3B5</stEvt:instanceID>
-                  <stEvt:when>2024-09-09T06:53:46+02:00</stEvt:when>
+                  <stEvt:instanceID>xmp.iid:7695F031D96EEF11B8A5F890DA1A7180</stEvt:instanceID>
+                  <stEvt:when>2024-09-09T20:27:22+02:00</stEvt:when>
                   <stEvt:softwareAgent>Adobe Flash Professional CS5</stEvt:softwareAgent>
                </rdf:li>
                <rdf:li rdf:parseType="Resource">
                   <stEvt:action>created</stEvt:action>
-                  <stEvt:instanceID>xmp.iid:92EB06D4C36EEF118D6DDAF635A9E3B5</stEvt:instanceID>
-                  <stEvt:when>2024-09-09T06:53:46+02:00</stEvt:when>
+                  <stEvt:instanceID>xmp.iid:7895F031D96EEF11B8A5F890DA1A7180</stEvt:instanceID>
+                  <stEvt:when>2024-09-09T20:27:22+02:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Flash Professional CS5</stEvt:softwareAgent>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>created</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:F3FAE369A76FEF11BD9BD7E79914C443</stEvt:instanceID>
+                  <stEvt:when>2024-09-09T20:27:22+02:00</stEvt:when>
+                  <stEvt:softwareAgent>Adobe Flash Professional CS5</stEvt:softwareAgent>
+               </rdf:li>
+               <rdf:li rdf:parseType="Resource">
+                  <stEvt:action>created</stEvt:action>
+                  <stEvt:instanceID>xmp.iid:433D07F5AC6FEF11BD9BD7E79914C443</stEvt:instanceID>
+                  <stEvt:when>2024-09-09T20:27:22+02:00</stEvt:when>
                   <stEvt:softwareAgent>Adobe Flash Professional CS5</stEvt:softwareAgent>
                </rdf:li>
             </rdf:Seq>
          </xmpMM:History>
+         <xmpMM:DerivedFrom rdf:parseType="Resource">
+            <stRef:instanceID>xmp.iid:7895F031D96EEF11B8A5F890DA1A7180</stRef:instanceID>
+            <stRef:documentID>xmp.did:7695F031D96EEF11B8A5F890DA1A7180</stRef:documentID>
+            <stRef:originalDocumentID>xmp.did:7695F031D96EEF11B8A5F890DA1A7180</stRef:originalDocumentID>
+         </xmpMM:DerivedFrom>
       </rdf:Description>
    </rdf:RDF>
 </x:xmpmeta>

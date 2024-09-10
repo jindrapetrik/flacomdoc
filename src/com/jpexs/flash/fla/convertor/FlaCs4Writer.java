@@ -46,6 +46,8 @@ public class FlaCs4Writer {
     public static int FLAG_EDGE_FROM_SHORT = 1 + 2;
     public static int FLAG_EDGE_FROM_BYTE = 1;
 
+    public static int FLAG_EDGE_FROM_MASK = FLAG_EDGE_FROM_SHORT;
+
     public static int FLAG_EDGE_CONTROL_FLOAT = 8;
     public static int FLAG_EDGE_CONTROL_SHORT = 4 + 8;
     public static int FLAG_EDGE_CONTROL_BYTE = 4;
@@ -53,6 +55,8 @@ public class FlaCs4Writer {
     public static int FLAG_EDGE_TO_FLOAT = 32;
     public static int FLAG_EDGE_TO_SHORT = 16 + 32;
     public static int FLAG_EDGE_TO_BYTE = 16;
+
+    public static int FLAG_EDGE_TO_MASK = FLAG_EDGE_TO_SHORT;
 
     public static int KEYMODE_STANDARD = 9728;
 
@@ -158,8 +162,8 @@ public class FlaCs4Writer {
 
     public static int getEdgesCount(String edges) throws IOException {
         edges = edges.replaceAll("[ \r\n\t\f]+", " ");
-        edges = edges.replaceAll("([^ ])([!\\[\\|])", "$1 $2");
-        edges = edges.replaceAll("([!\\[\\|])([^ ])", "$1 $2");
+        edges = edges.replaceAll("([^ ])([!\\[\\|/])", "$1 $2");
+        edges = edges.replaceAll("([!\\[\\|/])([^ ])", "$1 $2");
 
         edges = edges.trim();
 
@@ -186,8 +190,9 @@ public class FlaCs4Writer {
             for (int i = 2; i < parts.length; i++) {
                 switch (parts[i]) {
                     case "|":
+                    case "/":
                         if (i + 2 >= parts.length) {
-                            throw new IllegalArgumentException("| requires two arguments");
+                            throw new IllegalArgumentException(parts[i] + " requires two arguments");
                         }
                         i += 2;
                         totalEdges++;
@@ -212,8 +217,8 @@ public class FlaCs4Writer {
         setFillStyle1(fillStyle1);
 
         edges = edges.replaceAll("[ \r\n\t\f]+", " ");
-        edges = edges.replaceAll("([^ ])([!\\[\\|])", "$1 $2");
-        edges = edges.replaceAll("([!\\[\\|])([^ ])", "$1 $2");
+        edges = edges.replaceAll("([^ ])([!\\[\\|/])", "$1 $2");
+        edges = edges.replaceAll("([!\\[\\|/])([^ ])", "$1 $2");
 
         edges = edges.trim();
 
@@ -253,16 +258,18 @@ public class FlaCs4Writer {
             for (int i = 2; i < parts.length; i++) {
                 switch (parts[i]) {
                     case "|":
+                    case "/":
                         if (i + 2 >= parts.length) {
-                            throw new IllegalArgumentException("| requires two arguments");
+                            throw new IllegalArgumentException(parts[i] + " requires two arguments");
                         }
                         try {
                             lineTo(
                                     parts[i + 1],
-                                    parts[i + 2]
+                                    parts[i + 2],
+                                    parts[i].equals("/")
                             );
                         } catch (NumberFormatException nfe) {
-                            throw new IllegalArgumentException("| has invalid arguments: " + parts[i + 1] + ", " + parts[i + 2]);
+                            throw new IllegalArgumentException(parts[i] + " has invalid arguments: " + parts[i + 1] + ", " + parts[i + 2]);
                         }
                         i += 2;
                         break;
@@ -288,7 +295,7 @@ public class FlaCs4Writer {
         }
     }
 
-    public void writeEdge(int selection, String fromX, String fromY, String toX, String toY, String controlX, String controlY) throws IOException {
+    public void writeEdge(int selection, String fromX, String fromY, String toX, String toY, String controlX, String controlY, boolean generalLine) throws IOException {
         int type = 0;
         if (controlX != null && controlY != null) {
             if (fitsXYByte(controlX, controlY)) {
@@ -364,8 +371,8 @@ public class FlaCs4Writer {
             writeXY(toX, toY);
         }
         if (controlX == null) {
-            logger.fine("writing end 0x00");
-            write(0x00);
+            logger.log(Level.FINE, "writing generalLineFlag {0}", generalLine ? 1 : 0);
+            write(generalLine ? 1 : 0);
         }
         moved = false;
     }
@@ -555,7 +562,7 @@ public class FlaCs4Writer {
         return numEdgeToString(parseEdge(v1) - parseEdge(v2));
     }
 
-    public void lineTo(String x2, String y2) throws IOException {
+    public void lineTo(String x2, String y2, boolean generalLine) throws IOException {
         String newX = moved ? moveX : this.x;
         String newY = moved ? moveY : this.y;
         writeEdge(
@@ -565,7 +572,8 @@ public class FlaCs4Writer {
                 deltaEdge(x2, newX),
                 deltaEdge(y2, newY),
                 null,
-                null);
+                null,
+                generalLine);
         this.x = x2;
         this.y = y2;
     }
@@ -580,7 +588,8 @@ public class FlaCs4Writer {
                 deltaEdge(anchorX, newX),
                 deltaEdge(anchorY, newY),
                 deltaEdge(controlX, newX),
-                deltaEdge(controlY, newY)
+                deltaEdge(controlY, newY),
+                false
         );
         this.x = anchorX;
         this.y = anchorY;
@@ -647,8 +656,13 @@ public class FlaCs4Writer {
             double focalRatio
     ) throws IOException {
 
-        write(0x00, 0x00, 0x00, 0x00 /*this is sometimes 0xFF*/,
-                type, 0x00);
+        write(0x00, 0x00, 0x00);
+        if (debugRandom) {
+            write('U');
+        } else {
+            write(0x00); //This is sometimes 0xFF, I don't know why :-(
+        }
+        write(type, 0x00);
         writeMatrix(gradientMatrix);
         write(
                 colors.length,

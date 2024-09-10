@@ -103,7 +103,7 @@ public class CompoundFileBinary implements AutoCloseable {
     private long miniStreamCutoffSize;
     private long miniStreamSize;
     private int sectorLength;
-    
+
     private long firstDifatSectorLocation;
 
     public CompoundFileBinary(File file) throws IOException {
@@ -945,7 +945,7 @@ public class CompoundFileBinary implements AutoCloseable {
     private List<Long> allocateNewLength(long length) throws IOException {
 
         int numSectors = (int) Math.ceil(length / (float) sectorLength);
-        
+
         List<Long> newSectorIds = new ArrayList<>();
         long sectorId = 0;
         Long lastSectorFatFileOffset = null;
@@ -988,7 +988,7 @@ public class CompoundFileBinary implements AutoCloseable {
                 if (difatval == FREESECT) {
                     raf.seek(0x4C + i * 4);
                     writeUI32(sectorId);
-                    inMainDiFat = true;                    
+                    inMainDiFat = true;
                     difat.set(diFatIndex, sectorId);
                     break;
                 }
@@ -1007,7 +1007,7 @@ public class CompoundFileBinary implements AutoCloseable {
                     for (int i = 0; i < sectorLength - 4; i += 4) {
                         raf.seek((1 + difatSectorLocation) * sectorLength + i);
                         long fatSector = readUI32();
-                        if (fatSector == FREESECT) {                            
+                        if (fatSector == FREESECT) {
                             raf.seek((1 + difatSectorLocation) * sectorLength + i);
                             writeUI32(newFatSectorId);
                             inSecondaryDiFat = true;
@@ -1478,7 +1478,7 @@ public class CompoundFileBinary implements AutoCloseable {
         cd.setRootClsId("08fcfece-b230-461b-9f84-d72f31db07ae"); //FLA cls id
         cd.addDirectoryContents("", new File("testdata/cbf"));
     }
-    
+
     public void dumpSect() {
         int d = 0;
         for (long df : difat) {

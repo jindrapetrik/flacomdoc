@@ -20,23 +20,23 @@
     <pngDefaultName>1</pngDefaultName>
     <qtDefaultName>1</qtDefaultName>
     <rnwkDefaultName>1</rnwkDefaultName>
-    <flashFileName>0001_empty_doc.swf</flashFileName>
-    <projectorWinFileName>0001_empty_doc.exe</projectorWinFileName>
-    <projectorMacFileName>0001_empty_doc.app</projectorMacFileName>
-    <htmlFileName>0001_empty_doc.html</htmlFileName>
-    <gifFileName>0001_empty_doc.gif</gifFileName>
-    <jpegFileName>0001_empty_doc.jpg</jpegFileName>
-    <pngFileName>0001_empty_doc.png</pngFileName>
-    <qtFileName>0001_empty_doc.mov</qtFileName>
-    <rnwkFileName>0001_empty_doc.smil</rnwkFileName>
+    <flashFileName>0004_cubics.swf</flashFileName>
+    <projectorWinFileName>0004_cubics.exe</projectorWinFileName>
+    <projectorMacFileName>0004_cubics.app</projectorMacFileName>
+    <htmlFileName>0004_cubics.html</htmlFileName>
+    <gifFileName>0004_cubics.gif</gifFileName>
+    <jpegFileName>0004_cubics.jpg</jpegFileName>
+    <pngFileName>0004_cubics.png</pngFileName>
+    <qtFileName>0004_cubics.mov</qtFileName>
+    <rnwkFileName>0004_cubics.smil</rnwkFileName>
   </PublishFormatProperties>
   <PublishHtmlProperties enabled="true">
     <VersionDetectionIfAvailable>0</VersionDetectionIfAvailable>
     <VersionInfo>10,1,52,0;9,0,124,0;8,0,24,0;7,0,14,0;6,0,79,0;5,0,58,0;4,0,32,0;3,0,8,0;2,0,1,12;1,0,0,1;</VersionInfo>
     <UsingDefaultContentFilename>1</UsingDefaultContentFilename>
     <UsingDefaultAlternateFilename>1</UsingDefaultAlternateFilename>
-    <ContentFilename>0001_empty_doc.xfl_content.html</ContentFilename>
-    <AlternateFilename>0001_empty_doc.xfl_alternate.html</AlternateFilename>
+    <ContentFilename>0004_cubics.xfl_content.html</ContentFilename>
+    <AlternateFilename>0004_cubics.xfl_alternate.html</AlternateFilename>
     <UsingOwnAlternateFile>0</UsingOwnAlternateFile>
     <OwnAlternateFilename></OwnAlternateFilename>
     <Width>550</Width>

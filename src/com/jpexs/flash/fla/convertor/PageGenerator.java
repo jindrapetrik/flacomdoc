@@ -58,6 +58,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
@@ -74,6 +76,10 @@ import org.w3c.dom.NodeList;
  * @author JPEXS
  */
 public class PageGenerator extends AbstractGenerator {
+
+    //https://stackoverflow.com/questions/4077200/whats-the-meaning-of-the-non-numerical-values-in-the-xfls-edge-definition
+    private static final Pattern CUBICS_PATTERN = Pattern.compile("^!(?<mx>[0-9]+) +(?<my>[0-9]+) *\\(((?<pBCPx>[0-9]+) *, *(?<pBCPy>[0-9]+))? *; *(?<x1>[0-9]+),(?<y1>[0-9]+) +(?<x2>[0-9]+),(?<y2>[0-9]+) +(?<ex>[0-9]+),(?<ey>[0-9]+) *(?<xy>([QqPp]? *[0-9]+ +[0-9]+)+) *\\)((?<nBCPx>[0-9]+) *, *(?<nBCPy>[0-9]+))? *; *$");
+    private static final Pattern CUBICS_XY_PATTERN = Pattern.compile("(?<letter>[QqPp]?) *(?<x>[0-9]+) +(?<y>[0-9]+)");
 
     /*protected void useClass(String className, FlaCs4Writer os, Map<String, Integer> definedClasses,            Reference<Integer> totalObjectCount) throws IOException {
         if (definedClasses.contains(className)) {
@@ -1741,15 +1747,13 @@ public class PageGenerator extends AbstractGenerator {
 
                         int totalEdgeCount = 0;
 
-                        for (Node edge : edges) {
-                            Node edgesAttrNode = edge.getAttributes().getNamedItem("edges");
-                            if (edgesAttrNode != null) {
-                                String edgesAttr = edgesAttrNode.getTextContent();
-                                totalEdgeCount += FlaCs4Writer.getEdgesCount(edgesAttr);
+                        for (Element edge : edges) {
+                            if (edge.hasAttribute("edges")) {
+                                totalEdgeCount += FlaCs4Writer.getEdgesCount(edge.getAttribute("edges"));
                             }
                         }
 
-                        fg.write(totalEdgeCount, 0x00, 0x00, 0x00);
+                        fg.writeUI32(totalEdgeCount);
                         fg.write(fillStyles.size(), 0x00);
                         for (Node fillStyle : fillStyles) {
                             Node fillStyleVal = getFirstSubElement(fillStyle);
@@ -1775,8 +1779,8 @@ public class PageGenerator extends AbstractGenerator {
                             int styleParam1 = 0;
                             int styleParam2 = 0;
 
-                            int joints = 0;
-                            int caps = 0;
+                            int joints = FlaCs4Writer.JOINSTYLE_ROUND;
+                            int caps = FlaCs4Writer.CAPSTYLE_ROUND;
                             boolean pixelHinting = false;
                             Node pixelHintingAttr = strokeStyleVal.getAttributes().getNamedItem("pixelHinting");
                             if (pixelHintingAttr != null) {
@@ -1785,25 +1789,23 @@ public class PageGenerator extends AbstractGenerator {
                                 }
                             }
 
+                            Node scaleModeAttr = strokeStyleVal.getAttributes().getNamedItem("scaleMode");
+                            if (scaleModeAttr != null) {
+                                if ("normal".equals(scaleModeAttr.getTextContent())) {
+                                    scaleMode = FlaCs4Writer.SCALEMODE_NORMAL;
+                                }
+                                if ("horizontal".equals(scaleModeAttr.getTextContent())) {
+                                    scaleMode = FlaCs4Writer.SCALEMODE_HORIZONTAL;
+                                }
+                                if ("vertical".equals(scaleModeAttr.getTextContent())) {
+                                    scaleMode = FlaCs4Writer.SCALEMODE_VERTICAL;
+                                }
+                            }
+
                             switch (strokeStyleVal.getNodeName()) {
                                 case "SolidStroke":
                                     styleParam1 = 0;
                                     styleParam2 = 0;
-                                    joints = FlaCs4Writer.JOINSTYLE_ROUND;
-                                    caps = FlaCs4Writer.CAPSTYLE_ROUND;
-
-                                    Node scaleModeAttr = strokeStyleVal.getAttributes().getNamedItem("scaleMode");
-                                    if (scaleModeAttr != null) {
-                                        if ("normal".equals(scaleModeAttr.getTextContent())) {
-                                            scaleMode = FlaCs4Writer.SCALEMODE_NORMAL;
-                                        }
-                                        if ("horizontal".equals(scaleModeAttr.getTextContent())) {
-                                            scaleMode = FlaCs4Writer.SCALEMODE_HORIZONTAL;
-                                        }
-                                        if ("vertical".equals(scaleModeAttr.getTextContent())) {
-                                            scaleMode = FlaCs4Writer.SCALEMODE_VERTICAL;
-                                        }
-                                    }
 
                                     Node capsAttr = strokeStyleVal.getAttributes().getNamedItem("caps");
                                     if (capsAttr != null) {
@@ -1909,7 +1911,7 @@ public class PageGenerator extends AbstractGenerator {
                             }
                         }
                         fg.beginShape();
-                        for (Node edge : edges) {
+                        for (Element edge : edges) {
                             int strokeStyle = 0;
                             int fillStyle0 = 0;
                             int fillStyle1 = 0;
@@ -1932,22 +1934,133 @@ public class PageGenerator extends AbstractGenerator {
                             }
                         }
 
+                        fg.write(0x00); //?
+
+                        int totalCubicsCount = 0;
+
+                        for (Element edge : edges) {
+                            if (edge.hasAttribute("cubics")) {
+                                totalCubicsCount++;
+                            }
+                        }
+
+                        fg.writeUI32(totalCubicsCount);
+                        for (Element edge : edges) {
+                            if (edge.hasAttribute("cubics")) {
+                                String cubics = edge.getAttribute("cubics");
+                                Matcher cubicsMatcher = CUBICS_PATTERN.matcher(cubics);
+                                if (!cubicsMatcher.matches()) {
+                                    Logger.getLogger(PageGenerator.class.getName()).warning("Cubics pattern does not match for input string " + cubics);
+                                    continue;
+                                }
+                                int mx = Integer.parseInt(cubicsMatcher.group("mx"));
+                                int my = Integer.parseInt(cubicsMatcher.group("my"));
+                                int x1 = Integer.parseInt(cubicsMatcher.group("x1"));
+                                int y1 = Integer.parseInt(cubicsMatcher.group("y1"));
+                                int x2 = Integer.parseInt(cubicsMatcher.group("x2"));
+                                int y2 = Integer.parseInt(cubicsMatcher.group("y2"));
+                                int ex = Integer.parseInt(cubicsMatcher.group("ex"));
+                                int ey = Integer.parseInt(cubicsMatcher.group("ey"));
+
+                                Integer pBCPx = null;
+                                if (cubicsMatcher.group("pBCPx") != null) {
+                                    pBCPx = Integer.parseInt(cubicsMatcher.group("pBCPx"));
+                                }
+                                Integer pBCPy = null;
+                                if (cubicsMatcher.group("pBCPy") != null) {
+                                    pBCPy = Integer.parseInt(cubicsMatcher.group("pBCPy"));
+                                }
+                                Integer nBCPx = null;
+                                if (cubicsMatcher.group("nBCPx") != null) {
+                                    nBCPx = Integer.parseInt(cubicsMatcher.group("nBCPx"));
+                                }
+                                Integer nBCPy = null;
+                                if (cubicsMatcher.group("nBCPy") != null) {
+                                    nBCPy = Integer.parseInt(cubicsMatcher.group("nBCPy"));
+                                }
+
+                                String xy = cubicsMatcher.group("xy");
+                                Matcher m2 = CUBICS_XY_PATTERN.matcher(xy);
+                                List<String> letterList = new ArrayList<>();
+                                List<Integer> xList = new ArrayList<>();
+                                List<Integer> yList = new ArrayList<>();
+                                String lastLetter = "q";
+                                while (m2.find()) {
+                                    xList.add(Integer.parseInt(m2.group("x")));
+                                    yList.add(Integer.parseInt(m2.group("y")));
+                                    String letter = m2.group("letter");
+                                    if (letter == null || letter.isEmpty()) {
+                                        letter = lastLetter;
+                                    }
+                                    lastLetter = letter;
+                                    letterList.add(letter);
+                                }
+
+                                fg.writeUI32(mx);
+                                fg.writeUI32(my);
+                                fg.writeUI32(x1);
+                                fg.writeUI32(y1);
+                                fg.writeUI32(x2);
+                                fg.writeUI32(y2);
+                                fg.writeUI32(ex);
+                                fg.writeUI32(ey);
+                                fg.write(letterList.size());
+                                for (int i = 0; i < letterList.size(); i++) {
+                                    fg.writeUI32(xList.get(i));
+                                    fg.writeUI32(yList.get(i));
+                                    switch (letterList.get(i)) {
+                                        case "Q":
+                                            fg.write(0x01, 0x00);
+                                            break;
+                                        case "q":
+                                            fg.write(0x00, 0x00);
+                                            break;
+                                        case "P":
+                                            fg.write(0x01, 0x01);
+                                            break;
+                                        case "p":
+                                            fg.write(0x00, 0x01);
+                                            break;
+                                    }
+                                }
+
+                                int pnFlags = 0;
+                                if (pBCPx != null) {
+                                    pnFlags |= 1;
+                                }
+                                if (nBCPx != null) {
+                                    pnFlags |= 2;
+                                }
+                                fg.write(pnFlags);
+                                if (pBCPx != null) {
+                                    fg.writeUI32(pBCPx);
+                                    fg.writeUI32(pBCPy);
+                                }
+                                if (nBCPx != null) {
+                                    fg.writeUI32(nBCPx);
+                                    fg.writeUI32(nBCPy);
+                                }
+                            }
+                        }
+
                     }
                 }
 
                 if (emptyFrame) {
-                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                    fg.writeUI32(0); //totalEdgeCount
+                    fg.write(0x00, 0x00); //fillStyleCount
+                    fg.write(0x00, 0x00); //strokeStyleCount
+                    fg.write(0x00); //??
+                    fg.writeUI32(0); //totalCubicsCount                    
                 }
                 int keyMode = FlaCs4Writer.KEYMODE_STANDARD;
-                Node keyModeAttr = frame.getAttributes().getNamedItem("keyMode");
-                if (keyModeAttr != null) {
-                    keyMode = Integer.parseInt(keyModeAttr.getTextContent());
+                if (frame.hasAttribute("keyMode")) {
+                    keyMode = Integer.parseInt(frame.getAttribute("keyMode"));
                 }
 
                 int duration = 1;
-                Node durationAttr = frame.getAttributes().getNamedItem("duration");
-                if (durationAttr != null) {
-                    duration = Integer.parseInt(durationAttr.getTextContent());
+                if (frame.hasAttribute("duration")) {
+                    duration = Integer.parseInt(frame.getAttribute("duration"));
                 }
 
                 String actionScript = "";
@@ -1960,13 +2073,6 @@ public class PageGenerator extends AbstractGenerator {
                     }
                 }
 
-                /*
-                TODO: 
-                hasCustomEase, 
-                soundEffect, soundLibraryItem, soundLoop,
-                soundLoopMode, soundName, soundSync, 
-                tweenEasing, tweenType, useSingleEaseCurve
-                 */
                 int acceleration = 0;
                 if (frame.hasAttribute("acceleration")) {
                     acceleration = Integer.parseInt(frame.getAttribute("acceleration"));
@@ -2012,9 +2118,7 @@ public class PageGenerator extends AbstractGenerator {
                 //atributes are part of the keymode
                 int frameId = fg.generateRandomId();
 
-                fg.write(
-                        0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x1D, duration,
+                fg.write(0x1D, duration,
                         0x00);
 
                 /*
@@ -2699,7 +2803,7 @@ public class PageGenerator extends AbstractGenerator {
             nextLayerId = 'X';
             nextFolderId = 'X';
         }
-        
+
         fg.write(
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
                 0x80, 0x00, 0x00, 0x07, nextLayerId, 0x00, nextFolderId, 0x00, currentFrame, 0x00, 0x00, 0x00
@@ -2732,4 +2836,7 @@ public class PageGenerator extends AbstractGenerator {
             generatePageFile(domTimeline, fos);
         }
     }*/
+    public static void main(String[] args) {
+
+    }
 }

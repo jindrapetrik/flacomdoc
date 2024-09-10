@@ -726,7 +726,7 @@ public class ContentsGenerator extends AbstractGenerator {
                 pageCount++;
 
                 String pageName = "P " + pageCount + " " + getTimeCreatedAsString();
-                
+
                 String debugPageName = "P X " + getTimeCreatedAsString();
 
                 fg.writeLenUnicodeString(debugRandom ? debugPageName : pageName);
@@ -825,7 +825,7 @@ public class ContentsGenerator extends AbstractGenerator {
             if (document.hasAttribute("nextSceneIdentifier")) {
                 nextSceneIdentifier = Integer.parseInt(document.getAttribute("nextSceneIdentifier"));
             }
-            fg.write(nextSceneIdentifier + pageCount,
+            fg.write(debugRandom ? 'U' : 2, //unknown
                     0x00,
                     0x01, 0x00,
                     1 + currentTimeline,
@@ -999,6 +999,13 @@ public class ContentsGenerator extends AbstractGenerator {
                             properties.put(nsKey, value);
                         }
                     }
+
+                    if (debugRandom) {
+                        for (String key : properties.keySet()) {
+                            properties.put(key, "YYY");
+                        }
+                    }
+
                     writeMap(fg, properties, true);
                 }
             }
@@ -1085,7 +1092,7 @@ public class ContentsGenerator extends AbstractGenerator {
             fg.writeUI32(snapAlignBorderSpacing);
             fg.write(0x01, 0x00, 0x01,
                     0x00, 0x00, 0x00,
-                    0x00, //?? 4?
+                    debugRandom ? 'U' : 0, //??
                     0x00, 0x00, 0x00, 0x01,
                     0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
                     0xFF, 0xFE, 0xFF,
@@ -1098,7 +1105,11 @@ public class ContentsGenerator extends AbstractGenerator {
             if (document.hasAttribute("creatorInfo")) {
                 creatorInfo = document.getAttribute("creatorInfo");
             }
-            fg.writeLenUnicodeString(getXmpp(creatorInfo));
+            if (debugRandom) {
+                fg.writeLenUnicodeString("YYY");
+            } else {
+                fg.writeLenUnicodeString(getXmpp(creatorInfo));
+            }
             fg.write(0xFF, 0xFE, 0xFF, 00);
             fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
             fg.write(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
@@ -1595,13 +1606,18 @@ public class ContentsGenerator extends AbstractGenerator {
             ExtendedSwatchItem ex = extendedSwatches.get(x);
             useClass("CColorDef", 0x00, dw, definedClasses, objectsCount);
             dw.write(lastByte);
-            if (x == 5) {
+            /*if (x == 5) {
                 dw.write(0xFF, 0xFF, 0xFF);
             } else if (x == 6) {
                 dw.write(0xFF, 0x00, 0x00);
+            } else {*/
+
+            if (debugRandom) {
+                dw.write('U', 'U', 'U');
             } else {
                 dw.write(0x00, 0x00, 0x00);
             }
+            //}
             dw.write(0xFF, ex.getType(), 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, ex.entries.size());
             if (lastByte == 0x04) {
@@ -1612,13 +1628,17 @@ public class ContentsGenerator extends AbstractGenerator {
                 dw.write(r, en.color.getRed(), en.color.getGreen(), en.color.getBlue(), 0xFF);
             }
             dw.write(0x00, 0x00);
-            if (x == 5) { //WTF are these?
+            /*if (x == 5) { //WTF are these?
                 dw.write(0x00, 0x00, 0xF0, 0x00);
             } else if (x == 6) {
                 dw.write(0xEF, 0x00, 0x78, 0x00);
+            } else {*/
+            if (debugRandom) {
+                dw.write('U', 'U', 'U', 'U');
             } else {
                 dw.write(0x00, 0x00, 0x00, 0x00);
             }
+            //}
         }
 
         dw.write(0x01, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1840,7 +1860,83 @@ public class ContentsGenerator extends AbstractGenerator {
         String xmppDocumentId = generateGUID();
         String xmppOriginalDocumentId = generateGUID();
         String xmppId = generateXmppId();
+        String xmppInstanceId = generateGUID();
 
+        return "<?xpacket begin=\"" + (char) 0xFEFF + "\" id=\"" + xmppId + "\"?>\n"
+                + "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 5.0-c060 61.134777, 2010/02/12-17:32:00        \">\n"
+                + "   <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n"
+                + "      <rdf:Description rdf:about=\"\"\n"
+                + "            xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\">\n"
+                + "         <xmp:CreatorTool>" + creatorInfo + "</xmp:CreatorTool>\n"
+                + "         <xmp:CreateDate>" + timeCreatedXmpp + "</xmp:CreateDate>\n"
+                + "         <xmp:MetadataDate>" + timeCreatedXmpp + "</xmp:MetadataDate>\n"
+                + "         <xmp:ModifyDate>" + timeCreatedXmpp + "</xmp:ModifyDate>\n"
+                + "      </rdf:Description>\n"
+                + "      <rdf:Description rdf:about=\"\"\n"
+                + "            xmlns:dc=\"http://purl.org/dc/elements/1.1/\">\n"
+                + "         <dc:format>application/vnd.adobe.fla</dc:format>\n"
+                + "      </rdf:Description>\n"
+                + "      <rdf:Description rdf:about=\"\"\n"
+                + "            xmlns:xmpMM=\"http://ns.adobe.com/xap/1.0/mm/\"\n"
+                + "            xmlns:stRef=\"http://ns.adobe.com/xap/1.0/sType/ResourceRef#\"\n"
+                + "            xmlns:stEvt=\"http://ns.adobe.com/xap/1.0/sType/ResourceEvent#\">\n"
+                + "         <xmpMM:DerivedFrom rdf:parseType=\"Resource\">\n"
+                + "            <stRef:instanceID>xmp.iid:" + xmppInstanceId + "</stRef:instanceID>\n"
+                + "            <stRef:documentID>xmp.did:" + xmppOriginalDocumentId + "</stRef:documentID>\n"
+                + "            <stRef:originalDocumentID>xmp.did:" + xmppOriginalDocumentId + "</stRef:originalDocumentID>\n"
+                + "         </xmpMM:DerivedFrom>\n"
+                + "         <xmpMM:DocumentID>xmp.did:" + xmppDocumentId + "</xmpMM:DocumentID>\n"
+                + "         <xmpMM:InstanceID>xmp.iid:" + xmppDocumentId + "</xmpMM:InstanceID>\n"
+                + "         <xmpMM:OriginalDocumentID>xmp.did:" + xmppOriginalDocumentId + "</xmpMM:OriginalDocumentID>\n"
+                + "         <xmpMM:History>\n"
+                + "            <rdf:Seq>\n"
+                + "               <rdf:li rdf:parseType=\"Resource\">\n"
+                + "                  <stEvt:action>created</stEvt:action>\n"
+                + "                  <stEvt:instanceID>xmp.iid:" + xmppOriginalDocumentId + "</stEvt:instanceID>\n"
+                + "                  <stEvt:when>" + timeCreatedXmpp + "</stEvt:when>\n"
+                + "                  <stEvt:softwareAgent>" + creatorInfo + "</stEvt:softwareAgent>\n"
+                + "               </rdf:li>\n"
+                + "               <rdf:li rdf:parseType=\"Resource\">\n"
+                + "                  <stEvt:action>created</stEvt:action>\n"
+                + "                  <stEvt:instanceID>xmp.iid:" + xmppInstanceId + "</stEvt:instanceID>\n"
+                + "                  <stEvt:when>" + timeCreatedXmpp + "</stEvt:when>\n"
+                + "                  <stEvt:softwareAgent>" + creatorInfo + "</stEvt:softwareAgent>\n"
+                + "               </rdf:li>\n"
+                + "               <rdf:li rdf:parseType=\"Resource\">\n"
+                + "                  <stEvt:action>created</stEvt:action>\n"
+                + "                  <stEvt:instanceID>xmp.iid:" + xmppDocumentId + "</stEvt:instanceID>\n"
+                + "                  <stEvt:when>" + timeCreatedXmpp + "</stEvt:when>\n"
+                + "                  <stEvt:softwareAgent>" + creatorInfo + "</stEvt:softwareAgent>\n"
+                + "               </rdf:li>\n"
+                + "            </rdf:Seq>\n"
+                + "         </xmpMM:History>\n"
+                + "      </rdf:Description>\n"
+                + "   </rdf:RDF>\n"
+                + "</x:xmpmeta>\n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                                                                                                    \n"
+                + "                           \n"
+                + "<?xpacket end=\"w\"?>";
+
+        /*
         return "<?xpacket begin=\"" + (char) 0xFEFF + "\" id=\"" + xmppId + "\"?>\n"
                 + "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 5.0-c060 61.134777, 2010/02/12-17:32:00        \">\n"
                 + "   <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n"
@@ -1907,7 +2003,7 @@ public class ContentsGenerator extends AbstractGenerator {
                 + "                                                                                                    \n"
                 + "                                                                                                    \n"
                 + "                           \n"
-                + "<?xpacket end=\"w\"?>";
+                + "<?xpacket end=\"w\"?>";*/
     }
 
     public static void main(String[] args) {

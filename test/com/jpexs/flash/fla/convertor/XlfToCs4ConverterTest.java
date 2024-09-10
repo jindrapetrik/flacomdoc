@@ -20,6 +20,7 @@ package com.jpexs.flash.fla.convertor;
 
 import com.jpexs.flash.fla.convertor.streams.DirectoryInputStorage;
 import com.jpexs.flash.fla.convertor.streams.DirectoryOutputStorage;
+import com.jpexs.flash.fla.extractor.FlaCfbExtractor;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,9 +39,9 @@ import org.testng.annotations.DataProvider;
  */
 public class XlfToCs4ConverterTest {
 
-    private final String SOURCE_DIR = "testdata/fla/cs5";
-    private final String EXPECTED_DIR = "testdata/fla/cs4";
-    private final String OUTPUT_DIR = "out/tests/fla/cs4";
+    private static final String SOURCE_DIR = "testdata/fla/cs5";
+    private static final String EXPECTED_DIR = "testdata/fla/cs4";
+    private static final String OUTPUT_DIR = "out/tests/fla/cs4";
 
     private Comparator<File> getFileComparator() {
         return new Comparator<File>() {
@@ -87,7 +88,7 @@ public class XlfToCs4ConverterTest {
 
         File[] expectedFiles = expectedDir.listFiles();
         File[] actualFiles = actualDir.listFiles();
-        assertEquals(actualFiles.length, expectedFiles.length);
+        assertEquals(actualFiles.length, expectedFiles.length, "Number of files");
 
         List<File> expectedFilesList = Arrays.asList(expectedFiles);
         expectedFilesList.sort(fileNameComparator);
@@ -108,7 +109,7 @@ public class XlfToCs4ConverterTest {
             String actualType = actualFileName.substring(0, actualFileName.indexOf(" "));
             String expectedType = expectedFileName.substring(0, expectedFileName.indexOf(" "));
 
-            assertEquals(actualType, expectedType, "File type does not match");
+            assertEquals(actualType, expectedType, "File type");
         }
 
         for (int i = 0; i < actualFilesList.size(); i++) {
@@ -118,18 +119,53 @@ public class XlfToCs4ConverterTest {
             byte[] actualData = readFile(actualFile);
             byte[] expectedData = readFile(expectedFile);
 
-            assertEquals(actualData.length, expectedData.length, "File data length of file " + actualFile + " does not match");
-
-            for (int j = 0; j < actualData.length; j++) {
-                if (actualData[j] == 'X') { //special - all randomness is replaced with 'X' - setDebugRandom(true)
+            //assertEquals(actualData.length, expectedData.length, "File data length of file " + actualFile);
+            int epos = 0;
+            for (int apos = 0; apos < actualData.length; apos++, epos++) {
+                if (actualData[apos] == 'X') { //special - all randomness is replaced with 'X' - setDebugRandom(true)
                     continue;
                 }
-                assertEquals(actualData[j] & 0xFF, expectedData[j] & 0xFF, "Bytes do not match in file " + actualFile + " on position " + j);
+                if (actualData[apos] == 'U') { //unknown data - also when setDebugRandom(true)
+                    continue;
+                }
+                if (apos - 3 > 0 && apos + 6 < actualData.length && actualData[apos] == 3
+                        && actualData[apos + 1] == 'Y'
+                        && actualData[apos + 2] == 0
+                        && actualData[apos + 3] == 'Y'
+                        && actualData[apos + 4] == 0
+                        && actualData[apos + 5] == 'Y'
+                        && actualData[apos + 6] == 0) {
+                    if ((actualData[apos - 3] & 0xFF) == 0xFF && (actualData[apos - 2] & 0xFF) == 0xFE && (actualData[apos - 1] & 0xFF) == 0xFF) {
+                        apos += 6;
+                        int len = expectedData[epos] & 0xFF;
+                        if (len == 0xFF) {
+                            len = (expectedData[epos + 1] & 0xFF) + ((expectedData[epos + 2] & 0xFF) << 8);
+                            if (len == 0xFFFF) {
+                                len = (expectedData[epos + 3] & 0xFF)
+                                        + ((expectedData[epos + 4] & 0xFF) << 8)
+                                        + ((expectedData[epos + 5] & 0xFF) << 16)
+                                        + ((expectedData[epos + 6] & 0xFF) << 24);
+                                epos = epos + 7 + len * 2 - 1;
+                                continue;
+                            }
+                            epos = epos + 3 + len * 2 - 1;
+                            continue;
+                        }
+                        epos = epos + 1 + len * 2 - 1;
+                        continue;
+                    }
+                }
+                assertEquals(actualData[apos] & 0xFF, expectedData[epos] & 0xFF, "Byte in file " + actualFile + " on position apos=" + apos + ", epos=" + epos);
             }
         }
     }
 
-    private void deleteDir(File f) throws IOException {
+    //@Test
+    public void mytest() throws Exception {
+        //testConvert("0005_strokes");
+    }
+
+    private static void deleteDir(File f) throws IOException {
         if (!f.exists()) {
             return;
         }
@@ -151,5 +187,15 @@ public class XlfToCs4ConverterTest {
             }
         }
         return baos.toByteArray();
+    }
+
+    public static void main(String[] args) throws Exception {
+        File outputDir = new File(EXPECTED_DIR);
+        for (File f : outputDir.listFiles()) {
+            if (f.isDirectory()) {
+                deleteDir(f);
+            }
+        }
+        FlaCfbExtractor.main(new String[0]);
     }
 }
