@@ -507,12 +507,12 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.writeLenUnicodeString(linkageURL);
         dw.write(0xFF, 0xFE, 0xFF);
         dw.writeLenUnicodeString(linkageClassName);
-        int linkageFlags = 0;
+        int linkageFlags = 0;        
+        if (linkageExportInFirstFrame) {
+            linkageFlags |= 4;
+        }
         if (linkageExportForAS) {
-            linkageFlags |= 1;
-            if (linkageExportInFirstFrame) {
-                linkageFlags |= 4;
-            }
+            linkageFlags |= 1;                        
         }
         if (linkageExportForRS) {
             linkageFlags |= 2;
@@ -536,7 +536,7 @@ public class ContentsGenerator extends AbstractGenerator {
             return symbolCount;
         }
         List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
-        for (int i = includes.size() - 1; i >= 0; i--) {
+        for (int i = 0; i < includes.size(); i++) {
             Element include = includes.get(i);
             if (!include.hasAttribute("href")) {
                 continue;
@@ -593,11 +593,16 @@ public class ContentsGenerator extends AbstractGenerator {
             useClass("CDocumentPage", 0x01, fg, definedClasses, objectsCount);
             fg.write(0x19);
             //fg.write(0x01, 0x80, 0x19);
-            fg.writeLenUnicodeString(symbolFile);
+            fg.writeLenUnicodeString(debugRandom ? "YYY" : symbolFile);
             fg.write(0xFF, 0xFE, 0xFF);
             fg.writeLenUnicodeString(symbolName);
+            if (debugRandom) {
+                fg.write('X', 'X');
+            } else {
+                fg.writeUI16(symbolId);
+            }
             fg.write(
-                    symbolId, 0x00, 0x00, 0x00, symbolType,
+                    0x00, 0x00, symbolType,
                     0xFF, 0xFE, 0xFF, 0x00,
                     0x01, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
@@ -800,7 +805,7 @@ public class ContentsGenerator extends AbstractGenerator {
                         0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
-                        0x00, 0x00, 0x00, 0x00,
+                        debugRandom ? 'U' : 0x00, 0x00, 0x00, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0x80, 0x00, 0x00, 0x00,
@@ -825,7 +830,7 @@ public class ContentsGenerator extends AbstractGenerator {
             if (document.hasAttribute("nextSceneIdentifier")) {
                 nextSceneIdentifier = Integer.parseInt(document.getAttribute("nextSceneIdentifier"));
             }
-            fg.write(debugRandom ? 'U' : 2, //unknown
+            fg.write(debugRandom ? 'U' : 0x02, //???
                     0x00,
                     0x01, 0x00,
                     1 + currentTimeline,
@@ -834,7 +839,8 @@ public class ContentsGenerator extends AbstractGenerator {
             int symbolCount = writeSymbols(fg, document, docBuilder, sourceDir, outputDir, generatedItemIdOrder, definedClasses, objectsCount);
 
             fg.write(0x00, 0x00);
-
+            fg.write(debugRandom ? 'U' : 0x01); //??
+            fg.write(0x00);
             int mediaCount = writeMedia(fg, document, generatedItemIdOrder, definedClasses, objectsCount, outputDir, sourceDir);
 
             fg.write(0x00, 0x00,
@@ -1456,8 +1462,7 @@ public class ContentsGenerator extends AbstractGenerator {
                 imageCount++;
             }
         }*/
-        dw.write(1);
-        dw.write(0x00);
+        
 
         int mediaCount = 0;
 

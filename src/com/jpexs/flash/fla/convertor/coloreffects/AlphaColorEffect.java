@@ -49,7 +49,7 @@ public class AlphaColorEffect implements ColorEffectInterface {
 
     @Override
     public int getBlueMultiplier() {
-        return 255;
+        return 256;
     }
 
     @Override

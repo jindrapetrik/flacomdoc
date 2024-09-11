@@ -108,7 +108,7 @@ public class AdvancedColorEffect implements ColorEffectInterface {
 
     @Override
     public int getValuePercent() {
-        return 0x64; //??
+        return 0;
     }
 
     @Override

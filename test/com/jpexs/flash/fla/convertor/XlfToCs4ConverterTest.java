@@ -127,14 +127,16 @@ public class XlfToCs4ConverterTest {
                 if (actualData[apos] == 'U') { //unknown data - also when setDebugRandom(true)
                     continue;
                 }
-                if (apos - 3 > 0 && apos + 6 < actualData.length && actualData[apos] == 3
+                if (/*apos - 3 > 0 &&*/
+                        apos + 6 < actualData.length && actualData[apos] == 3
                         && actualData[apos + 1] == 'Y'
                         && actualData[apos + 2] == 0
                         && actualData[apos + 3] == 'Y'
                         && actualData[apos + 4] == 0
                         && actualData[apos + 5] == 'Y'
                         && actualData[apos + 6] == 0) {
-                    if ((actualData[apos - 3] & 0xFF) == 0xFF && (actualData[apos - 2] & 0xFF) == 0xFE && (actualData[apos - 1] & 0xFF) == 0xFF) {
+                    //if ((actualData[apos - 3] & 0xFF) == 0xFF && (actualData[apos - 2] & 0xFF) == 0xFE && (actualData[apos - 1] & 0xFF) == 0xFF)
+                    {
                         apos += 6;
                         int len = expectedData[epos] & 0xFF;
                         if (len == 0xFF) {
@@ -161,7 +163,7 @@ public class XlfToCs4ConverterTest {
 
     //@Test
     public void mytest() throws Exception {
-        //testConvert("0005_strokes");
+        testConvert("0009_symbols");
     }
 
     private static void deleteDir(File f) throws IOException {

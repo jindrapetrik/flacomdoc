@@ -872,13 +872,14 @@ public class PageGenerator extends AbstractGenerator {
                 (redMultiplier & 0xFF), ((redMultiplier >> 8) & 0xFF), (redOffset & 0xFF), ((redOffset >> 8) & 0xFF),
                 (greenMultiplier & 0xFF), ((greenMultiplier >> 8) & 0xFF), (greenOffset & 0xFF), ((greenOffset >> 8) & 0xFF),
                 (blueMultiplier & 0xFF), ((blueMultiplier >> 8) & 0xFF), (blueOffset & 0xFF), ((blueOffset >> 8) & 0xFF),
-                colorEffect.getType(), 0x00, colorEffect.getValuePercent(), 0x00,
-                effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), effectColor.getAlpha()
+                colorEffect.getType(), 0x00);
+         fg.writeUI16(colorEffect.getValuePercent());
+         fg.write(effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), effectColor.getAlpha()
         );
 
         fg.write(
                 0xFF, 0xFE, 0xFF, 0x00, //some string
-                libraryItemIndex, 0x00, 0x00, 0x00, //FIXME? this is probably a long val
+                debugRandom ? 'X' : libraryItemIndex, 0x00, 0x00, 0x00, //FIXME? this is probably a long val
                 0x00, 0x00, 0x00
         );
 
