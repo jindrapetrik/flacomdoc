@@ -119,6 +119,10 @@ public class FlaCs4Writer {
         this.debugRandom = debugRandom;
     }
 
+    public boolean isDebugRandom() {
+        return debugRandom;
+    }
+
     public FlaCs4Writer(OutputStream os) {
         this.os = os;
     }

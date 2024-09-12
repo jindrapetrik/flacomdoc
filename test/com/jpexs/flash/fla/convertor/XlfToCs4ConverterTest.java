@@ -127,8 +127,7 @@ public class XlfToCs4ConverterTest {
                 if (actualData[apos] == 'U') { //unknown data - also when setDebugRandom(true)
                     continue;
                 }
-                if (/*apos - 3 > 0 &&*/
-                        apos + 6 < actualData.length && actualData[apos] == 3
+                if (/*apos - 3 > 0 &&*/apos + 6 < actualData.length && actualData[apos] == 3
                         && actualData[apos + 1] == 'Y'
                         && actualData[apos + 2] == 0
                         && actualData[apos + 3] == 'Y'
@@ -163,7 +162,7 @@ public class XlfToCs4ConverterTest {
 
     //@Test
     public void mytest() throws Exception {
-        testConvert("0009_symbols");
+        //testConvert("0011_filters");
     }
 
     private static void deleteDir(File f) throws IOException {
@@ -191,6 +190,7 @@ public class XlfToCs4ConverterTest {
     }
 
     public static void main(String[] args) throws Exception {
+
         File outputDir = new File(EXPECTED_DIR);
         for (File f : outputDir.listFiles()) {
             if (f.isDirectory()) {

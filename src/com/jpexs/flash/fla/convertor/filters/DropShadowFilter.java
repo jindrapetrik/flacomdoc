@@ -126,7 +126,7 @@ public class DropShadowFilter implements FilterInterface {
         os.writeFloat(blurX);
         os.writeFloat(blurY);
 
-        os.writeFloat((float) (angle * Math.PI / 180));
+        os.writeFloat((float) (((double) angle) * FilterInterface.PI / 180));
 
         os.write(new byte[]{
             (byte) (inner ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,

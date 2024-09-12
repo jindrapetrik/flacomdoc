@@ -120,7 +120,7 @@ public class BevelFilter implements FilterInterface {
         os.writeFloat(distance);
         os.writeFloat(blurX);
         os.writeFloat(blurY);
-        os.writeFloat((float) (angle * Math.PI / 180));
+        os.writeFloat((float) (((double) angle) * FilterInterface.PI / 180));
 
         int strengthPercent = (int) Math.round(strength * 100);
         os.write(new byte[]{

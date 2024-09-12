@@ -27,5 +27,7 @@ import java.io.IOException;
  */
 public interface FilterInterface {
 
+    public static final float PI = 3.1415927f;
+
     public void write(FlaCs4Writer writer) throws IOException;
 }

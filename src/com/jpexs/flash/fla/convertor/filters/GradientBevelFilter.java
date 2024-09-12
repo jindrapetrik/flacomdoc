@@ -124,7 +124,7 @@ public class GradientBevelFilter implements FilterInterface {
         os.writeFloat(distance);
         os.writeFloat(blurX);
         os.writeFloat(blurY);
-        os.writeFloat((float) (angle * Math.PI / 180));
+        os.writeFloat((float) (((double) angle) * FilterInterface.PI / 180));
 
         os.write(new byte[]{
             (byte) (type == TYPE_INNER ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,
@@ -137,10 +137,11 @@ public class GradientBevelFilter implements FilterInterface {
             (byte) (type == TYPE_FULL ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,});
 
         for (GradientEntry entry : gradientEntries) {
-            os.write(new byte[]{
-                (byte) (Math.round(entry.ratio * 255)), (byte) 0x00, (byte) 0x00, (byte) 0x00,
-                (byte) entry.color.getRed(), (byte) entry.color.getGreen(), (byte) entry.color.getBlue(), (byte) entry.color.getAlpha()
-            });
+            os.write(
+                    (Math.round(entry.ratio * 255)), 0x00, 0x00, 0x00,
+                    entry.color.getRed(), entry.color.getGreen(), entry.color.getBlue(),
+                    os.isDebugRandom() ? 'X' : entry.color.getAlpha() //This is calculated wrong for some reasons, I think there's a bug in CS5
+            );
         }
     }
 }

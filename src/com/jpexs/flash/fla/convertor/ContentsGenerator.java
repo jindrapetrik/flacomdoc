@@ -507,12 +507,12 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.writeLenUnicodeString(linkageURL);
         dw.write(0xFF, 0xFE, 0xFF);
         dw.writeLenUnicodeString(linkageClassName);
-        int linkageFlags = 0;        
+        int linkageFlags = 0;
         if (linkageExportInFirstFrame) {
             linkageFlags |= 4;
         }
         if (linkageExportForAS) {
-            linkageFlags |= 1;                        
+            linkageFlags |= 1;
         }
         if (linkageExportForRS) {
             linkageFlags |= 2;
@@ -1462,8 +1462,6 @@ public class ContentsGenerator extends AbstractGenerator {
                 imageCount++;
             }
         }*/
-        
-
         int mediaCount = 0;
 
         for (Element mediaItem : media) {
@@ -2012,7 +2010,6 @@ public class ContentsGenerator extends AbstractGenerator {
     }
 
     public static void main(String[] args) {
-        int f = Float.floatToIntBits(-0.0f);
-        System.out.println("" + Integer.toHexString(f));
+        
     }
 }

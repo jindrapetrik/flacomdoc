@@ -123,7 +123,7 @@ public class GradientGlowFilter implements FilterInterface {
         os.writeFloat(distance);
         os.writeFloat(blurX);
         os.writeFloat(blurY);
-        os.writeFloat((float) (angle * Math.PI / 180));
+        os.writeFloat((float) (((double) angle) * FilterInterface.PI / 180));
 
         os.write(new byte[]{
             (byte) (type == TYPE_INNER ? 1 : 0), (byte) 0x00, (byte) 0x00, (byte) 0x00,

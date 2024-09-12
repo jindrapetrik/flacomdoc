@@ -538,7 +538,7 @@ public class PageGenerator extends AbstractGenerator {
                     float angle = 45;
                     float distance = 5;
                     boolean knockout = false;
-                    int type = "GradientGlowFilter".equals(filter.getNodeName()) ? GradientGlowFilter.TYPE_OUTER : GradientBevelFilter.TYPE_INNER;
+                    int type = "GradientGlowFilter".equals(filter.getNodeName()) ? GradientGlowFilter.TYPE_INNER : GradientBevelFilter.TYPE_INNER;
 
                     if (filter.hasAttribute("blurX")) {
                         blurX = Float.parseFloat(filter.getAttribute("blurX"));
@@ -873,8 +873,8 @@ public class PageGenerator extends AbstractGenerator {
                 (greenMultiplier & 0xFF), ((greenMultiplier >> 8) & 0xFF), (greenOffset & 0xFF), ((greenOffset >> 8) & 0xFF),
                 (blueMultiplier & 0xFF), ((blueMultiplier >> 8) & 0xFF), (blueOffset & 0xFF), ((blueOffset >> 8) & 0xFF),
                 colorEffect.getType(), 0x00);
-         fg.writeUI16(colorEffect.getValuePercent());
-         fg.write(effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), effectColor.getAlpha()
+        fg.writeUI16(colorEffect.getValuePercent());
+        fg.write(effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), effectColor.getAlpha()
         );
 
         fg.write(
@@ -886,6 +886,7 @@ public class PageGenerator extends AbstractGenerator {
         if (!filters.isEmpty()) {
             fg.write(0x01,
                     filters.size(), 0x00, 0x00, 0x00);
+            
             for (FilterInterface filter : filters) {
                 filter.write(fg);
             }
@@ -2838,6 +2839,11 @@ public class PageGenerator extends AbstractGenerator {
         }
     }*/
     public static void main(String[] args) {
-
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= 100; i++) {
+            sb.append("<FillStyle index=\"" + i + "\">\n")
+                    .append("<SolidColor color=\"#FF0000\" alpha=\"0.0901960784313725\"/>\n")
+                    .append("</FillStyle>\n");
+        }
     }
 }
