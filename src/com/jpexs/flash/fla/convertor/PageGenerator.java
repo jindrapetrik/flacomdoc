@@ -2838,19 +2838,5 @@ public class PageGenerator extends AbstractGenerator {
             fg.write(0x00, 0x00, 0x00, 0x00);
         }
 
-    }
-
-    /*public void generatePageFile(Element domTimeline, File outputFile) throws FileNotFoundException, IOException, SAXException, ParserConfigurationException {
-        try (FileOutputStream fos = new FileOutputStream(outputFile)) {
-            generatePageFile(domTimeline, fos);
-        }
-    }*/
-    public static void main(String[] args) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 1; i <= 100; i++) {
-            sb.append("<FillStyle index=\"" + i + "\">\n")
-                    .append("<SolidColor color=\"#FF0000\" alpha=\"0.0901960784313725\"/>\n")
-                    .append("</FillStyle>\n");
-        }
-    }
+    }  
 }
