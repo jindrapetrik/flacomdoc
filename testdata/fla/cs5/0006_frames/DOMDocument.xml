@@ -4,13 +4,13 @@
                <layers>
                     <DOMLayer name="Layer 1" color="#4FFF4F" current="true" isSelected="true">
                          <frames>
-                              <DOMFrame index="0" duration="10" keyMode="9728">
+                              <DOMFrame index="0" duration="10" name="myFirstFrame" labelType="name" keyMode="9728">
                                    <elements/>
                               </DOMFrame>
-                              <DOMFrame index="10" duration="19" keyMode="9728">
+                              <DOMFrame index="10" duration="19" name="myFrame11" labelType="comment" keyMode="9728">
                                    <elements/>
                               </DOMFrame>
-                              <DOMFrame index="29" duration="6" keyMode="9728">
+                              <DOMFrame index="29" duration="6" name="thirtyFrame" labelType="anchor" bookmark="true" keyMode="9728">
                                    <elements/>
                               </DOMFrame>
                          </frames>
