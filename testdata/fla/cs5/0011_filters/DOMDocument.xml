@@ -39,7 +39,7 @@
                                                   <Point x="25" y="20"/>
                                              </transformationPoint>
                                              <filters>
-                                                  <GlowFilter blurX="12" blurY="20" color="#0000FF" inner="true" knockout="true" quality="3"/>
+                                                  <GlowFilter blurX="12" blurY="20" color="#0000FF" inner="true" knockout="true" quality="3" strength="1.2"/>
                                              </filters>
                                         </DOMSymbolInstance>
                                         <DOMSymbolInstance libraryItemName="Symbol 1" name="" centerPoint3DX="270" centerPoint3DY="40">
@@ -80,7 +80,7 @@
                                                        <GradientEntry color="#FF00FF" ratio="0"/>
                                                        <GradientEntry color="#006600" alpha="0.470588235294118" ratio="0.266666666666667"/>
                                                        <GradientEntry color="#00FF00" alpha="0" ratio="0.501960784313725"/>
-                                                       <GradientEntry color="#0033CC" alpha="0.537254901960784" ratio="0.772549019607843"/>
+                                                       <GradientEntry color="#0033CC" alpha="0.533333333333333" ratio="0.772549019607843"/>
                                                        <GradientEntry color="#CC9900" ratio="1"/>
                                                   </GradientBevelFilter>
                                              </filters>
@@ -118,6 +118,19 @@
                                              </transformationPoint>
                                              <filters>
                                                   <AdjustColorFilter brightness="15" contrast="-25" saturation="-50" hue="50"/>
+                                             </filters>
+                                        </DOMSymbolInstance>
+                                        <DOMSymbolInstance libraryItemName="Symbol 1" name="" centerPoint3DX="140" centerPoint3DY="120">
+                                             <matrix>
+                                                  <Matrix tx="115" ty="100"/>
+                                             </matrix>
+                                             <transformationPoint>
+                                                  <Point x="25" y="20"/>
+                                             </transformationPoint>
+                                             <filters>
+                                                  <BlurFilter isEnabled="false"/>
+                                                  <DropShadowFilter hideObject="true"/>
+                                                  <BevelFilter type="outer"/>
                                              </filters>
                                         </DOMSymbolInstance>
                                    </elements>

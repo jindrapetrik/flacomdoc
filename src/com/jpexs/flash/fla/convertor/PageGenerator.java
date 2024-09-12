@@ -514,9 +514,9 @@ public class PageGenerator extends AbstractGenerator {
                     }
                     if (filter.hasAttribute("type")) {
                         switch (filter.getAttribute("type")) {
-                            case "inner":
+                            /*case "inner":
                                 type = BevelFilter.TYPE_INNER;
-                                break;
+                                break;*/
                             case "outer":
                                 type = BevelFilter.TYPE_OUTER;
                                 break;
@@ -563,9 +563,9 @@ public class PageGenerator extends AbstractGenerator {
                     }
                     if (filter.hasAttribute("type")) {
                         switch (filter.getAttribute("type")) {
-                            case "inner":
+                            /*case "inner":
                                 type = GradientGlowFilter.TYPE_INNER;
-                                break;
+                                break;*/
                             case "outer":
                                 type = GradientGlowFilter.TYPE_OUTER;
                                 break;
