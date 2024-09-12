@@ -1092,10 +1092,10 @@ public class PageGenerator extends AbstractGenerator {
                 }
                 if (element.hasAttribute("lineType")) {
                     switch (element.getAttribute("lineType")) {
-                        case "single line":
+                        /*case "single line":
                             multiline = false;
                             wrap = false;
-                            break;
+                            break;*/
                         case "multiline":
                             multiline = true;
                             wrap = true;
