@@ -1547,26 +1547,35 @@ public class ContentsGenerator extends AbstractGenerator {
             dw.writeLenUnicodeString(fontPsName);
 
             //following part might be copied from textfield
-            dw.write(0x00, 0x00, 0x00, 0x40,
-                    0x00, 0x00, 0x00, 0x00,
-                    0x12, //something magic, see PageGenerator for details
+            dw.write(0x00, 0x00, 0x00, 0x40);
+
+            if (debugRandom) {
+                dw.write('U', 'U', 'U', 'U');
+            } else {
+                dw.write(0x00, 0x00, 0x00, 0x00);
+            }
+            dw.write(debugRandom ? 'U' : 0x12, //something magic, see PageGenerator for details
                     0x00);
             dw.write(bold ? 1 : 0);
             dw.write(italic ? 1 : 0);
             dw.write(0x00,
                     0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00,
+                    debugRandom ? 'U' : 0x00, debugRandom ? 'U' : 0x00, 0x00, 0x00,
                     0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00);
             //end of copied part           
 
             dw.write(0xFF, 0xFE, 0xFF, 0x00,
-                    0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, debugRandom ? 'U' : 0x00, 0x00,
                     0xFF, 0xFE, 0xFF, 0x00,
                     0x02,
-                    0x01, // 2?
+                    debugRandom ? 'U' : 0x01,
                     0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    debugRandom ? 'U' : 0x00,
+                    debugRandom ? 'U' : 0x00,
+                    0x00, 0x00,
+                    debugRandom ? 'U' : 0x00,
+                    debugRandom ? 'U' : 0x00,
                     0xFF, 0xFE, 0xFF, 0x00,
                     0x06, 0x00, 0x00, 0x00, 0x01, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
@@ -2010,6 +2019,6 @@ public class ContentsGenerator extends AbstractGenerator {
     }
 
     public static void main(String[] args) {
-        
+
     }
 }

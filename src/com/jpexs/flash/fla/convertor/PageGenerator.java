@@ -886,7 +886,7 @@ public class PageGenerator extends AbstractGenerator {
         if (!filters.isEmpty()) {
             fg.write(0x01,
                     filters.size(), 0x00, 0x00, 0x00);
-            
+
             for (FilterInterface filter : filters) {
                 filter.write(fg);
             }
@@ -1005,6 +1005,8 @@ public class PageGenerator extends AbstractGenerator {
         fg.write(0x00, cacheAsBitmap ? 1 : 0, instanceType);
         fg.writeMatrix(placeMatrix);
     }
+
+    static int textCount = 0;
 
     private void handleText(Element element, FlaCs4Writer fg, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
         if ("DOMStaticText".equals(element.getTagName())
@@ -1201,8 +1203,13 @@ public class PageGenerator extends AbstractGenerator {
             fg.writeUI32((int) Math.round(top * 20));
             fg.writeUI32((int) Math.round((top + height) * 20));
 
+            boolean autoExpand = false;
+            if (element.hasAttribute("autoExpand")) {
+                autoExpand = "true".equals(element.getAttribute("autoExpand"));
+            }
+
             fg.write(
-                    0x00, 0x00,
+                    autoExpand ? 0x01 : 0, 0x00,
                     (!isStatic ? 0x01 : 0)
                     + (isDynamic ? 0x02 : 0)
                     + (password ? 0x04 : 0)
@@ -1478,7 +1485,7 @@ public class PageGenerator extends AbstractGenerator {
                         Impact 0x22		34	0010 0010
 
                  */
-                fg.write(0x12,
+                fg.write(debugRandom ? 'U' : 0x12,
                         0x00);
 
                 fg.write(

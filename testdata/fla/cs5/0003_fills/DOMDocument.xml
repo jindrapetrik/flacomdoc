@@ -23,11 +23,11 @@
                                                   <FillStyle index="3">
                                                        <LinearGradient>
                                                             <matrix>
-                                                                 <Matrix a="0.06103515625" d="0.054931640625" tx="220" ty="90"/>
+                                                                 <Matrix a="0.0610198974609375" d="0.054931640625" tx="220" ty="90"/>
                                                             </matrix>
                                                             <GradientEntry color="#00FF00" ratio="0.168627450980392"/>
                                                             <GradientEntry color="#385FFF" ratio="0.349019607843137"/>
-                                                            <GradientEntry color="#DB0000" alpha="0.749019607843137" ratio="0.635294117647059"/>
+                                                            <GradientEntry color="#DB0000" alpha="0.745098039215686" ratio="0.635294117647059"/>
                                                             <GradientEntry color="#FFFFFF" ratio="0.87843137254902"/>
                                                        </LinearGradient>
                                                   </FillStyle>
@@ -47,32 +47,41 @@
                                                             </matrix>
                                                             <GradientEntry color="#00FF00" ratio="0.168627450980392"/>
                                                             <GradientEntry color="#385FFF" ratio="0.349019607843137"/>
-                                                            <GradientEntry color="#DB0000" alpha="0.745098039215686" ratio="0.635294117647059"/>
+                                                            <GradientEntry color="#DB0000" alpha="0.741176470588235" ratio="0.635294117647059"/>
                                                             <GradientEntry color="#FFFFFF" ratio="0.87843137254902"/>
                                                        </LinearGradient>
                                                   </FillStyle>
                                                   <FillStyle index="6">
-                                                       <RadialGradient>
+                                                       <RadialGradient spreadMethod="repeat">
                                                             <matrix>
-                                                                 <Matrix a="0.073486328125" d="0.073486328125" tx="120" ty="315"/>
+                                                                 <Matrix a="0.02459716796875" d="0.0493621826171875" tx="330" ty="325"/>
                                                             </matrix>
                                                             <GradientEntry color="#FFFFFF" ratio="0"/>
                                                             <GradientEntry ratio="1"/>
                                                        </RadialGradient>
                                                   </FillStyle>
                                                   <FillStyle index="7">
-                                                       <RadialGradient spreadMethod="reflect">
+                                                       <RadialGradient>
                                                             <matrix>
-                                                                 <Matrix a="0.02459716796875" d="0.0493621826171875" tx="260" ty="315"/>
+                                                                 <Matrix a="0.073486328125" d="0.073486328125" tx="50" ty="320"/>
                                                             </matrix>
                                                             <GradientEntry color="#FFFFFF" ratio="0"/>
                                                             <GradientEntry ratio="1"/>
                                                        </RadialGradient>
                                                   </FillStyle>
                                                   <FillStyle index="8">
-                                                       <RadialGradient spreadMethod="repeat">
+                                                       <RadialGradient spreadMethod="reflect">
                                                             <matrix>
-                                                                 <Matrix a="0.02459716796875" d="0.0493621826171875" tx="400" ty="320"/>
+                                                                 <Matrix a="0.02459716796875" d="0.0493621826171875" tx="190" ty="320"/>
+                                                            </matrix>
+                                                            <GradientEntry color="#FFFFFF" ratio="0"/>
+                                                            <GradientEntry ratio="1"/>
+                                                       </RadialGradient>
+                                                  </FillStyle>
+                                                  <FillStyle index="9">
+                                                       <RadialGradient focalPointRatio="0.462745098039216">
+                                                            <matrix>
+                                                                 <Matrix a="0.0539398193359375" b="0.0423126220703125" c="-0.0481719970703125" d="0.0614013671875" tx="470" ty="320"/>
                                                             </matrix>
                                                             <GradientEntry color="#FFFFFF" ratio="0"/>
                                                             <GradientEntry ratio="1"/>
@@ -82,12 +91,13 @@
                                              <edges>
                                                   <Edge fillStyle1="2" edges="!10200 2900|8600 2900!8600 2900|8600 1100!8600 1100|10200 1100!10200 1100|10200 2900"/>
                                                   <Edge fillStyle1="4" edges="!7600 2800|6000 2800!6000 2800|6000 1000!6000 1000|7600 1000!7600 1000|7600 2800"/>
-                                                  <Edge fillStyle1="8" edges="!8800 5500|8800 7300!8800 7300|7200 7300!7200 7300|7200 5500!7200 5500|8800 5500"/>
+                                                  <Edge fillStyle1="9" edges="!8600 5500|10200 5500!10200 5500|10200 7300!10200 7300|8600 7300!8600 7300|8600 5500"/>
+                                                  <Edge fillStyle1="6" edges="!7400 7400|5800 7400!5800 7400|5800 5600!5800 5600|7400 5600!7400 5600|7400 7400"/>
                                                   <Edge fillStyle1="5" edges="!6500 4900|4500 4900!4500 4900|4500 3100!4500 3100|6500 3100!6500 3100|6500 4900"/>
                                                   <Edge fillStyle1="3" edges="!5400 900|5400 2700!5400 2700|3400 2700!3400 2700|3400 900!3400 900|5400 900"/>
                                                   <Edge fillStyle1="1" edges="!2400 2700|400 2700!400 2700|400 900!400 900|2400 900!2400 900|2400 2700"/>
-                                                  <Edge fillStyle1="6" edges="!3200 5400|3200 7200!3200 7200|1600 7200!1600 7200|1600 5400!1600 5400|3200 5400"/>
-                                                  <Edge fillStyle1="7" edges="!6000 5400|6000 7200!6000 7200|4400 7200!4400 7200|4400 5400!4400 5400|6000 5400"/>
+                                                  <Edge fillStyle1="7" edges="!1800 5500|1800 7300!1800 7300|200 7300!200 7300|200 5500!200 5500|1800 5500"/>
+                                                  <Edge fillStyle1="8" edges="!3000 5500|4600 5500!4600 5500|4600 7300!4600 7300|3000 7300!3000 7300|3000 5500"/>
                                              </edges>
                                         </DOMShape>
                                    </elements>
