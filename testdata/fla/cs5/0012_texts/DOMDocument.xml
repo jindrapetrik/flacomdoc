@@ -1,6 +1,6 @@
 <DOMDocument xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://ns.adobe.com/xfl/2008/" currentTimeline="1" xflVersion="2.0" creatorInfo="Adobe Flash Professional CS5" platform="Windows" versionInfo="Saved by Adobe Flash Windows 11.0 build 485" majorVersion="11" buildNumber="485" gridSnapTo="true" pixelSnap="true" snapAlign="false" objectsSnapTo="false" nextSceneIdentifier="2" playOptionsPlayLoop="false" playOptionsPlayPages="false" playOptionsPlayFrameActions="false">
      <fonts>
-          <DOMFontItem name="MyFont" itemID="66e3310b-0000031f" font="CourierNewPSMT" size="0" id="1" sourceLastImported="1726165259" embedRanges="1|2|17"/>
+          <DOMFontItem name="MyFont" itemID="66e3310b-0000031f" font="CourierNewPSMT" size="0" id="1" sourceLastImported="1726165259" embeddedCharacters=".-*" embedRanges="1|2|17"/>
      </fonts>
      <timelines>
           <DOMTimeline name="Scene 1">
@@ -365,7 +365,7 @@
                                         </DOMStaticText>
                                         <DOMStaticText fontRenderingMode="customThicknessSharpness" width="21.8" height="12.85" autoExpand="true" antiAliasSharpness="2.5" antiAliasThickness="1.5" isSelectable="false">
                                              <matrix>
-                                                  <Matrix tx="318" ty="356.45"/>
+                                                  <Matrix tx="319.1" ty="363.6"/>
                                              </matrix>
                                              <textRuns>
                                                   <DOMTextRun>
@@ -422,6 +422,19 @@
                                              <textRuns>
                                                   <DOMTextRun>
                                                        <characters>ABC&#xD;DEF</characters>
+                                                       <textAttrs>
+                                                            <DOMTextAttrs alignment="justify" aliasText="false" autoKern="false" alpha="0.8" lineSpacing="12" bitmapSize="240" face="CourierNewPSMT" fillColor="#F22626"/>
+                                                       </textAttrs>
+                                                  </DOMTextRun>
+                                             </textRuns>
+                                        </DOMDynamicText>
+                                        <DOMDynamicText name="myText" fontRenderingMode="customThicknessSharpness" width="86.5" height="12.85" antiAliasSharpness="2.5" antiAliasThickness="1.5">
+                                             <matrix>
+                                                  <Matrix tx="186.75" ty="373.6"/>
+                                             </matrix>
+                                             <textRuns>
+                                                  <DOMTextRun>
+                                                       <characters>ABC</characters>
                                                        <textAttrs>
                                                             <DOMTextAttrs alignment="justify" aliasText="false" autoKern="false" alpha="0.8" lineSpacing="12" bitmapSize="240" face="CourierNewPSMT" fillColor="#F22626"/>
                                                        </textAttrs>

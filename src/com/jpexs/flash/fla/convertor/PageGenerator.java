@@ -1177,10 +1177,10 @@ public class PageGenerator extends AbstractGenerator {
             boolean rightToLeft = false;
             if (!isInput && element.hasAttribute("orientation")) {
                 switch (element.getAttribute("orientation")) {
-                    case "horizontal":
+                    /*case "horizontal":
                         vertical = false;
                         rightToLeft = false;
-                        break;
+                        break;*/
                     case "vertical right to left":
                         vertical = true;
                         rightToLeft = true;
