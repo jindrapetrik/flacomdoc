@@ -167,7 +167,7 @@ public class PageGenerator extends AbstractGenerator {
                                         Matrix bitmapMatrix = parseMatrix(getSubElementByName(fillStyleVal, "matrix"));
 
                                         boolean bitmapIsClipped = false;
-                                        Node bitmapIsClippedAttr = fillStyleVal.getAttributes().getNamedItem("bitmapIsClippe");
+                                        Node bitmapIsClippedAttr = fillStyleVal.getAttributes().getNamedItem("bitmapIsClipped");
                                         if (bitmapIsClippedAttr != null) {
                                             bitmapIsClipped = "true".equals(bitmapIsClippedAttr.getTextContent());
                                         }
@@ -653,13 +653,13 @@ public class PageGenerator extends AbstractGenerator {
             return;
         }
 
-        int symbolType = FlaCs4Writer.SYMBOLTYPE_SPRITE;
+        int symbolType = FlaCs4Writer.SYMBOLTYPE_MOVIE_CLIP;
 
         if (symbolInstance.hasAttribute("symbolType")) {
             switch (symbolInstance.getAttribute("symbolType")) {
-                case "sprite": //?? is this correct default value ??
-                    symbolType = FlaCs4Writer.SYMBOLTYPE_SPRITE;
-                    break;
+                /*case "movie clip":
+                    symbolType = FlaCs4Writer.SYMBOLTYPE_MOVIE_CLIP;
+                    break;*/
                 case "button":
                     symbolType = FlaCs4Writer.SYMBOLTYPE_BUTTON;
                     break;
@@ -817,7 +817,7 @@ public class PageGenerator extends AbstractGenerator {
             }
         }
 
-        if (symbolType == FlaCs4Writer.SYMBOLTYPE_SPRITE) {
+        if (symbolType == FlaCs4Writer.SYMBOLTYPE_MOVIE_CLIP) {
             copiedComponentPathRef.setVal(copiedComponentPathRef.getVal() + 1);
         }
 
@@ -830,7 +830,7 @@ public class PageGenerator extends AbstractGenerator {
 
         fg.write((firstFrame & 0xFF), ((firstFrame >> 8) & 0xFF));
         switch (symbolType) {
-            case FlaCs4Writer.SYMBOLTYPE_SPRITE:
+            case FlaCs4Writer.SYMBOLTYPE_MOVIE_CLIP:
                 fg.write(0x02);
                 break;
             case FlaCs4Writer.SYMBOLTYPE_BUTTON:
@@ -852,11 +852,7 @@ public class PageGenerator extends AbstractGenerator {
         }
 
         fg.write(0x00, 0x01);
-
-        if (colorEffect == null) {
-            colorEffect = new NoColorEffect();
-        }
-
+        
         int redMultiplier = colorEffect.getRedMultiplier();
         int greenMultiplier = colorEffect.getGreenMultiplier();
         int blueMultiplier = colorEffect.getBlueMultiplier();
@@ -904,7 +900,7 @@ public class PageGenerator extends AbstractGenerator {
                 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
-        if (symbolType != FlaCs4Writer.SYMBOLTYPE_SPRITE) {
+        if (symbolType != FlaCs4Writer.SYMBOLTYPE_MOVIE_CLIP) {
             fg.write(
                     0x00, 0x00, 0x00, 0x80,
                     0x00, 0x00, 0x00, 0x80);
@@ -994,13 +990,21 @@ public class PageGenerator extends AbstractGenerator {
         } else {
             Point2D transformationPoint = new Point2D.Double(transformationPointX, transformationPointY);
             Point2D transformationPointTransformed = placeMatrix.transform(transformationPoint);
-
+            
             long tptX = Math.round(transformationPointTransformed.getX() * 20);
             long tptY = Math.round(transformationPointTransformed.getY() * 20);
-            fg.write(
-                    (int) (tptX & 0xFF), (int) ((tptX >> 8) & 0xFF), (int) ((tptX >> 16) & 0xFF), (int) ((tptX >> 24) & 0xFF),
-                    (int) (tptY & 0xFF), (int) ((tptY >> 8) & 0xFF), (int) ((tptY >> 16) & 0xFF), (int) ((tptY >> 24) & 0xFF)
-            );
+            
+            if (debugRandom) {
+                //There are rounding errors:
+                //Sample: round((2.11505126953125 * 15.95 -0.880615234375 * 32.05 + 339.4) * 20) should be 6899, but is 6898            
+                fg.write('X', 'X', 'X', 'X');
+                fg.write('X', 'X', 'X', 'X');
+            } else {
+                fg.write(
+                        (int) (tptX & 0xFF), (int) ((tptX >> 8) & 0xFF), (int) ((tptX >> 16) & 0xFF), (int) ((tptX >> 24) & 0xFF),
+                        (int) (tptY & 0xFF), (int) ((tptY >> 8) & 0xFF), (int) ((tptY >> 16) & 0xFF), (int) ((tptY >> 24) & 0xFF)
+                );
+            }
         }
         fg.write(0x00, cacheAsBitmap ? 1 : 0, instanceType);
         fg.writeMatrix(placeMatrix);
@@ -1913,6 +1917,8 @@ public class PageGenerator extends AbstractGenerator {
                                 Color baseColor = new Color(0x00, 0x00, 0x00, 0x00);
                                 if ("SolidColor".equals(fillStyleVal.getNodeName())) {
                                     baseColor = parseColorWithAlpha(fillStyleVal);
+                                } else if ("BitmapFill".equals(fillStyleVal.getNodeName())){
+                                    baseColor = Color.red;
                                 }
 
                                 fg.writeStrokeBegin(baseColor, weight, pixelHinting, scaleMode, caps, joints, miterLimit, styleParam1, styleParam2);

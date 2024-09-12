@@ -85,7 +85,7 @@ public class FlaCs4Writer {
     public static final int FILLTYPE_NON_SMOOTHED_BITMAP = 0x42;
     public static final int FILLTYPE_NON_SMOOTHED_CLIPPED_BITMAP = 0x43;
 
-    public static final int SYMBOLTYPE_SPRITE = 0;
+    public static final int SYMBOLTYPE_MOVIE_CLIP = 0;
     public static final int SYMBOLTYPE_BUTTON = 1;
     public static final int SYMBOLTYPE_GRAPHIC = 2;
 

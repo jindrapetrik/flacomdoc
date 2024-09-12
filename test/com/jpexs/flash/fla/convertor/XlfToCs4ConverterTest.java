@@ -162,7 +162,7 @@ public class XlfToCs4ConverterTest {
 
     //@Test
     public void mytest() throws Exception {
-        //testConvert("0011_filters");
+        //testConvert("0013_bitmaps");
     }
 
     private static void deleteDir(File f) throws IOException {

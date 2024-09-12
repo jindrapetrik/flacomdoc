@@ -1353,6 +1353,9 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.write(0xFF, 0xFE, 0xFF);
         dw.writeLenUnicodeString(name);
         String importFilePath = "";
+        if (debugRandom) {
+            importFilePath = "YYY";
+        }
         dw.writeUI16(mediaCount);
         dw.write(0xFF, 0xFE, 0xFF);
         dw.writeLenUnicodeString(importFilePath);
