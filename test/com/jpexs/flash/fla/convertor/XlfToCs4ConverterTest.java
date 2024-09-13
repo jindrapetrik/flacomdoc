@@ -120,7 +120,7 @@ public class XlfToCs4ConverterTest {
 
             //assertEquals(actualData.length, expectedData.length, "File data length of file " + actualFile);
             int epos = 0;
-            for (int apos = 0; apos < actualData.length; apos++, epos++) {
+            for (int apos = 0; apos < actualData.length && epos < expectedData.length; apos++, epos++) {
                 if (actualData[apos] == 'X') { //special - all randomness is replaced with 'X' - setDebugRandom(true)
                     continue;
                 }

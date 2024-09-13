@@ -1161,7 +1161,7 @@ public class ContentsGenerator extends AbstractGenerator {
         useClass("CMediaSound", 1, dw, definedClasses, objectsCount);
         dw.write(0x07);
         String mediaFile = "M " + mediaCount + " " + getTimeCreatedAsString();
-        dw.writeLenUnicodeString(mediaFile);
+        dw.writeLenUnicodeString(debugRandom ? "YYY" : mediaFile);
         dw.write(0xFF, 0xFE, 0xFF);
         String name = "";
         if (domSoundItem.hasAttribute("name")) {
@@ -1172,7 +1172,7 @@ public class ContentsGenerator extends AbstractGenerator {
         String importFilePath = "";
         dw.writeUI16(mediaCount);
         dw.write(0xFF, 0xFE, 0xFF);
-        dw.writeLenUnicodeString(importFilePath);
+        dw.writeLenUnicodeString(debugRandom ? "YYY" : importFilePath);
         writeTimeCreated(dw);
         dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1275,7 +1275,7 @@ public class ContentsGenerator extends AbstractGenerator {
         useClass("CMediaVideoStream", 1, dw, definedClasses, objectsCount);
         dw.write(0x07);
         String mediaFile = "M " + mediaCount + " " + getTimeCreatedAsString();
-        dw.writeLenUnicodeString(mediaFile);
+        dw.writeLenUnicodeString(debugRandom ? "YYY" : mediaFile);
         dw.write(0xFF, 0xFE, 0xFF);
         String name = "";
         if (domVideoItem.hasAttribute("name")) {
@@ -1286,7 +1286,7 @@ public class ContentsGenerator extends AbstractGenerator {
         String importFilePath = "";
         dw.writeUI16(mediaCount);
         dw.write(0xFF, 0xFE, 0xFF);
-        dw.writeLenUnicodeString(importFilePath);
+        dw.writeLenUnicodeString(debugRandom ? "YYY" : importFilePath);
         writeTimeCreated(dw);
         dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1343,7 +1343,7 @@ public class ContentsGenerator extends AbstractGenerator {
         useClass("CMediaBits", 1, dw, definedClasses, objectsCount);
         dw.write(0x07);
         String mediaFile = "M " + mediaCount + " " + getTimeCreatedAsString();
-        dw.writeLenUnicodeString(mediaFile);
+        dw.writeLenUnicodeString(debugRandom ? "YYY" : mediaFile);
 
         String name = "";
         if (domBitmapItem.hasAttribute("name")) {
@@ -1353,12 +1353,9 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.write(0xFF, 0xFE, 0xFF);
         dw.writeLenUnicodeString(name);
         String importFilePath = "";
-        if (debugRandom) {
-            importFilePath = "YYY";
-        }
         dw.writeUI16(mediaCount);
         dw.write(0xFF, 0xFE, 0xFF);
-        dw.writeLenUnicodeString(importFilePath);
+        dw.writeLenUnicodeString(debugRandom ? "YYY" : importFilePath);
         writeTimeCreated(dw);
         dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
