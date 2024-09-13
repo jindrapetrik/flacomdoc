@@ -208,6 +208,6 @@ public class XlfToCs4ConverterTest {
                 deleteDir(f);
             }
         }
-        FlaCfbExtractor.main(new String[0]);
+        FlaCfbExtractor.main(new String[] {EXPECTED_DIR});
     }
 }

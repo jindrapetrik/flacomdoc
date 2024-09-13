@@ -38,27 +38,6 @@ import java.util.logging.Logger;
  */
 public class FlaCfbExtractor {
 
-    private static File propFile = new File("./config.properties");
-    private static Properties props = null;
-
-    public static String getProperty(String propName) {
-        if (props == null) {
-            if (!propFile.exists()) {
-                System.err.println("config.properties does not exist. Copy config.default.properties to config.properties and continue");
-                System.exit(1);
-            }
-            props = new Properties();
-            try (FileInputStream fis = new FileInputStream(propFile)) {
-                props.load(fis);
-            } catch (IOException ex) {
-                Logger.getLogger(FlaCfbExtractor.class.getName()).log(Level.SEVERE, null, ex);
-                System.exit(1);
-            }
-        }
-
-        return props.getProperty(propName);
-    }
-
     public static void initLog() {
         System.setProperty("java.util.logging.SimpleFormatter.format",
                 "[%1$tF %1$tT %1$tL] [%4$-7s] %5$s %n");
@@ -74,8 +53,10 @@ public class FlaCfbExtractor {
     }
 
     public static void main(String[] args) throws Exception {
-        //initLog();
-        String inputDir = getProperty("extract.source.dir");
+        if (args.length != 1) {
+            return;
+        }
+        String inputDir = args[0];
         for (File file : new File(inputDir).listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {

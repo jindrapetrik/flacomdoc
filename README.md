@@ -11,22 +11,26 @@ This project has following goals:
 The directory contains Netbeans project which you can open and then build here.
 Alternatively you can use `ant` command from commandline.
 
-## How to run
+## GUI usage
 
-1) You must configure paths in `config.properties` file.
-Copy `config.default.properties` to `config.properties` and change paths inside.
+You can run the app without arguments:
+```
+java -jar flacomdoc.jar
+```
+And graphics user interface (GUI) will show up where you can do the conversion and extraction.
 
-2) For extracting FLA CS4 below format, run
+## Commandline usage
+
+To convert CS5+ FLA/XFL to CS4:
 ```
-java -cp flacomdoc.jar com.jpexs.flash.fla.extractor.FlaCfbExtractor
+java -jar flacomdoc.jar convert inputfile.fla/xfl outputfile.fla
 ```
 
-3) For converting FLA CS5+ to CS4, run
-```
-java -cp flacomdoc.jar com.jpexs.flash.fla.convertor.XflToCs4Converter
-```
+To extract CS4 and lower FLA (ComDoc format):
 
-I might add better interface in the future (like commandline arguments instead config file).
+```
+java -jar flacomdoc.jar extract inputfile.fla outputdir
+```
 
 ## What is missing
 See [TODO.md](TODO.md) for known missing features.
@@ -34,5 +38,12 @@ See [TODO.md](TODO.md) for known missing features.
 ## License
 This work is licensed under LGPL v2.1, see [LICENSE.md](LICENSE.md) for details.
 
+## Acknowledges
+GUI Application uses FLA icon from [FatCow icons pack].
+
+
 ## Author
 Jindra Petřík aka JPEXS
+
+
+[FatCow icons pack]: http://www.fatcow.com/free-icons
