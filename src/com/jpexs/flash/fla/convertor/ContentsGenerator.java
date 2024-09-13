@@ -1390,7 +1390,7 @@ public class ContentsGenerator extends AbstractGenerator {
             allowSmoothing = "true".equals(domBitmapItem.getAttribute("allowSmoothing"));
         }
 
-        int quality = 50;
+        int quality = 80;
         if (domBitmapItem.hasAttribute("quality")) {
             quality = Integer.parseInt(domBitmapItem.getAttribute("quality"));
         }
