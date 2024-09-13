@@ -1,98 +1,11 @@
-<DOMDocument xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://ns.adobe.com/xfl/2008/" currentTimeline="1" xflVersion="2.0" creatorInfo="Adobe Flash Professional CS5" platform="Windows" versionInfo="Saved by Adobe Flash Windows 11.0 build 485" majorVersion="11" buildNumber="485" gridSnapTo="true" pixelSnap="true" snapAlign="false" objectsSnapTo="false" nextSceneIdentifier="2" playOptionsPlayLoop="false" playOptionsPlayPages="false" playOptionsPlayFrameActions="false">
-     <symbols>
-          <Include href="MyButton 1.xml" itemIcon="0" loadImmediate="false"/>
-          <Include href="MyGraphic 1.xml" itemIcon="1" loadImmediate="false"/>
-          <Include href="MySymbol 1.xml" loadImmediate="false"/>
-          <Include href="MySymbol 2.xml" loadImmediate="false"/>
-     </symbols>
+<DOMDocument xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://ns.adobe.com/xfl/2008/" backgroundColor="#CCFF99" gridColor="#FF0000" guidesColor="#0000FF" width="582" height="474" frameRate="12.5" currentTimeline="1" xflVersion="2.0" creatorInfo="Adobe Flash Professional CS5" platform="Windows" versionInfo="Saved by Adobe Flash Windows 11.0 build 485" majorVersion="11" buildNumber="485" gridSpacingX="15" gridSpacingY="25" gridSnapAccuracy="Always snap" gridSnapTo="true" guidesLocked="true" guidesSnapAccuracy="Can be distant" guidesSnapTo="false" gridVisible="true" rulerVisible="true" pixelSnap="true" snapAlignHorizontalCenter="true" snapAlignVerticalCenter="true" snapAlignBorderSpacing="18" snapAlignHorizontalSpacing="1" snapAlignVerticalSpacing="1" objectsSnapTo="false" viewAngle3D="57.6967454140277" rulerUnitType="centimeters" nextSceneIdentifier="2" playOptionsPlayLoop="false" playOptionsPlayPages="false" playOptionsPlayFrameActions="false">
      <timelines>
-          <DOMTimeline name="Scene 1">
+          <DOMTimeline name="Scene 1" guides='&lt;guidelines&gt;&lt;guideline direction="h"&gt;50&lt;/guideline&gt;&lt;guideline direction="v"&gt;60&lt;/guideline&gt;&lt;guideline direction="v"&gt;255&lt;/guideline&gt;&lt;guideline direction="h"&gt;175&lt;/guideline&gt;&lt;guideline direction="h"&gt;250&lt;/guideline&gt;&lt;/guidelines&gt;'>
                <layers>
                     <DOMLayer name="Layer 1" color="#4FFF4F" current="true" isSelected="true">
                          <frames>
                               <DOMFrame index="0" keyMode="9728">
-                                   <elements>
-                                        <DOMSymbolInstance libraryItemName="MySymbol 1" name="" centerPoint3DX="150" centerPoint3DY="110">
-                                             <matrix>
-                                                  <Matrix tx="110" ty="75"/>
-                                             </matrix>
-                                             <transformationPoint>
-                                                  <Point x="40" y="35"/>
-                                             </transformationPoint>
-                                        </DOMSymbolInstance>
-                                        <DOMSymbolInstance libraryItemName="MySymbol 2" name="" centerPoint3DX="390" centerPoint3DY="110">
-                                             <matrix>
-                                                  <Matrix tx="350" ty="70"/>
-                                             </matrix>
-                                             <transformationPoint>
-                                                  <Point x="40" y="40"/>
-                                             </transformationPoint>
-                                        </DOMSymbolInstance>
-                                        <DOMSymbolInstance libraryItemName="MySymbol 1" name="" symbolType="button">
-                                             <matrix>
-                                                  <Matrix a="1.21092224121094" b="-1.04193115234375" c="0.652236938476563" d="0.758010864257813" tx="78.7" ty="305.2"/>
-                                             </matrix>
-                                             <transformationPoint>
-                                                  <Point x="40.05" y="34.95"/>
-                                             </transformationPoint>
-                                        </DOMSymbolInstance>
-                                        <DOMSymbolInstance libraryItemName="MySymbol 2" name="" locked="true" symbolType="graphic" loop="loop">
-                                             <matrix>
-                                                  <Matrix a="0.736312866210938" d="0.736312866210938" tx="280.55" ty="240.55"/>
-                                             </matrix>
-                                             <transformationPoint>
-                                                  <Point x="40" y="40"/>
-                                             </transformationPoint>
-                                        </DOMSymbolInstance>
-                                        <DOMSymbolInstance libraryItemName="MySymbol 2" name="" symbolType="graphic" firstFrame="3" loop="loop">
-                                             <matrix>
-                                                  <Matrix a="0.73822021484375" d="0.73822021484375" tx="380.45" ty="240.45"/>
-                                             </matrix>
-                                             <transformationPoint>
-                                                  <Point x="40.05" y="40.05"/>
-                                             </transformationPoint>
-                                        </DOMSymbolInstance>
-                                        <DOMSymbolInstance libraryItemName="MySymbol 2" name="" symbolType="graphic" firstFrame="3" loop="play once">
-                                             <matrix>
-                                                  <Matrix a="0.73822021484375" d="0.73822021484375" tx="320.45" ty="310.45"/>
-                                             </matrix>
-                                             <transformationPoint>
-                                                  <Point x="40" y="40"/>
-                                             </transformationPoint>
-                                        </DOMSymbolInstance>
-                                        <DOMSymbolInstance libraryItemName="MySymbol 2" name="" symbolType="graphic" firstFrame="2" loop="single frame">
-                                             <matrix>
-                                                  <Matrix a="0.73822021484375" d="0.73822021484375" tx="400.45" ty="310.45"/>
-                                             </matrix>
-                                             <transformationPoint>
-                                                  <Point x="40.05" y="40"/>
-                                             </transformationPoint>
-                                        </DOMSymbolInstance>
-                                        <DOMSymbolInstance libraryItemName="MySymbol 1" name="" symbolType="button" trackAsMenu="true">
-                                             <matrix>
-                                                  <Matrix tx="230" ty="135"/>
-                                             </matrix>
-                                             <transformationPoint>
-                                                  <Point x="40" y="35"/>
-                                             </transformationPoint>
-                                        </DOMSymbolInstance>
-                                        <DOMSymbolInstance libraryItemName="MyButton 1" name="" symbolType="button">
-                                             <matrix>
-                                                  <Matrix tx="229.5" ty="9.5"/>
-                                             </matrix>
-                                             <transformationPoint>
-                                                  <Point x="30" y="30"/>
-                                             </transformationPoint>
-                                        </DOMSymbolInstance>
-                                        <DOMSymbolInstance libraryItemName="MyGraphic 1" name="" symbolType="graphic" loop="loop">
-                                             <matrix>
-                                                  <Matrix tx="451.55" ty="161.55"/>
-                                             </matrix>
-                                             <transformationPoint>
-                                                  <Point x="26.55" y="26.55"/>
-                                             </transformationPoint>
-                                        </DOMSymbolInstance>
-                                   </elements>
+                                   <elements/>
                               </DOMFrame>
                          </frames>
                     </DOMLayer>

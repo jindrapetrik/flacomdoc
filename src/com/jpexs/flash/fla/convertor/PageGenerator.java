@@ -624,12 +624,7 @@ public class PageGenerator extends AbstractGenerator {
         }
 
         String libraryItemName = symbolInstance.getAttribute("libraryItemName");
-        Element symbolsElement = getSubElementByName(symbolInstance.getOwnerDocument().getDocumentElement(), "symbols");
-        if (symbolsElement == null) {
-            //nothing we can do                                    
-            return;
-        }
-        List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
+        List<Element> includes = getSymbols(symbolInstance.getOwnerDocument().getDocumentElement());
 
         //Find index in library
         int libraryItemIndex = -1;

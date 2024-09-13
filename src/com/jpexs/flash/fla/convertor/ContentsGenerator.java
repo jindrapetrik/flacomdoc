@@ -42,6 +42,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -532,11 +533,24 @@ public class ContentsGenerator extends AbstractGenerator {
 
     private int writeSymbols(FlaCs4Writer fg, Element document, DocumentBuilder docBuilder, InputStorageInterface sourceDir, OutputStorageInterface outputDir, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws SAXException, IOException, FileNotFoundException, ParserConfigurationException {
         int symbolCount = 0;
-        Element symbolsElement = getSubElementByName(document, "symbols");
-        if (symbolsElement == null) {
-            return symbolCount;
-        }
-        List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
+        List<Element> includes = getSymbols(document);
+        List<Element> sorted = new ArrayList<>(includes);
+        sorted.sort(new Comparator<Element>() {
+            @Override
+            public int compare(Element o1, Element o2) {
+                int itemIcon1 = -1;
+                int itemIcon2 = -1;
+                if (o1.hasAttribute("itemIcon")) {
+                    itemIcon1 = Integer.parseInt(o1.getAttribute("itemIcon"));
+                }
+                if (o2.hasAttribute("itemIcon")) {
+                    itemIcon2 = Integer.parseInt(o2.getAttribute("itemIcon"));
+                }
+                return itemIcon1 - itemIcon2;
+            }            
+        });
+        
+        
         for (int i = 0; i < includes.size(); i++) {
             Element include = includes.get(i);
             if (!include.hasAttribute("href")) {
@@ -556,7 +570,11 @@ public class ContentsGenerator extends AbstractGenerator {
             symbolCount++;
             int symbolId = i + 1;
             long symbolTime = timeCreated;
-            String symbolFile = "S " + symbolId + " " + getTimeAsString(symbolTime);
+            String symbolFile = "S " + symbolId + " " + getTimeAsString(symbolTime);            
+            if (debugRandom) {
+                int symbolIdOrdered = sorted.indexOf(includes.get(i)) + 1;               
+                symbolFile = "S " + symbolIdOrdered + " " + getTimeAsString(symbolTime);
+            }
             String symbolName = "Symbol " + symbolId;
             if (domTimelineElement.hasAttribute("name")) {
                 symbolName = domTimelineElement.getAttribute("name");
@@ -583,7 +601,7 @@ public class ContentsGenerator extends AbstractGenerator {
                 scaleGridBottom = Float.parseFloat(symbolElement.getAttribute("scaleGridBottom"));
             }
 
-            int symbolType = getAttributeAsInt(symbolElement, "symbolType", Arrays.asList("graphic", "button", "movieclip"), "movieclip"); //not sure about the default value name                  
+            int symbolType = getAttributeAsInt(symbolElement, "symbolType", Arrays.asList("graphic", "button", "movie clip"), "movie clip");
 
             String itemID = generateItemID(generatedItemIdOrder);
 
@@ -1144,7 +1162,12 @@ public class ContentsGenerator extends AbstractGenerator {
             String timecount = " timecount = " + getTimeCreatedAsString();
             fg.write(timecount.getBytes());
             fg.write(0x00);
-            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x4B, 0x40, 0x7C, 0x15, 0x00, 0x00, 0xA0, 0x0F, 0x00, 0x00,
+            if (debugRandom) {
+                fg.write('U', 'U', 'U', 'U', 'U', 'U', 'U', 'U');
+            } else {
+                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x4B, 0x40);
+            }
+            fg.write(0x7C, 0x15, 0x00, 0x00, 0xA0, 0x0F, 0x00, 0x00,
                     0x01, 0x00, 0x00, 0x00);
         }
     }

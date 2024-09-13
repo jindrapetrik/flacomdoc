@@ -24,6 +24,7 @@ import java.awt.Font;
 import java.awt.GraphicsEnvironment;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -260,5 +261,14 @@ public abstract class AbstractGenerator {
             Reference<Integer> totalObjectCount
     ) throws IOException {
         useClass(className, 1, os, definedClasses, totalObjectCount);
+    }
+    
+    protected List<Element> getSymbols(Element document) {
+        Element symbolsElement = getSubElementByName(document, "symbols");
+        if (symbolsElement == null) {
+            return new ArrayList<>();
+        }
+        List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");        
+        return includes;
     }
 }
