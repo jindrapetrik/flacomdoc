@@ -23,6 +23,7 @@ import com.jpexs.flash.fla.convertor.streams.DirectoryOutputStorage;
 import com.jpexs.flash.fla.extractor.FlaCfbExtractor;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
@@ -55,7 +56,12 @@ public class XlfToCs4ConverterTest {
     @DataProvider(name = "folders")
     public Object[][] provideFolders() {
         File sourceDir = new File(SOURCE_DIR);
-        File[] sourceFiles = sourceDir.listFiles();
+        File[] sourceFiles = sourceDir.listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File pathname) {
+                return pathname.isDirectory();
+            }
+        });
         Comparator<File> fileNameComparator = getFileComparator();
         List<File> sourceFilesList = Arrays.asList(sourceFiles);
         sourceFilesList.sort(fileNameComparator);
