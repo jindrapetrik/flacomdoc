@@ -29,6 +29,7 @@ import com.jpexs.flash.fla.convertor.swatches.SolidSwatchItem;
 import com.jpexs.helpers.Reference;
 import java.awt.Color;
 import java.awt.Font;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -1318,7 +1319,24 @@ public class ContentsGenerator extends AbstractGenerator {
             if (sourceDir.fileExists("bin/" + videoDataHRef)) {
                 //copy the data file
                 try (OutputStream fos = outputDir.getOutputStream(mediaFile); InputStream fis = sourceDir.readFile("bin/" + videoDataHRef)) {
-                    byte[] buf = new byte[4096];
+                    DataInputStream dais = new DataInputStream(fis);
+                    byte[] buf = new byte[0x31];
+                    dais.readFully(buf);
+                    fos.write(buf);
+                    fis.read();
+                    fos.write(0); //change 1 to 0
+                    fis.read();
+                    fos.write(0); //change 1 to 0
+                    
+                    buf = new byte[4];
+                    dais.readFully(buf);
+                    fos.write(buf);
+                    fis.read();
+                    fos.write(0); //change 1 to 0
+                    
+                    
+                    //copy rest of the file
+                    buf = new byte[4096];
                     int cnt;
                     while ((cnt = fis.read(buf)) > 0) {
                         fos.write(buf, 0, cnt);
