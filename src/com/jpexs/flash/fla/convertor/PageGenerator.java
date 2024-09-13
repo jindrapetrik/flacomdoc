@@ -1356,7 +1356,7 @@ public class PageGenerator extends AbstractGenerator {
                     italic = fontNameLowercase.contains("italic") || fontNameLowercase.contains("oblique");
                 }
 
-                Color fillColor = parseColorWithAlpha(domTextAttrs, Color.red, "fillColor", "alpha");
+                Color fillColor = parseColorWithAlpha(domTextAttrs, Color.black, "fillColor", "alpha");
                 float size = 12f;
 
                 if (domTextAttrs.hasAttribute("size")) {

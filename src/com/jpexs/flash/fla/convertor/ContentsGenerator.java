@@ -1565,11 +1565,12 @@ public class ContentsGenerator extends AbstractGenerator {
             dw.writeLenUnicodeString(fontPsName);
 
             //following part might be copied from textfield
-            dw.write(0x00, 0x00, 0x00, 0x40);
-
+            
             if (debugRandom) {
                 dw.write('U', 'U', 'U', 'U');
+                dw.write('U', 'U', 'U', 'U');
             } else {
+                dw.write(0x00, 0x00, 0x00, 0x40);
                 dw.write(0x00, 0x00, 0x00, 0x00);
             }
             dw.write(debugRandom ? 'U' : 0x12, //something magic, see PageGenerator for details
@@ -1599,7 +1600,7 @@ public class ContentsGenerator extends AbstractGenerator {
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
 
             dw.writeItemID(itemID);
-            writeAsLinkage(dw, document);
+            writeAsLinkage(dw, domFontItem);
             dw.write(0x00, 0x00, 0x00, 0x00, 0x00);
         }
         return fontCount;
