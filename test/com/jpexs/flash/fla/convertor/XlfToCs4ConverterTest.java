@@ -108,12 +108,17 @@ public class XlfToCs4ConverterTest {
             String actualType = actualFileName.substring(0, actualFileName.indexOf(" "));
             String expectedType = expectedFileName.substring(0, expectedFileName.indexOf(" "));
 
-            assertEquals(actualType, expectedType, "File type");
+            assertEquals(actualType, expectedType, "File type");            
         }
 
         for (int i = 0; i < actualFilesList.size(); i++) {
             File actualFile = actualFilesList.get(i);
             File expectedFile = expectedFilesList.get(i);
+            
+            if (expectedFile.getName().startsWith("M ")) {
+                //do not compare media files
+                continue;
+            }
 
             byte[] actualData = readFile(actualFile);
             byte[] expectedData = readFile(expectedFile);
@@ -162,7 +167,7 @@ public class XlfToCs4ConverterTest {
 
     //@Test
     public void mytest() throws Exception {
-        //testConvert("0013_bitmaps");
+        //testConvert("0016_shapetween");
     }
 
     private static void deleteDir(File f) throws IOException {

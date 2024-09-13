@@ -660,12 +660,7 @@ public class FlaCs4Writer {
             double focalRatio
     ) throws IOException {
 
-        write(0x00, 0x00, 0x00);
-        if (debugRandom) {
-            write('U');
-        } else {
-            write(0x00); //This is sometimes 0xFF, I don't know why :-(
-        }
+        write(0x00, 0x00, 0x00, debugRandom ? 'U' : 0x00);
         write(type, 0x00);
         writeMatrix(gradientMatrix);
         write(

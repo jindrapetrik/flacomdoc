@@ -1573,7 +1573,7 @@ public class PageGenerator extends AbstractGenerator {
             Color color = parseColorWithAlpha(fillElement);
             fg.write(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
         } else {
-            fg.write(0x00, 0x00, 0x00, 0x00);
+            fg.write(0x00, 0x00, 0x00, debugRandom ? 'U' : 0x00);
         }
         float weight = 1f;
         if (element.hasAttribute("weight")) {
@@ -1596,7 +1596,7 @@ public class PageGenerator extends AbstractGenerator {
             case "RadialGradient": {
                 Matrix matrix = parseMatrix(getSubElementByName(element, "matrix"));
                 List<Element> gradientEntries = getAllSubElementsByName(element, "GradientEntry");
-                fg.write(0x00, 0x00, 0x00, 0x00);
+                fg.write(0x00, 0x00, 0x00, debugRandom ? 'U' : 0x00);
                 if ("LinearGradient".equals(element.getTagName())) {
                     fg.writeUI16(FlaCs4Writer.FILLTYPE_LINEAR_GRADIENT);
                 } else {
@@ -1632,7 +1632,7 @@ public class PageGenerator extends AbstractGenerator {
                                         Matrix bitmapMatrix = parseMatrix(getSubElementByName(element, "matrix"));
 
                                         boolean bitmapIsClipped = false;
-                                        Node bitmapIsClippedAttr = element.getAttributes().getNamedItem("bitmapIsClippe");
+                                        Node bitmapIsClippedAttr = element.getAttributes().getNamedItem("bitmapIsClipped");
                                         if (bitmapIsClippedAttr != null) {
                                             bitmapIsClipped = "true".equals(bitmapIsClippedAttr.getTextContent());
                                         }
@@ -1914,7 +1914,7 @@ public class PageGenerator extends AbstractGenerator {
                             Node fill = getSubElementByName(strokeStyleVal, "fill");
                             if (fill != null) {
                                 Node fillStyleVal = getFirstSubElement(fill);
-                                Color baseColor = new Color(0x00, 0x00, 0x00, 0x00);
+                                Color baseColor = new Color(0x00, 0x00, 0x00, debugRandom ? 'U' : 0x00);
                                 if ("SolidColor".equals(fillStyleVal.getNodeName())) {
                                     baseColor = parseColorWithAlpha(fillStyleVal);
                                 } else if ("BitmapFill".equals(fillStyleVal.getNodeName())){
