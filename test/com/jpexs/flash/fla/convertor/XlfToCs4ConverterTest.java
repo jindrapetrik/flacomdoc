@@ -165,9 +165,9 @@ public class XlfToCs4ConverterTest {
         }
     }
 
-    //@Test
+    @Test
     public void mytest() throws Exception {
-        //testConvert("0016_shapetween");
+        testConvert("0017_motiontween");
     }
 
     private static void deleteDir(File f) throws IOException {

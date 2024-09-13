@@ -852,7 +852,7 @@ public class PageGenerator extends AbstractGenerator {
         }
 
         fg.write(0x00, 0x01);
-        
+
         int redMultiplier = colorEffect.getRedMultiplier();
         int greenMultiplier = colorEffect.getGreenMultiplier();
         int blueMultiplier = colorEffect.getBlueMultiplier();
@@ -990,10 +990,10 @@ public class PageGenerator extends AbstractGenerator {
         } else {
             Point2D transformationPoint = new Point2D.Double(transformationPointX, transformationPointY);
             Point2D transformationPointTransformed = placeMatrix.transform(transformationPoint);
-            
+
             long tptX = Math.round(transformationPointTransformed.getX() * 20);
             long tptY = Math.round(transformationPointTransformed.getY() * 20);
-            
+
             if (debugRandom) {
                 //There are rounding errors:
                 //Sample: round((2.11505126953125 * 15.95 -0.880615234375 * 32.05 + 339.4) * 20) should be 6899, but is 6898            
@@ -1917,7 +1917,7 @@ public class PageGenerator extends AbstractGenerator {
                                 Color baseColor = new Color(0x00, 0x00, 0x00, debugRandom ? 'U' : 0x00);
                                 if ("SolidColor".equals(fillStyleVal.getNodeName())) {
                                     baseColor = parseColorWithAlpha(fillStyleVal);
-                                } else if ("BitmapFill".equals(fillStyleVal.getNodeName())){
+                                } else if ("BitmapFill".equals(fillStyleVal.getNodeName())) {
                                     baseColor = Color.red;
                                 }
 
@@ -2429,9 +2429,9 @@ public class PageGenerator extends AbstractGenerator {
                 int shapeTweenBlend = 0;
                 if (frame.hasAttribute("shapeTweenBlend")) {
                     switch (frame.getAttribute("shapeTweenBlend")) {
-                        case "distributive":
+                        /*case "distributive":
                             shapeTweenBlend = 0;
-                            break;
+                            break;*/
                         case "angular":
                             shapeTweenBlend = 1;
                             break;
@@ -2517,11 +2517,23 @@ public class PageGenerator extends AbstractGenerator {
                                 }
 
                                 if (p == 0 || p == points.size() - 1) {
+                                    if (debugRandom) {
+                                        //ignore rounding errors
+                                        fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
+                                        fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
+                                    } else {
+                                        fg.writeDouble(x);
+                                        fg.writeDouble(y);
+                                    }
+                                }
+                                if (debugRandom) {
+                                    //ignore rounding errors
+                                    fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
+                                    fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
+                                } else {
                                     fg.writeDouble(x);
                                     fg.writeDouble(y);
                                 }
-                                fg.writeDouble(x);
-                                fg.writeDouble(y);
                             }
                         }
                     }
@@ -2844,5 +2856,5 @@ public class PageGenerator extends AbstractGenerator {
             fg.write(0x00, 0x00, 0x00, 0x00);
         }
 
-    }  
+    }
 }
