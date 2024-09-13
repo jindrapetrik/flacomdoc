@@ -2,7 +2,7 @@
      <timelines>
           <DOMTimeline name="Scene 1">
                <layers>
-                    <DOMLayer name="Layer 5" color="#4FFFFF" current="true" isSelected="true" visible="false">
+                    <DOMLayer name="Layer 5" color="#4FFFFF" visible="false">
                          <frames>
                               <DOMFrame index="0" keyMode="9728">
                                    <elements/>
@@ -23,7 +23,7 @@
                               </DOMFrame>
                          </frames>
                     </DOMLayer>
-                    <DOMLayer name="Layer 2" color="#9933CC" outline="true" useOutlineView="true">
+                    <DOMLayer name="Layer 2" color="#9933CC" outline="true" current="true" isSelected="true" useOutlineView="true" autoNamed="false" heightMultiplier="2">
                          <frames>
                               <DOMFrame index="0" keyMode="9728">
                                    <elements/>
