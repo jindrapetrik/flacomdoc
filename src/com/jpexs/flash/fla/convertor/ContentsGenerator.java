@@ -830,7 +830,7 @@ public class ContentsGenerator extends AbstractGenerator {
                         0x80, 0x00, 0x00, 0x00,
                         0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
                         0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                        0x00, 0x00, 0x00, 0x00);
 
                 PageGenerator pageGenerator = new PageGenerator();
                 pageGenerator.setDebugRandom(debugRandom);
@@ -849,6 +849,7 @@ public class ContentsGenerator extends AbstractGenerator {
             if (document.hasAttribute("nextSceneIdentifier")) {
                 nextSceneIdentifier = Integer.parseInt(document.getAttribute("nextSceneIdentifier"));
             }
+            fg.write(0x00, 0x00);
             fg.write(debugRandom ? 'U' : 0x02, //???
                     0x00,
                     0x01, 0x00,

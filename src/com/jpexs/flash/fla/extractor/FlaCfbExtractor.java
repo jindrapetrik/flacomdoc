@@ -66,7 +66,7 @@ public class FlaCfbExtractor {
         })) {
             System.out.println("========== Extracting " + file);
             CompoundFileBinary cfb = new CompoundFileBinary(file);
-            String outDir = inputDir + file.getName().replace(".fla", "") + "/";
+            String outDir = inputDir + "/" + file.getName().replace(".fla", "") + "/";
             new File(outDir).mkdir();
             for (DirectoryEntry de : cfb.getDirectoryEntries()) {
                 System.out.println("" + de);
