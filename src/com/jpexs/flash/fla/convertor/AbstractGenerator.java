@@ -24,7 +24,6 @@ import java.awt.Font;
 import java.awt.GraphicsEnvironment;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -183,7 +182,7 @@ public abstract class AbstractGenerator {
         return allowedValues.indexOf(defaultValue);
     }
 
-    protected void writeAccessibleData(FlaCs4Writer fg, Element element, boolean mainDocument) throws IOException {
+    protected void writeAccessibleData(FlaWriter fg, Element element, boolean mainDocument) throws IOException {
         boolean hasAccessibleData = false;
         if (element.hasAttribute("hasAccessibleData")) {
             hasAccessibleData = "true".equals(element.getAttribute("hasAccessibleData"));
@@ -241,7 +240,7 @@ public abstract class AbstractGenerator {
         }
     }
 
-    protected void useClass(String className, int defineNum, FlaCs4Writer os,
+    protected void useClass(String className, int defineNum, FlaWriter os,
             Map<String, Integer> definedClasses,
             Reference<Integer> totalObjectCount
     ) throws IOException {
@@ -256,19 +255,19 @@ public abstract class AbstractGenerator {
         totalObjectCount.setVal(totalObjectCount.getVal() + 1);
     }
 
-    protected void useClass(String className, FlaCs4Writer os,
+    protected void useClass(String className, FlaWriter os,
             Map<String, Integer> definedClasses,
             Reference<Integer> totalObjectCount
     ) throws IOException {
         useClass(className, 1, os, definedClasses, totalObjectCount);
     }
-    
+
     protected List<Element> getSymbols(Element document) {
         Element symbolsElement = getSubElementByName(document, "symbols");
         if (symbolsElement == null) {
             return new ArrayList<>();
         }
-        List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");        
+        List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
         return includes;
     }
 }

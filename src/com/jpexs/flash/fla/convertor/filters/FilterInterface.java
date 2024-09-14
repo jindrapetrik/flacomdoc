@@ -18,7 +18,7 @@
  */
 package com.jpexs.flash.fla.convertor.filters;
 
-import com.jpexs.flash.fla.convertor.FlaCs4Writer;
+import com.jpexs.flash.fla.convertor.FlaWriter;
 import java.io.IOException;
 
 /**
@@ -29,5 +29,5 @@ public interface FilterInterface {
 
     public static final float PI = 3.1415927f;
 
-    public void write(FlaCs4Writer writer) throws IOException;
+    public void write(FlaWriter writer) throws IOException;
 }

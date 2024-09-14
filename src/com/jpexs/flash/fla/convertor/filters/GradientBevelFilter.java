@@ -19,7 +19,7 @@
 package com.jpexs.flash.fla.convertor.filters;
 
 import com.jpexs.flash.fla.convertor.GradientEntry;
-import com.jpexs.flash.fla.convertor.FlaCs4Writer;
+import com.jpexs.flash.fla.convertor.FlaWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -110,7 +110,7 @@ public class GradientBevelFilter implements FilterInterface {
     }
 
     @Override
-    public void write(FlaCs4Writer os) throws IOException {
+    public void write(FlaWriter os) throws IOException {
 
         int strengthPercent = (int) Math.round(strength * 100);
 

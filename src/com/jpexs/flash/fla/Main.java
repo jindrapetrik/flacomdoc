@@ -20,6 +20,7 @@ package com.jpexs.flash.fla;
 
 import com.jpexs.cfb.CompoundFileBinary;
 import com.jpexs.flash.fla.convertor.ContentsGenerator;
+import com.jpexs.flash.fla.convertor.FlaFormatVersion;
 import com.jpexs.flash.fla.convertor.streams.CfbOutputStorage;
 import com.jpexs.flash.fla.convertor.streams.DirectoryInputStorage;
 import com.jpexs.flash.fla.convertor.streams.InputStorageInterface;
@@ -28,12 +29,87 @@ import com.jpexs.flash.fla.convertor.streams.ZippedInputStorage;
 import com.jpexs.flash.fla.gui.Gui;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import sun.jvm.hotspot.runtime.VM;
 
 /**
  *
  * @author JPEXS
  */
 public class Main {
+
+    private static int parseOptions(
+            String args[],
+            String definedShortOptions,
+            List<String> definedLongOptions,
+            Map<String, String> options
+    ) {
+        int i = 1; //first is command
+        for (; i < args.length; i++) {
+            String arg = args[i];
+            if (arg.equals("--")) {
+                return i + 1;
+            }
+            if (arg.startsWith("--")) {
+                arg = arg.substring(2);
+                if (!arg.matches("^[a-z_A-Z0-9]+(=.*)?$")) {
+                    throw new IllegalArgumentException("Invalid option: --" + arg);
+                }
+                if (definedLongOptions.contains(arg)) {
+                    options.put(arg, "");
+                    continue;
+                }
+                if (definedLongOptions.contains(arg + ":")) {
+                    if (arg.contains("=")) {
+                        String key = arg.substring(0, arg.indexOf("="));
+                        String value = arg.substring(arg.indexOf("=") + 1);
+                        if (value.isEmpty()) {
+                            throw new IllegalArgumentException("Option --" + arg + " requires value");
+                        }
+                        options.put(key, value);
+                        continue;
+                    }
+                    if (i + 1 >= args.length) {
+                        throw new IllegalArgumentException("Option --" + arg + " requires value");
+                    }
+                    options.put(arg, args[i + 1]);
+                    i++;
+                    continue;
+                }
+                throw new IllegalArgumentException("Unknown option: --" + arg);
+            }
+            if (arg.startsWith("-")) {
+                arg = arg.substring(1);
+                if (!arg.matches("^[a-zA-Z0-9]+$")) {
+                    throw new IllegalArgumentException("Invalid options: -" + arg);
+                }
+                for (int j = 0; j < arg.length(); j++) {
+                    char opt = arg.charAt(j);
+                    if (!definedShortOptions.contains("" + opt)) {
+                        throw new IllegalArgumentException("Unknown option: -" + opt);
+                    }
+                    if (definedShortOptions.contains("" + opt + ":")) {
+                        if (j < arg.length() - 1) {
+                            throw new IllegalArgumentException("Option -" + opt + " requires value, but it is not last in the combined options");
+                        }
+                        if (i + 1 >= args.length) {
+                            throw new IllegalArgumentException("Option -" + arg + " requires value");
+                        }
+                        options.put("" + opt, args[i + 1]);
+                        i++;
+                        continue;
+                    }
+                    options.put("" + opt, "");
+                }
+                continue;
+            }
+            return i;
+        }
+        return i;
+    }
 
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -45,19 +121,57 @@ public class Main {
             case "--help":
             case "help":
                 System.out.println("Usage:");
-                System.out.println("java -jar flacomdoc.jar convert inputfile.fla/xfl outputfile.fla");
+                System.out.println("java -jar flacomdoc.jar convert [--format <format>] inputfile.fla/xfl outputfile.fla");
                 System.out.println(" OR ");
-                System.out.println("java -jar flacomdoc.jar extract inputfile.fla outputdir");               
+                System.out.println("java -jar flacomdoc.jar extract inputfile.fla outputdir");
+                System.out.println();
+                System.out.println("Available formats for --format: CS3, CS4");
                 break;
             case "convert": {
-                if (args.length != 3) {
-                    System.err.println("Invalid arguments for convert.");
-                    System.err.println("Usage: java -jar flacomdoc.jar convert inputfile.fla/xfl outputfile.fla");
+
+                int pos = 1;
+                Map<String, String> options = new HashMap<>();
+                try {
+                    pos = parseOptions(args, "f:", Arrays.asList("format:"), options);
+                } catch (IllegalArgumentException iex) {
+                    System.err.println(iex.getMessage());
                     System.exit(1);
                 }
-                File inputFile = new File(args[0]);
-                File outputFile = new File(args[1]);
+                if (options.containsKey("format") && options.containsKey("f")) {
+                    System.err.println("Cannot combine --format and -f options");
+                    System.exit(1);
+                }
+                if (options.containsKey("f")) {
+                    options.put("format", options.get("f"));
+                }
 
+                FlaFormatVersion flaFormatVersion = FlaFormatVersion.CS4;
+                if (options.containsKey("format")) {
+                    try {
+                        flaFormatVersion = FlaFormatVersion.valueOf(options.get("format"));
+                    } catch (IllegalArgumentException iex) {
+                        System.err.println("Invalid --format value");
+                        System.exit(1);
+                    }
+                }
+
+                if (pos + 1 >= args.length) {
+                    System.err.println("Invalid arguments for convert.");
+                    System.err.println("Usage: java -jar flacomdoc.jar convert [--format <format>] inputfile.fla/xfl outputfile.fla");
+                    System.exit(1);
+                }
+                File inputFile = new File(args[pos]);
+                File outputFile = new File(args[pos + 1]);
+
+                if (!inputFile.exists()) {
+                    System.err.println("Input file does not exists");
+                    System.exit(1);
+                }
+                if (inputFile.isDirectory()) {
+                    System.err.println("Input must be a regular file - it is a directory");
+                    System.exit(1);
+                }
+                
                 try {
                     InputStorageInterface inputStorage;
                     if (inputFile.getAbsolutePath().toLowerCase().endsWith(".xfl")) {
@@ -68,7 +182,7 @@ public class Main {
                     OutputStorageInterface outputStorage = new CfbOutputStorage(outputFile);
 
                     ContentsGenerator contentsGenerator = new ContentsGenerator();
-                    contentsGenerator.generate(inputStorage, outputStorage);
+                    contentsGenerator.generate(inputStorage, outputStorage, flaFormatVersion);
                     inputStorage.close();
                     outputStorage.close();
                     System.out.println("OK");
@@ -84,8 +198,17 @@ public class Main {
                     System.err.println("Usage: java -jar flacomdoc.jar extract inputfile.fla outputdir");
                     System.exit(1);
                 }
-                File inputFile = new File(args[0]);
-                File outputDir = new File(args[1]);
+                File inputFile = new File(args[1]);
+                File outputDir = new File(args[2]);
+
+                if (!inputFile.exists()) {
+                    System.err.println("Input file does not exists");
+                    System.exit(1);
+                }
+                if (inputFile.isDirectory()) {
+                    System.err.println("Input must be a regular file - it is a directory");
+                    System.exit(1);
+                }
                 
                 if (!outputDir.exists()) {
                     outputDir.mkdirs();

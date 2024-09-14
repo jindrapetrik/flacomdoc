@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -41,8 +42,11 @@ import org.testng.annotations.DataProvider;
 public class XlfToCs4ConverterTest {
 
     private static final String SOURCE_DIR = "testdata/fla/cs5";
-    private static final String EXPECTED_DIR = "testdata/fla/cs4";
-    private static final String OUTPUT_DIR = "out/tests/fla/cs4";
+    private static final String EXPECTED_DIR_CS4 = "testdata/fla/cs4";
+    private static final String EXPECTED_DIR_CS3 = "testdata/fla/cs3";
+
+    private static final String OUTPUT_DIR_CS4 = "out/tests/fla/cs4";
+    private static final String OUTPUT_DIR_CS3 = "out/tests/fla/cs3";
 
     private Comparator<File> getFileComparator() {
         return new Comparator<File>() {
@@ -53,8 +57,17 @@ public class XlfToCs4ConverterTest {
         };
     }
 
-    @DataProvider(name = "folders")
-    public Object[][] provideFolders() {
+    @DataProvider(name = "folders-cs4")
+    public Object[][] provideFoldersCs4() {                
+        return provideFolders(FlaFormatVersion.CS4);
+    }
+    
+    @DataProvider(name = "folders-cs3")
+    public Object[][] provideFoldersCs3() {
+        return provideFolders(FlaFormatVersion.CS3);
+    }
+    
+    private Object[][] provideFolders(FlaFormatVersion flaFormatVersion) {
         File sourceDir = new File(SOURCE_DIR);
         File[] sourceFiles = sourceDir.listFiles(new FileFilter() {
             @Override
@@ -63,8 +76,19 @@ public class XlfToCs4ConverterTest {
             }
         });
         Comparator<File> fileNameComparator = getFileComparator();
-        List<File> sourceFilesList = Arrays.asList(sourceFiles);
+        List<File> sourceFilesList = new ArrayList<>(Arrays.asList(sourceFiles));
         sourceFilesList.sort(fileNameComparator);
+        
+        for (int i = sourceFilesList.size() - 1; i >= 0; i--) {
+            String name  = sourceFilesList.get(i).getName();
+            if (name.contains("-")) {
+                String suffix = name.substring(name.indexOf("-") + 1);
+                FlaFormatVersion lowestFlaVersion = FlaFormatVersion.valueOf(suffix.toUpperCase());
+                if (flaFormatVersion.ordinal() < lowestFlaVersion.ordinal()) {
+                    sourceFilesList.remove(i);
+                }
+            }
+        }
 
         Object[][] ret = new Object[sourceFilesList.size()][];
         for (int i = 0; i < sourceFilesList.size(); i++) {
@@ -73,10 +97,23 @@ public class XlfToCs4ConverterTest {
         return ret;
     }
 
-    @Test(dataProvider = "folders")
-    public void testConvert(String folderName) throws Exception {
+    private void convert(String folderName, FlaFormatVersion flaFormatVersion) throws Exception {
 
-        File actualDir = new File(OUTPUT_DIR + "/" + folderName);
+        String outputDirParent = "";
+        String expectedDirParent = "";
+
+        switch (flaFormatVersion) {
+            case CS4:
+                outputDirParent = OUTPUT_DIR_CS4;
+                expectedDirParent = EXPECTED_DIR_CS4;
+                break;
+            case CS3:
+                outputDirParent = OUTPUT_DIR_CS3;
+                expectedDirParent = EXPECTED_DIR_CS3;
+                break;
+        }
+
+        File actualDir = new File(outputDirParent + "/" + folderName);
         deleteDir(actualDir);
         if (!actualDir.exists()) {
             actualDir.mkdirs();
@@ -84,10 +121,11 @@ public class XlfToCs4ConverterTest {
         ContentsGenerator contentsGenerator = new ContentsGenerator();
         contentsGenerator.setDebugRandom(true);
         contentsGenerator.generate(new DirectoryInputStorage(new File(SOURCE_DIR + "/" + folderName)),
-                new DirectoryOutputStorage(actualDir)
+                new DirectoryOutputStorage(actualDir),
+                flaFormatVersion
         );
 
-        File expectedDir = new File(EXPECTED_DIR + "/" + folderName);
+        File expectedDir = new File(expectedDirParent + "/" + folderName);
 
         Comparator<File> fileNameComparator = getFileComparator();
 
@@ -114,13 +152,13 @@ public class XlfToCs4ConverterTest {
             String actualType = actualFileName.substring(0, actualFileName.indexOf(" "));
             String expectedType = expectedFileName.substring(0, expectedFileName.indexOf(" "));
 
-            assertEquals(actualType, expectedType, "File type");            
+            assertEquals(actualType, expectedType, "File type");
         }
 
         for (int i = 0; i < actualFilesList.size(); i++) {
             File actualFile = actualFilesList.get(i);
             File expectedFile = expectedFilesList.get(i);
-            
+
             if (expectedFile.getName().startsWith("M ")) {
                 //do not compare media files
                 continue;
@@ -138,6 +176,16 @@ public class XlfToCs4ConverterTest {
                 if (actualData[apos] == 'U') { //unknown data - also when setDebugRandom(true)
                     continue;
                 }
+                if (apos + 2 < actualData.length
+                        && actualData[apos] == 'N'
+                        && actualData[apos + 1] == 'N'
+                        && actualData[apos + 2] == 'N') {
+                    while (expectedData[epos] != 0) {
+                        epos++;
+                    }
+                    apos += 3;
+                }
+
                 if (/*apos - 3 > 0 &&*/apos + 6 < actualData.length && actualData[apos] == 3
                         && actualData[apos + 1] == 'Y'
                         && actualData[apos + 2] == 0
@@ -171,9 +219,19 @@ public class XlfToCs4ConverterTest {
         }
     }
 
+    @Test(dataProvider = "folders-cs4")
+    public void testConvertCs4(String folder) throws Exception {
+        convert(folder, FlaFormatVersion.CS4);
+    }
+
+    @Test(dataProvider = "folders-cs3")
+    public void testConvertCs3(String folder) throws Exception {
+        convert(folder, FlaFormatVersion.CS3);
+    }
+
     //@Test
     public void mytest() throws Exception {
-        //testConvert("0018_scripts_as2");
+        //testConvertCs3("0017_classictween");
     }
 
     private static void deleteDir(File f) throws IOException {
@@ -201,13 +259,15 @@ public class XlfToCs4ConverterTest {
     }
 
     public static void main(String[] args) throws Exception {
+        for (String expectedDirParent : Arrays.asList(EXPECTED_DIR_CS3, EXPECTED_DIR_CS4)) {
 
-        File outputDir = new File(EXPECTED_DIR);
-        for (File f : outputDir.listFiles()) {
-            if (f.isDirectory()) {
-                deleteDir(f);
+            File expectedDir = new File(expectedDirParent);
+            for (File f : expectedDir.listFiles()) {
+                if (f.isDirectory()) {
+                    deleteDir(f);
+                }
             }
+            FlaCfbExtractor.main(new String[]{expectedDirParent});
         }
-        FlaCfbExtractor.main(new String[] {EXPECTED_DIR});
     }
 }

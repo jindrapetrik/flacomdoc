@@ -80,7 +80,7 @@ public class ContentsGenerator extends AbstractGenerator {
 
     private static final SecureRandom random = new SecureRandom();
 
-    private void writeTime(FlaCs4Writer fg, long time) throws IOException {
+    private void writeTime(FlaWriter fg, long time) throws IOException {
         if (debugRandom) {
             fg.write('X', 'X', 'X', 'X');
         } else {
@@ -88,7 +88,7 @@ public class ContentsGenerator extends AbstractGenerator {
         }
     }
 
-    private void writeTimeCreated(FlaCs4Writer fg) throws IOException {
+    private void writeTimeCreated(FlaWriter fg) throws IOException {
         if (debugRandom) {
             fg.write('X', 'X', 'X', 'X');
         } else {
@@ -156,19 +156,6 @@ public class ContentsGenerator extends AbstractGenerator {
         }
 
         return sb.toString();
-    }
-
-    //protected int contentsSymbolCnt = 0;
-    //protected List<Media> media = new ArrayList<>();
-    private final Map<String, String> vectorsMap = new LinkedHashMap<>();
-
-    {
-
-        vectorsMap.put("Vector::Package Paths", "$(LocalData)/Classes;.");
-        vectorsMap.put("Vector::AS3 Package Paths", "$(AppConfig)/ActionScript 3.0/Classes;$(AppConfig)/Component Source/ActionScript 3.0/User Interface;$(AppConfig)/Component Source/ActionScript 3.0/FLVPlayback;$(AppConfig)/Component Source/ActionScript 3.0/FLVPlaybackCaptioning;.");
-        vectorsMap.put("Vector::ActionScriptVersion", "1");
-        vectorsMap.put("Vector::Version", "" + getFlashVersion());
-        vectorsMap.put("Vector::External Player", "Flash Player " + getFlashVersion());
     }
 
     protected List<SolidSwatchItem> solidSwatches = Arrays.asList(
@@ -450,11 +437,7 @@ public class ContentsGenerator extends AbstractGenerator {
                     new GradientEntry(new Color(0xFF, 0x00, 0x00), 1)
             ));
 
-    public int getFlashVersion() {
-        return 10;
-    }
-
-    private void writeAsLinkage(FlaCs4Writer dw, Element element) throws IOException {
+    private void writeAsLinkage(FlaWriter dw, Element element) throws IOException {
         boolean linkageExportForAS = false;
         if (element.hasAttribute("linkageExportForAS")) {
             linkageExportForAS = "true".equals(element.getAttribute("linkageExportForAS"));
@@ -531,7 +514,7 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.writeLenUnicodeString(linkageBaseClass);
     }
 
-    private int writeSymbols(FlaCs4Writer fg, Element document, DocumentBuilder docBuilder, InputStorageInterface sourceDir, OutputStorageInterface outputDir, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws SAXException, IOException, FileNotFoundException, ParserConfigurationException {
+    private int writeSymbols(FlaWriter fg, Element document, DocumentBuilder docBuilder, InputStorageInterface sourceDir, OutputStorageInterface outputDir, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, FlaFormatVersion flaFormatVersion) throws SAXException, IOException, FileNotFoundException, ParserConfigurationException {
         int symbolCount = 0;
         List<Element> includes = getSymbols(document);
         List<Element> sorted = new ArrayList<>(includes);
@@ -547,10 +530,9 @@ public class ContentsGenerator extends AbstractGenerator {
                     itemIcon2 = Integer.parseInt(o2.getAttribute("itemIcon"));
                 }
                 return itemIcon1 - itemIcon2;
-            }            
+            }
         });
-        
-        
+
         for (int i = 0; i < includes.size(); i++) {
             Element include = includes.get(i);
             if (!include.hasAttribute("href")) {
@@ -570,9 +552,9 @@ public class ContentsGenerator extends AbstractGenerator {
             symbolCount++;
             int symbolId = i + 1;
             long symbolTime = timeCreated;
-            String symbolFile = "S " + symbolId + " " + getTimeAsString(symbolTime);            
+            String symbolFile = "S " + symbolId + " " + getTimeAsString(symbolTime);
             if (debugRandom) {
-                int symbolIdOrdered = sorted.indexOf(includes.get(i)) + 1;               
+                int symbolIdOrdered = sorted.indexOf(includes.get(i)) + 1;
                 symbolFile = "S " + symbolIdOrdered + " " + getTimeAsString(symbolTime);
             }
             String symbolName = "Symbol " + symbolId;
@@ -610,7 +592,7 @@ public class ContentsGenerator extends AbstractGenerator {
             }
 
             useClass("CDocumentPage", 0x01, fg, definedClasses, objectsCount);
-            fg.write(0x19);
+            fg.write(flaFormatVersion.getPageVersion());
             //fg.write(0x01, 0x80, 0x19);
             fg.writeLenUnicodeString(debugRandom ? "YYY" : symbolFile);
             fg.write(0xFF, 0xFE, 0xFF);
@@ -658,12 +640,16 @@ public class ContentsGenerator extends AbstractGenerator {
                         0x00, 0x00, 0x00, 0x80,
                         0x00, 0x00, 0x00, 0x80);
             }
-            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
             );
+
+            if (flaFormatVersion == FlaFormatVersion.CS4) {
+                fg.write(0x00, 0x00);
+            }
             PageGenerator symbolPageGenerator = new PageGenerator();
             symbolPageGenerator.setDebugRandom(debugRandom);
             try (OutputStream sos = outputDir.getOutputStream(symbolFile)) {
-                symbolPageGenerator.generatePageFile(domTimelineElement, sos);
+                symbolPageGenerator.generatePageFile(domTimelineElement, sos, flaFormatVersion);
             }
         }
 
@@ -672,7 +658,8 @@ public class ContentsGenerator extends AbstractGenerator {
 
     public void generate(
             InputStorageInterface sourceDir,
-            OutputStorageInterface outputDir
+            OutputStorageInterface outputDir,
+            FlaFormatVersion flaFormatVersion
     ) throws SAXException, IOException, ParserConfigurationException {
 
         InputStream domDocumentIs = sourceDir.readFile("DOMDocument.xml");
@@ -723,13 +710,17 @@ public class ContentsGenerator extends AbstractGenerator {
         Reference<Integer> objectsCount = new Reference<>(0);
 
         try (OutputStream os = outputDir.getOutputStream("Contents")) {
-            FlaCs4Writer fg = new FlaCs4Writer(os);
-            fg.write(0x47, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            FlaWriter fg = new FlaWriter(os);
+            fg.write(flaFormatVersion.getContentsVersion());
+            fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00
+                    0x00, 0x00, 0x00
             );
+
+            if (flaFormatVersion == FlaFormatVersion.CS4) {
+                fg.write(0x00, 0x00, 0x00, 0x00);
+            }
 
             int pageCount = 0;
             Reference<Long> generatedItemIdOrder = new Reference<>(0L);
@@ -745,7 +736,7 @@ public class ContentsGenerator extends AbstractGenerator {
                 String sceneName = domTimeline.getAttribute("name");
 
                 useClass("CDocumentPage", 1, fg, definedClasses, objectsCount);
-                fg.write(0x19);
+                fg.write(flaFormatVersion.getPageVersion());
 
                 pageCount++;
 
@@ -830,12 +821,15 @@ public class ContentsGenerator extends AbstractGenerator {
                         0x80, 0x00, 0x00, 0x00,
                         0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
                         0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00);
+                        0x00, 0x00);
+                if (flaFormatVersion == FlaFormatVersion.CS4) {
+                    fg.write(0x00, 0x00);
+                }
 
                 PageGenerator pageGenerator = new PageGenerator();
                 pageGenerator.setDebugRandom(debugRandom);
                 try (OutputStream pos = outputDir.getOutputStream(pageName)) {
-                    pageGenerator.generatePageFile(domTimeline, pos);
+                    pageGenerator.generatePageFile(domTimeline, pos, flaFormatVersion);
                 }
             }
 
@@ -856,12 +850,12 @@ public class ContentsGenerator extends AbstractGenerator {
                     1 + currentTimeline,
                     0x00);
 
-            int symbolCount = writeSymbols(fg, document, docBuilder, sourceDir, outputDir, generatedItemIdOrder, definedClasses, objectsCount);
+            int symbolCount = writeSymbols(fg, document, docBuilder, sourceDir, outputDir, generatedItemIdOrder, definedClasses, objectsCount, flaFormatVersion);
 
             fg.write(0x00, 0x00);
             fg.write(debugRandom ? 'U' : 0x01); //??
             fg.write(0x00);
-            int mediaCount = writeMedia(fg, document, generatedItemIdOrder, definedClasses, objectsCount, outputDir, sourceDir);
+            int mediaCount = writeMedia(fg, document, generatedItemIdOrder, definedClasses, objectsCount, outputDir, sourceDir, flaFormatVersion);
 
             fg.write(0x00, 0x00,
                     1 + mediaCount, 0x00); //?
@@ -976,12 +970,12 @@ public class ContentsGenerator extends AbstractGenerator {
 
             if (publishSettings == null) {
                 fg.writeUI32(1);
-                writeMap(fg, getProperties("Untitled-1", width, height), true);
+                writeMap(fg, getProperties("Untitled-1", width, height, flaFormatVersion), true);
             } else {
                 List<Element> flashProfiles = getAllSubElementsByName(publishSettings.getDocumentElement(), "flash_profile");
                 fg.writeUI32(flashProfiles.size()); //?
                 for (Element flashProfile : flashProfiles) {
-                    Map<String, String> properties = getProperties("Untitled-1", width, height);
+                    Map<String, String> properties = getProperties("Untitled-1", width, height, flaFormatVersion);
                     for (Element propertiesSet : getAllSubElements(flashProfile)) {
                         String namespace = propertiesSet.getTagName();
                         if ("PublishFlashProperties".equals(namespace)) {
@@ -1039,7 +1033,7 @@ public class ContentsGenerator extends AbstractGenerator {
             fg.write(0xFF, 0xFE, 0xFF, 0x00);
             fg.write(0xFF, 0xFE, 0xFF, 0x00);
             fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFC, 0x00);
-            writeColorDef(fg, 0x04, true, definedClasses, objectsCount);
+            writeColorDef(fg, 0x04, flaFormatVersion, definedClasses, objectsCount);
             fg.write(0x00,
                     0xFF, 0xFE, 0xFF);
             fg.writeLenUnicodeString("PublishQTProperties::QTSndSettings");
@@ -1074,7 +1068,7 @@ public class ContentsGenerator extends AbstractGenerator {
                     guidesSnapTo ? 1 : 0,
                     0x00, 0x00, 0x00, 0x00);
 
-            int fontCount = writeFonts(fg, document, generatedItemIdOrder);
+            int fontCount = writeFonts(fg, document, generatedItemIdOrder, flaFormatVersion);
 
             String sharedLibraryURL = "";
             if (document.hasAttribute("sharedLibraryURL")) {
@@ -1127,14 +1121,19 @@ public class ContentsGenerator extends AbstractGenerator {
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
             fg.write(0xFF, 0xFE, 0xFF);
-            String creatorInfo = "";
-            if (document.hasAttribute("creatorInfo")) {
-                creatorInfo = document.getAttribute("creatorInfo");
-            }
-            if (debugRandom) {
-                fg.writeLenUnicodeString("YYY");
+
+            if (flaFormatVersion == FlaFormatVersion.CS4) {
+                String creatorInfo = "";
+                if (document.hasAttribute("creatorInfo")) {
+                    creatorInfo = document.getAttribute("creatorInfo");
+                }
+                if (debugRandom) {
+                    fg.writeLenUnicodeString("YYY");
+                } else {
+                    fg.writeLenUnicodeString(getXmpp(creatorInfo));
+                }
             } else {
-                fg.writeLenUnicodeString(getXmpp(creatorInfo));
+                fg.write(0x00);
             }
             fg.write(0xFF, 0xFE, 0xFF, 00);
             fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
@@ -1144,14 +1143,18 @@ public class ContentsGenerator extends AbstractGenerator {
             if (document.hasAttribute("majorVersion")) {
                 majorVersion = Integer.parseInt(document.getAttribute("majorVersion"));
             }
-            fg.write(majorVersion);
+            fg.write(debugRandom ? 'X' : majorVersion);
             fg.write(0x00, 0x00, 0x00);
             int buildNumber = 0;
             if (document.hasAttribute("buildNumber")) {
                 buildNumber = Integer.parseInt(document.getAttribute("buildNumber"));
             }
 
-            fg.writeUI16(buildNumber);
+            if (debugRandom) {
+                fg.write('X', 'X');
+            } else {
+                fg.writeUI16(buildNumber);
+            }
             fg.write(0x00, 0x00, 0x43, 0x00);
 
             String versionInfo = "";
@@ -1159,9 +1162,13 @@ public class ContentsGenerator extends AbstractGenerator {
                 versionInfo = document.getAttribute("versionInfo");
             }
 
-            fg.write(versionInfo.getBytes());
-            String timecount = " timecount = " + getTimeCreatedAsString();
-            fg.write(timecount.getBytes());
+            if (debugRandom) {
+                fg.write('N', 'N', 'N');
+            } else {
+                fg.write(versionInfo.getBytes());
+                String timecount = " timecount = " + getTimeCreatedAsString();
+                fg.write(timecount.getBytes());
+            }
             fg.write(0x00);
             if (debugRandom) {
                 fg.write('U', 'U', 'U', 'U', 'U', 'U', 'U', 'U');
@@ -1182,9 +1189,9 @@ public class ContentsGenerator extends AbstractGenerator {
         return itemID;
     }
 
-    protected void writeDomSoundItem(FlaCs4Writer dw, Element domSoundItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, OutputStorageInterface outputDir, InputStorageInterface sourceDir) throws IOException {
+    protected void writeDomSoundItem(FlaWriter dw, Element domSoundItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, OutputStorageInterface outputDir, InputStorageInterface sourceDir, FlaFormatVersion flaFormatVersion) throws IOException {
         useClass("CMediaSound", 1, dw, definedClasses, objectsCount);
-        dw.write(0x07);
+        dw.write(flaFormatVersion.getMediaSoundVersion());
         String mediaFile = "M " + mediaCount + " " + getTimeCreatedAsString();
         dw.writeLenUnicodeString(debugRandom ? "YYY" : mediaFile);
         dw.write(0xFF, 0xFE, 0xFF);
@@ -1296,9 +1303,9 @@ public class ContentsGenerator extends AbstractGenerator {
         }
     }
 
-    protected void writeDomVideoItem(FlaCs4Writer dw, Element domVideoItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, OutputStorageInterface outputDir, InputStorageInterface sourceDir) throws IOException {
+    protected void writeDomVideoItem(FlaWriter dw, Element domVideoItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, OutputStorageInterface outputDir, InputStorageInterface sourceDir, FlaFormatVersion flaFormatVersion) throws IOException {
         useClass("CMediaVideoStream", 1, dw, definedClasses, objectsCount);
-        dw.write(0x07);
+        dw.write(flaFormatVersion.getMediaVideoVersion());
         String mediaFile = "M " + mediaCount + " " + getTimeCreatedAsString();
         dw.writeLenUnicodeString(debugRandom ? "YYY" : mediaFile);
         dw.write(0xFF, 0xFE, 0xFF);
@@ -1351,14 +1358,13 @@ public class ContentsGenerator extends AbstractGenerator {
                     fos.write(0); //change 1 to 0
                     fis.read();
                     fos.write(0); //change 1 to 0
-                    
+
                     buf = new byte[4];
                     dais.readFully(buf);
                     fos.write(buf);
                     fis.read();
                     fos.write(0); //change 1 to 0
-                    
-                    
+
                     //copy rest of the file
                     buf = new byte[4096];
                     int cnt;
@@ -1375,7 +1381,7 @@ public class ContentsGenerator extends AbstractGenerator {
         }
     }
 
-    protected void writeDomBitmapItem(FlaCs4Writer dw, Element domBitmapItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, OutputStorageInterface outputDir, InputStorageInterface sourceDir) throws IOException {
+    protected void writeDomBitmapItem(FlaWriter dw, Element domBitmapItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, OutputStorageInterface outputDir, InputStorageInterface sourceDir, FlaFormatVersion flaFormatVersion) throws IOException {
 
         /*
         <media>
@@ -1383,7 +1389,7 @@ public class ContentsGenerator extends AbstractGenerator {
      </media>
          */
         useClass("CMediaBits", 1, dw, definedClasses, objectsCount);
-        dw.write(0x07);
+        dw.write(flaFormatVersion.getMediaBitsVersion());
         String mediaFile = "M " + mediaCount + " " + getTimeCreatedAsString();
         dw.writeLenUnicodeString(debugRandom ? "YYY" : mediaFile);
 
@@ -1470,7 +1476,8 @@ public class ContentsGenerator extends AbstractGenerator {
         }
 
         writeAsLinkage(dw, domBitmapItem);
-        dw.write(0x00, 0x01, 0x00, 0x00, 0x00, 0x04);
+        dw.write(0x00, 0x01, 0x00, 0x00, 0x00);
+        dw.write(flaFormatVersion.getMediaBitsVersionB());
         if (compressionTypeLossless) {
             dw.write(0x01);
         } else {
@@ -1486,10 +1493,12 @@ public class ContentsGenerator extends AbstractGenerator {
         } else {
             dw.writeUI32(0);
         }
-        dw.write(useDeblocking ? 1 : 0);
+        if (flaFormatVersion == FlaFormatVersion.CS4) {
+            dw.write(useDeblocking ? 1 : 0);
+        }
     }
 
-    protected int writeMedia(FlaCs4Writer dw, Element document, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, OutputStorageInterface outputDir, InputStorageInterface sourceDir) throws IOException {
+    protected int writeMedia(FlaWriter dw, Element document, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, OutputStorageInterface outputDir, InputStorageInterface sourceDir, FlaFormatVersion flaFormatVersion) throws IOException {
         Element mediaElement = getSubElementByName(document, "media");
 
         List<Element> media = new ArrayList<>();
@@ -1510,13 +1519,13 @@ public class ContentsGenerator extends AbstractGenerator {
             mediaCount++;
             switch (mediaItem.getTagName()) {
                 case "DOMBitmapItem":
-                    writeDomBitmapItem(dw, mediaItem, definedClasses, objectsCount, mediaCount, generatedItemIdOrder, outputDir, sourceDir);
+                    writeDomBitmapItem(dw, mediaItem, definedClasses, objectsCount, mediaCount, generatedItemIdOrder, outputDir, sourceDir, flaFormatVersion);
                     break;
                 case "DOMSoundItem":
-                    writeDomSoundItem(dw, mediaItem, definedClasses, objectsCount, mediaCount, generatedItemIdOrder, outputDir, sourceDir);
+                    writeDomSoundItem(dw, mediaItem, definedClasses, objectsCount, mediaCount, generatedItemIdOrder, outputDir, sourceDir, flaFormatVersion);
                     break;
                 case "DOMVideoItem":
-                    writeDomVideoItem(dw, mediaItem, definedClasses, objectsCount, mediaCount, generatedItemIdOrder, outputDir, sourceDir);
+                    writeDomVideoItem(dw, mediaItem, definedClasses, objectsCount, mediaCount, generatedItemIdOrder, outputDir, sourceDir, flaFormatVersion);
                     break;
             }
 
@@ -1544,7 +1553,7 @@ public class ContentsGenerator extends AbstractGenerator {
         return id + 1;
     }
 
-    protected int writeFonts(FlaCs4Writer dw, Element document, Reference<Long> generatedItemIdOrder) throws IOException {
+    protected int writeFonts(FlaWriter dw, Element document, Reference<Long> generatedItemIdOrder, FlaFormatVersion flaFormatVersion) throws IOException {
         Element fontsElement = getSubElementByName(document, "fonts");
         List<Element> domFontItems = new ArrayList<>();
         if (fontsElement != null) {
@@ -1575,62 +1584,92 @@ public class ContentsGenerator extends AbstractGenerator {
                 italic = fontNameLowercase.contains("italic") || fontNameLowercase.contains("oblique");
             }
 
-            dw.write(0x03,
+            dw.write(flaFormatVersion.getFontVersion(),
                     0xFF, 0xFE, 0xFF);
             dw.writeLenUnicodeString(name);
             dw.writeUI16(id);
             writeTimeCreated(dw);
-            dw.write(0x0F, 0x00, 0x00,
-                    0xFF, 0xFE, 0xFF);
+            if (flaFormatVersion == FlaFormatVersion.CS4) {
+                dw.write(0x0F, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF);
+            } else {
+                dw.write(0x0C, 0x00, 0x00);
+            }
 
             dw.writeLenUnicodeString(fontFamily);
-            dw.write(0xFF, 0xFE, 0xFF);
 
-            dw.writeLenUnicodeString(fontPsName);
+            if (flaFormatVersion == FlaFormatVersion.CS4) {
+                dw.write(0xFF, 0xFE, 0xFF);
+                dw.writeLenUnicodeString(fontPsName);
 
-            //following part might be copied from textfield
-            
-            if (debugRandom) {
-                dw.write('U', 'U', 'U', 'U');
-                dw.write('U', 'U', 'U', 'U');
+                //following part might be copied from textfield
+                if (debugRandom) {
+                    dw.write('U', 'U', 'U', 'U');
+                    dw.write('U', 'U', 'U', 'U');
+                } else {
+                    dw.write(0x00, 0x00, 0x00, 0x40);
+                    dw.write(0x00, 0x00, 0x00, 0x00);
+                }
+                dw.write(debugRandom ? 'U' : 0x12, //something magic, see PageGenerator for details
+                        0x00);
+                dw.write(bold ? 1 : 0);
+                dw.write(italic ? 1 : 0);
+                dw.write(0x00,
+                        0x00, 0x00,
+                        debugRandom ? 'U' : 0x00, debugRandom ? 'U' : 0x00, 0x00, 0x00,
+                        0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00);
+                //end of copied part           
+
+                dw.write(0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x00, debugRandom ? 'U' : 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x02,
+                        debugRandom ? 'U' : 0x01,
+                        0x00, 0x00,
+                        debugRandom ? 'U' : 0x00,
+                        debugRandom ? 'U' : 0x00,
+                        0x00, 0x00,
+                        debugRandom ? 'U' : 0x00,
+                        debugRandom ? 'U' : 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00);
+
             } else {
-                dw.write(0x00, 0x00, 0x00, 0x40);
-                dw.write(0x00, 0x00, 0x00, 0x00);
+                if (debugRandom) {
+                    dw.write('U', 'U', 'U', 'U');
+                } else {
+                    dw.write(0x00, 0x00, 0x00, 0xFF); //fillColor, might be copied from text
+                }
+                dw.write(debugRandom ? 'U' : 0x12); //something magic, see PageGenerator for details
+                dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                dw.write(debugRandom ? 'U' : 0xF0);
+                dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 
+                        debugRandom ? 'U' : 0x01, 
+                        0x00, 0x00,
+                        0x02, 0x02,
+                        0x00, 0x00,
+                        0xC0, 0x3F, //?
+                        0x00, 0x00,
+                        0x20, 0x40, //?
+                        0x00);
             }
-            dw.write(debugRandom ? 'U' : 0x12, //something magic, see PageGenerator for details
-                    0x00);
-            dw.write(bold ? 1 : 0);
-            dw.write(italic ? 1 : 0);
-            dw.write(0x00,
-                    0x00, 0x00,
-                    debugRandom ? 'U' : 0x00, debugRandom ? 'U' : 0x00, 0x00, 0x00,
-                    0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00);
-            //end of copied part           
 
-            dw.write(0xFF, 0xFE, 0xFF, 0x00,
-                    0x00, 0x00, debugRandom ? 'U' : 0x00, 0x00,
-                    0xFF, 0xFE, 0xFF, 0x00,
-                    0x02,
-                    debugRandom ? 'U' : 0x01,
-                    0x00, 0x00,
-                    debugRandom ? 'U' : 0x00,
-                    debugRandom ? 'U' : 0x00,
-                    0x00, 0x00,
-                    debugRandom ? 'U' : 0x00,
-                    debugRandom ? 'U' : 0x00,
-                    0xFF, 0xFE, 0xFF, 0x00,
-                    0x06, 0x00, 0x00, 0x00, 0x01, 0x00,
+            dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
 
             dw.writeItemID(itemID);
             writeAsLinkage(dw, domFontItem);
-            dw.write(0x00, 0x00, 0x00, 0x00, 0x00);
+            dw.write(0x00);
+
+            if (flaFormatVersion == FlaFormatVersion.CS4) {
+                dw.write(0x00, 0x00, 0x00, 0x00);
+            }
         }
         return fontCount;
     }
 
-    protected void writeQTAudioSettings(FlaCs4Writer dw, boolean cs4) throws IOException {
+    protected void writeQTAudioSettings(FlaWriter dw, boolean cs4) throws IOException {
         String CQTAudioSettings = "CQTAudioSettings";
         dw.write(CQTAudioSettings.length(),
                 0x00);
@@ -1639,7 +1678,7 @@ public class ContentsGenerator extends AbstractGenerator {
 
     }
 
-    protected void writeColorDef(FlaCs4Writer dw, int lastByte, boolean cs4, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws IOException {
+    protected void writeColorDef(FlaWriter dw, int lastByte, FlaFormatVersion flaFormatVersion, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws IOException {
 
         //254 swatches        
         for (int s = 0; s < solidSwatches.size(); s++) {
@@ -1650,7 +1689,7 @@ public class ContentsGenerator extends AbstractGenerator {
             dw.write(0x00);
         }
 
-        if (cs4) {
+        if (flaFormatVersion == FlaFormatVersion.CS4) {
             dw.write(0x01);
         }
 
@@ -1696,14 +1735,17 @@ public class ContentsGenerator extends AbstractGenerator {
             //}
         }
 
-        dw.write(0x01, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        if (flaFormatVersion == FlaFormatVersion.CS4) {
+            dw.write(0x01);
+        }
+        dw.write(0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01);
 
     }
 
-    protected void writeMap(FlaCs4Writer dw, Map<String, String> map, boolean isUni) throws IOException {
+    protected void writeMap(FlaWriter dw, Map<String, String> map, boolean isUni) throws IOException {
         dw.writeUI16(map.size());
         for (String key : map.keySet()) {
             String val = map.get(key);
@@ -1719,17 +1761,191 @@ public class ContentsGenerator extends AbstractGenerator {
         }
     }
 
-    protected void writeVectors(FlaCs4Writer dw, boolean isUni) throws IOException {
-        writeMap(dw, vectorsMap, isUni);
-    }
-
     private Map<String, String> getLegacyProperties() {
         Map<String, String> propertiesMap = new HashMap<>();
         propertiesMap.put("legacyLineSpacing", "0");
         return propertiesMap;
     }
 
-    private Map<String, String> getProperties(String basePublishName, int width, int height) {
+    private Map<String, String> getProperties(String basePublishName, int width, int height, FlaFormatVersion flaFormatVersion) {
+        switch (flaFormatVersion) {
+            case CS4:
+                return getPropertiesCs4(basePublishName, width, height);
+            case CS3:
+                return getPropertiesCs3(basePublishName, width, height);
+        }
+        return null;
+    }
+
+    private Map<String, String> getPropertiesCs3(String basePublishName, int width, int height) {
+        Map<String, String> propertiesMap = new LinkedHashMap<>();
+        propertiesMap.put("PublishFormatProperties::htmlFileName", basePublishName + ".html");
+        propertiesMap.put("PublishHtmlProperties::StartPaused", "0");
+        propertiesMap.put("Vector::AS3 Package Paths", ".");
+        propertiesMap.put("PublishRNWKProperties::speed256K", "0");
+        propertiesMap.put("PublishGifProperties::PaletteName", "");
+        propertiesMap.put("PublishFormatProperties::jpeg", "0");
+        propertiesMap.put("PublishHtmlProperties::Loop", "1");
+        propertiesMap.put("PublishProfileProperties::name", "Default");
+        propertiesMap.put("Vector::Debugging Permitted", "0");
+        propertiesMap.put("Vector::UseNetwork", "0");
+        propertiesMap.put("Vector::RSLPreloaderMethod", "0");
+        propertiesMap.put("PublishQTProperties::MatchMovieDim", "1");
+        propertiesMap.put("PublishQTProperties::AlphaOption", "");
+        propertiesMap.put("PublishQTProperties::LayerOption", "");
+        propertiesMap.put("PublishHtmlProperties::UsingDefaultAlternateFilename", "1");
+        propertiesMap.put("PublishHtmlProperties::Units", "0");
+        propertiesMap.put("PublishHtmlProperties::DeblockingFilter", "0");
+        propertiesMap.put("PublishHtmlProperties::showTagWarnMsg", "1");
+        propertiesMap.put("Vector::External Player", "");
+        propertiesMap.put("Vector::DocumentClass", "");
+        propertiesMap.put("PublishRNWKProperties::singleRateAudio", "0");
+        propertiesMap.put("PublishRNWKProperties::speedSingleISDN", "0");
+        propertiesMap.put("PublishPNGProperties::OptimizeColors", "1");
+        propertiesMap.put("PublishQTProperties::Width", "" + width);
+        propertiesMap.put("PublishFormatProperties::projectorMac", "0");
+        propertiesMap.put("PublishFormatProperties::gifDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::flashFileName", basePublishName + ".swf");
+        propertiesMap.put("Vector::Package Paths", "");
+        propertiesMap.put("Vector::Compress Movie", "1");
+        propertiesMap.put("Vector::ScriptStuckDelay", "15");
+        propertiesMap.put("PublishRNWKProperties::flashBitRate", "1200");
+        propertiesMap.put("PublishRNWKProperties::mediaCopyright", "(c) 2000");
+        propertiesMap.put("PublishGifProperties::Smooth", "1");
+        propertiesMap.put("PublishFormatProperties::html", "1");
+        propertiesMap.put("PublishFormatProperties::pngFileName", basePublishName + ".png");
+        propertiesMap.put("PublishHtmlProperties::VerticalAlignment", "1");
+        propertiesMap.put("PublishHtmlProperties::Quality", "4");
+        propertiesMap.put("Vector::Invisible Layer", "1");
+        propertiesMap.put("Vector::AS3ExportFrame", "1");
+        propertiesMap.put("PublishRNWKProperties::exportAudio", "1");
+        propertiesMap.put("PublishRNWKProperties::speed384K", "0");
+        propertiesMap.put("PublishRNWKProperties::exportSMIL", "1");
+        propertiesMap.put("PublishGifProperties::DitherOption", "");
+        propertiesMap.put("PublishHtmlProperties::DeviceFont", "0");
+        propertiesMap.put("Vector::Override Sounds", "0");
+        propertiesMap.put("PublishRNWKProperties::mediaDescription", "");
+        propertiesMap.put("PublishPNGProperties::FilterOption", "");
+        propertiesMap.put("PublishFormatProperties::gif", "0");
+        propertiesMap.put("PublishFormatProperties::jpegDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::rnwkDefaultName", "1");
+        propertiesMap.put("PublishHtmlProperties::VersionDetectionIfAvailable", "0");
+        propertiesMap.put("PublishHtmlProperties::HorizontalAlignment", "1");
+        propertiesMap.put("PublishHtmlProperties::DisplayMenu", "1");
+        propertiesMap.put("Vector::Protect", "0");
+        propertiesMap.put("Vector::Quality", "80");
+        propertiesMap.put("PublishJpegProperties::DPI", "4718592");
+        propertiesMap.put("PublishGifProperties::Interlace", "0");
+        propertiesMap.put("PublishGifProperties::DitherSolids", "0");
+        propertiesMap.put("PublishPNGProperties::Smooth", "1");
+        propertiesMap.put("PublishPNGProperties::BitDepth", "24-bit with Alpha");
+        propertiesMap.put("PublishQTProperties::Flatten", "1");
+        propertiesMap.put("PublishFormatProperties::qtFileName", basePublishName + ".mov");
+        propertiesMap.put("Vector::AS3Flags", "4102");
+        propertiesMap.put("PublishRNWKProperties::speed28K", "1");
+        propertiesMap.put("PublishRNWKProperties::mediaTitle", "");
+        propertiesMap.put("PublishRNWKProperties::mediaKeywords", "");
+        propertiesMap.put("PublishGifProperties::Width", "" + width);
+        propertiesMap.put("PublishGifProperties::Loop", "1");
+        propertiesMap.put("PublishFormatProperties::flash", "1");
+        propertiesMap.put("Vector::IncludeXMP", "1");
+        propertiesMap.put("PublishJpegProperties::Quality", "80");
+        propertiesMap.put("PublishRNWKProperties::realVideoRate", "100000");
+        propertiesMap.put("PublishRNWKProperties::speedDualISDN", "0");
+        propertiesMap.put("PublishGifProperties::MatchMovieDim", "1");
+        propertiesMap.put("PublishGifProperties::PaletteOption", "");
+        propertiesMap.put("PublishPNGProperties::DitherOption", "");
+        propertiesMap.put("PublishFormatProperties::projectorMacDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::pngDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::projectorWinFileName", basePublishName + ".exe");
+        propertiesMap.put("PublishHtmlProperties::Align", "0");
+        propertiesMap.put("PublishProfileProperties::version", "1");
+        propertiesMap.put("Vector::Package Export Frame", "1");
+        propertiesMap.put("PublishJpegProperties::MatchMovieDim", "1");
+        propertiesMap.put("PublishPNGProperties::MatchMovieDim", "1");
+        propertiesMap.put("PublishPNGProperties::PaletteOption", "");
+        propertiesMap.put("PublishFormatProperties::flashDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::jpegFileName", basePublishName + ".jpg");
+        propertiesMap.put("PublishHtmlProperties::Width", "" + width);
+        propertiesMap.put("PublishHtmlProperties::Height", "" + height);
+        propertiesMap.put("Vector::Omit Trace Actions", "0");
+        propertiesMap.put("Vector::Debugging Password", "");
+        propertiesMap.put("Vector::Export Swc", "0");
+        propertiesMap.put("PublishJpegProperties::Progressive", "0");
+        propertiesMap.put("PublishPNGProperties::DitherSolids", "0");
+        propertiesMap.put("PublishQTProperties::PlayEveryFrame", "0");
+        propertiesMap.put("PublishFormatProperties::png", "0");
+        propertiesMap.put("PublishFormatProperties::rnwk", "0");
+        propertiesMap.put("PublishFormatProperties::htmlDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::projectorMacFileName", basePublishName + ".app");
+        propertiesMap.put("PublishHtmlProperties::UsingDefaultContentFilename", "1");
+        propertiesMap.put("PublishHtmlProperties::WindowMode", "0");
+        propertiesMap.put("PublishHtmlProperties::TemplateFileName", "");
+        propertiesMap.put("Vector::DeviceSound", "0");
+        propertiesMap.put("Vector::AS3Coach", "4");
+        propertiesMap.put("Vector::AS3AutoDeclare", "4096");
+        propertiesMap.put("Vector::UseAS3Namespace", "1");
+        propertiesMap.put("Vector::DefaultLibraryLinkage", "0");
+        propertiesMap.put("PublishJpegProperties::Size", "0");
+        propertiesMap.put("PublishGifProperties::Height", "" + height);
+        propertiesMap.put("PublishPNGProperties::Interlace", "0");
+        propertiesMap.put("PublishHtmlProperties::ContentFilename", basePublishName + "_content.html");
+        propertiesMap.put("PublishHtmlProperties::AlternateFilename", basePublishName + "_alternate.html");
+        propertiesMap.put("PublishHtmlProperties::OwnAlternateFilename", "");
+        propertiesMap.put("Vector::Report", "0");
+        propertiesMap.put("PublishRNWKProperties::speed56K", "1");
+        propertiesMap.put("PublishGifProperties::LoopCount", "");
+        propertiesMap.put("PublishGifProperties::TransparentOption", "");
+        propertiesMap.put("PublishGifProperties::MaxColors", "255");
+        propertiesMap.put("PublishPNGProperties::RemoveGradients", "0");
+        propertiesMap.put("PublishQTProperties::Height", "" + height);
+        propertiesMap.put("PublishFormatProperties::qt", "0");
+        propertiesMap.put("Vector::Stream Compress", "7");
+        propertiesMap.put("Vector::Event Format", "0");
+        propertiesMap.put("Vector::Version", "9");
+        propertiesMap.put("Vector::AS3Strict", "2");
+        propertiesMap.put("Vector::HardwareAcceleration", "0");
+        propertiesMap.put("Vector::RSLPreloaderSWF", "$(AppConfig)/ActionScript 3.0/rsls/loader_animation.swf");
+        propertiesMap.put("PublishRNWKProperties::audioFormat", "0");
+        propertiesMap.put("PublishGifProperties::OptimizeColors", "1");
+        propertiesMap.put("PublishFormatProperties::projectorWinDefaultName", "1");
+        propertiesMap.put("PublishHtmlProperties::Scale", "0");
+        propertiesMap.put("Vector::Event Compress", "7");
+        propertiesMap.put("Vector::ActionScriptVersion", "3");
+        propertiesMap.put("Vector::StreamUse8kSampleRate", "0");
+        propertiesMap.put("Vector::EventUse8kSampleRate", "0");
+        propertiesMap.put("PublishJpegProperties::Height", "400");
+        propertiesMap.put("PublishRNWKProperties::speed512K", "0");
+        propertiesMap.put("PublishGifProperties::RemoveGradients", "0");
+        propertiesMap.put("PublishPNGProperties::Width", "" + width);
+        propertiesMap.put("PublishPNGProperties::Height", "" + height);
+        propertiesMap.put("PublishFormatProperties::qtDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::gifFileName", basePublishName + ".gif");
+        propertiesMap.put("PublishHtmlProperties::VersionInfo", "10,1,52,0;9,0,124,0;8,0,24,0;7,0,14,0;6,0,79,0;5,0,58,0;4,0,32,0;3,0,8,0;2,0,1,12;1,0,0,1;");
+        propertiesMap.put("Vector::DeblockingFilter", "0");
+        propertiesMap.put("Vector::Stream Format", "0");
+        propertiesMap.put("PublishJpegProperties::Width", "" + width);
+        propertiesMap.put("PublishRNWKProperties::exportFlash", "1");
+        propertiesMap.put("PublishRNWKProperties::showBitrateDlog", "1");
+        propertiesMap.put("PublishRNWKProperties::speedCorporateLAN", "0");
+        propertiesMap.put("PublishRNWKProperties::mediaAuthor", "");
+        propertiesMap.put("PublishGifProperties::Animated", "0");
+        propertiesMap.put("PublishGifProperties::TransparentAlpha", "128");
+        propertiesMap.put("PublishPNGProperties::Transparent", "0");
+        propertiesMap.put("PublishPNGProperties::PaletteName", "");
+        propertiesMap.put("PublishQTProperties::UseQTSoundCompression", "0");
+        propertiesMap.put("PublishQTProperties::Looping", "0");
+        propertiesMap.put("PublishFormatProperties::defaultNames", "1");
+        propertiesMap.put("PublishFormatProperties::projectorWin", "0");
+        propertiesMap.put("PublishFormatProperties::rnwkFileName", basePublishName + ".smil");
+        propertiesMap.put("PublishHtmlProperties::UsingOwnAlternateFile", "0");
+        propertiesMap.put("PublishPNGProperties::MaxColors", "255");
+        propertiesMap.put("PublishQTProperties::ControllerOption", "0");
+        propertiesMap.put("PublishQTProperties::PausedAtStart", "0");
+        return propertiesMap;
+    }
+
+    private Map<String, String> getPropertiesCs4(String basePublishName, int width, int height) {
         Map<String, String> propertiesMap = new LinkedHashMap<>();
         propertiesMap.put("PublishGifProperties::PaletteName", "");
         propertiesMap.put("PublishRNWKProperties::speed256K", "0");

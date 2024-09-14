@@ -2,7 +2,473 @@
      <timelines>
           <DOMTimeline name="Scene 1">
                <layers>
-                    <DOMLayer name="Layer 1" color="#4FFF4F" current="true" isSelected="true">
+                    <DOMLayer name="Layer 19" color="#FF800A" current="true" isSelected="true">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <SolidStroke weight="5.5">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </SolidStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!9600 7400|10200 7400!10200 7400|10200 7800!10200 7800|9600 7800!9600 7800|9600 7400"/>
+                                                  <Edge cubics="!9600 7800(;9600,7800 9600,7400 9600,7400q9600 7800 9600 7400);"/>
+                                                  <Edge cubics="!10200 7400(;10200,7400 10200,7800 10200,7800q10200 7400 10200 7800);"/>
+                                                  <Edge cubics="!10200 7800(;10200,7800 9600,7800 9600,7800q10200 7800 9600 7800);"/>
+                                                  <Edge cubics="!9600 7400(;9600,7400 10200,7400 10200,7400q9600 7400 10200 7400);"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 18" color="#9933CC">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <SolidStroke scaleMode="vertical" weight="5.5">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </SolidStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!9600 6800|10200 6800!10200 6800|10200 7200!10200 7200|9600 7200!9600 7200|9600 6800"/>
+                                                  <Edge cubics="!9600 7200(;9600,7200 9600,6800 9600,6800q9600 7200 9600 6800);"/>
+                                                  <Edge cubics="!10200 6800(;10200,6800 10200,7200 10200,7200q10200 6800 10200 7200);"/>
+                                                  <Edge cubics="!10200 7200(;10200,7200 9600,7200 9600,7200q10200 7200 9600 7200);"/>
+                                                  <Edge cubics="!9600 6800(;9600,6800 10200,6800 10200,6800q9600 6800 10200 6800);"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 17" color="#4FFF4F">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <SolidStroke scaleMode="horizontal" weight="5.5">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </SolidStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!9600 6200|10200 6200!10200 6200|10200 6600!10200 6600|9600 6600!9600 6600|9600 6200"/>
+                                                  <Edge cubics="!9600 6600(;9600,6600 9600,6200 9600,6200q9600 6600 9600 6200);"/>
+                                                  <Edge cubics="!10200 6200(;10200,6200 10200,6600 10200,6600q10200 6200 10200 6600);"/>
+                                                  <Edge cubics="!10200 6600(;10200,6600 9600,6600 9600,6600q10200 6600 9600 6600);"/>
+                                                  <Edge cubics="!9600 6200(;9600,6200 10200,6200 10200,6200q9600 6200 10200 6200);"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 16" color="#FF4F4F">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <SolidStroke scaleMode="normal" weight="5.5" pixelHinting="true">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </SolidStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!9600 5600|10200 5600!10200 5600|10200 6000!10200 6000|9600 6000!9600 6000|9600 5600"/>
+                                                  <Edge cubics="!9600 6000(;9600,6000 9600,5600 9600,5600q9600 6000 9600 5600);"/>
+                                                  <Edge cubics="!10200 5600(;10200,5600 10200,6000 10200,6000q10200 5600 10200 6000);"/>
+                                                  <Edge cubics="!10200 6000(;10200,6000 9600,6000 9600,6000q10200 6000 9600 6000);"/>
+                                                  <Edge cubics="!9600 5600(;9600,5600 10200,5600 10200,5600q9600 5600 10200 5600);"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 15" color="#4F80FF">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <SolidStroke scaleMode="normal" weight="20">
+                                                            <fill>
+                                                                 <RadialGradient spreadMethod="repeat" interpolationMethod="linearRGB">
+                                                                      <matrix>
+                                                                           <Matrix a="0.011932373046875" b="-0.001861572265625" c="0.0055389404296875" d="0.035675048828125" tx="400" ty="320"/>
+                                                                      </matrix>
+                                                                      <GradientEntry color="#00FF00" ratio="0.203921568627451"/>
+                                                                      <GradientEntry color="#FF0200" alpha="0.717647058823529" ratio="0.564705882352941"/>
+                                                                      <GradientEntry color="#FFFFB1" ratio="1"/>
+                                                                 </RadialGradient>
+                                                            </fill>
+                                                       </SolidStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!7995 6095/8205 7505"/>
+                                                  <Edge cubics="!7995 6095(;7995,6095 8205,7505 8205,7505q7995 6095 8205 7505)8205,7505;"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 14" color="#808080">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <SolidStroke scaleMode="normal" weight="20">
+                                                            <fill>
+                                                                 <LinearGradient>
+                                                                      <matrix>
+                                                                           <Matrix a="0.02301025390625" b="0.0287933349609375" c="-0.152603149414063" d="0.12188720703125" tx="276.7" ty="414.35"/>
+                                                                      </matrix>
+                                                                      <GradientEntry color="#00FF00" ratio="0.203921568627451"/>
+                                                                      <GradientEntry color="#FF0200" ratio="0.564705882352941"/>
+                                                                      <GradientEntry color="#FFFFB1" ratio="1"/>
+                                                                 </LinearGradient>
+                                                            </fill>
+                                                       </SolidStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!7195 6095/7405 7505"/>
+                                                  <Edge cubics="!7195 6095(;7195,6095 7405,7505 7405,7505q7195 6095 7405 7505)7405,7505;"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 13" color="#4FFFFF">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <HatchedStroke scaleMode="normal" weight="5.5" curve="medium curve" hatchThickness="medium" jiggle="loose" length="medium variation" rotate="slight" space="distant">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </HatchedStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!4800 6600|6200 6600!6200 6600|6200 7600!6200 7600|4800 7600!4800 7600|4800 6600"/>
+                                                  <Edge cubics="!6200 6600(;6200,6600 6200,7600 6200,7600q6200 6600 6200 7600);"/>
+                                                  <Edge cubics="!4800 7600(4800,7600;4800,7600 4800,6600 4800,6600q4800 7600 4800 6600);"/>
+                                                  <Edge cubics="!4800 6600(;4800,6600 6200,6600 6200,6600q4800 6600 6200 6600);"/>
+                                                  <Edge cubics="!6200 7600(;6200,7600 4800,7600 4800,7600q6200 7600 4800 7600);"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 12" color="#FF4FFF">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <StippleStroke scaleMode="normal" weight="5.5" dotSize="medium" variation="random sizes" density="very sparse">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </StippleStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!2600 6700|4000 6700!4000 6700|4000 7700!4000 7700|2600 7700!2600 7700|2600 6700"/>
+                                                  <Edge cubics="!4000 6700(;4000,6700 4000,7700 4000,7700q4000 6700 4000 7700);"/>
+                                                  <Edge cubics="!2600 7700(2600,7700;2600,7700 2600,6700 2600,6700q2600 7700 2600 6700);"/>
+                                                  <Edge cubics="!2600 6700(;2600,6700 4000,6700 4000,6700q2600 6700 4000 6700);"/>
+                                                  <Edge cubics="!4000 7700(;4000,7700 2600,7700 2600,7700q4000 7700 2600 7700);"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 11" color="#FF800A">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <SolidStroke scaleMode="normal" weight="5.5" sharpCorners="true">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </SolidStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!400 6700|1800 6700!1800 6700|1800 7700!1800 7700|400 7700!400 7700|400 6700"/>
+                                                  <Edge cubics="!1800 6700(;1800,6700 1800,7700 1800,7700q1800 6700 1800 7700);"/>
+                                                  <Edge cubics="!400 7700(400,7700;400,7700 400,6700 400,6700q400 7700 400 6700);"/>
+                                                  <Edge cubics="!400 6700(;400,6700 1800,6700 1800,6700q400 6700 1800 6700);"/>
+                                                  <Edge cubics="!1800 7700(;1800,7700 400,7700 400,7700q1800 7700 400 7700);"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 10" color="#9933CC">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <DottedStroke scaleMode="normal" weight="5.5" dotSpace="8">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </DottedStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!2200 5300|2200 6300!2200 6300|800 6300!800 6300|800 5300!800 5300|2200 5300"/>
+                                                  <Edge cubics="!2200 5300(;2200,5300 2200,6300 2200,6300q2200 5300 2200 6300);"/>
+                                                  <Edge cubics="!800 6300(800,6300;800,6300 800,5300 800,5300q800 6300 800 5300);"/>
+                                                  <Edge cubics="!800 5300(;800,5300 2200,5300 2200,5300q800 5300 2200 5300);"/>
+                                                  <Edge cubics="!2200 6300(;2200,6300 800,6300 800,6300q2200 6300 800 6300);"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 9" color="#4FFF4F">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <SolidStroke scaleMode="normal" weight="20" joints="miter" miterLimit="1.5">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </SolidStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!9000 4905/9790 3495!9790 3495/10000 4905"/>
+                                                  <Edge cubics="!9000 4905(9000,4905;9000,4905 9790,3495 9790,3495q9000 4905 9790 3495);"/>
+                                                  <Edge cubics="!9790 3495(;9790,3495 10000,4905 10000,4905q9790 3495 10000 4905)10000,4905;"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 8" color="#FF4F4F">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <SolidStroke scaleMode="normal" weight="20" joints="miter">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </SolidStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!7000 4905/7790 3495!7790 3495/8000 4905"/>
+                                                  <Edge cubics="!7000 4905(7000,4905;7000,4905 7790,3495 7790,3495q7000 4905 7790 3495);"/>
+                                                  <Edge cubics="!7790 3495(;7790,3495 8000,4905 8000,4905q7790 3495 8000 4905)8000,4905;"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 7" color="#4F80FF">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <SolidStroke scaleMode="normal" weight="20" joints="bevel">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </SolidStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!5000 4905/5790 3495!5790 3495/6000 4905"/>
+                                                  <Edge cubics="!5000 4905(5000,4905;5000,4905 5790,3495 5790,3495q5000 4905 5790 3495);"/>
+                                                  <Edge cubics="!5790 3495(;5790,3495 6000,4905 6000,4905q5790 3495 6000 4905)6000,4905;"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 6" color="#808080">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <RaggedStroke scaleMode="normal" weight="5.5" pattern="random dotted" waveHeight="very wavy" waveLength="medium">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </RaggedStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!4400 3700|4400 4700!4400 4700|3000 4700!3000 4700|3000 3700!3000 3700|4400 3700"/>
+                                                  <Edge cubics="!4400 3700(;4400,3700 4400,4700 4400,4700q4400 3700 4400 4700);"/>
+                                                  <Edge cubics="!3000 4700(3000,4700;3000,4700 3000,3700 3000,3700q3000 4700 3000 3700);"/>
+                                                  <Edge cubics="!3000 3700(;3000,3700 4400,3700 4400,3700q3000 3700 4400 3700);"/>
+                                                  <Edge cubics="!4400 4700(;4400,4700 3000,4700 3000,4700q4400 4700 3000 4700);"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 5" color="#4FFFFF">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <DashedStroke dash1="10" dash2="12" scaleMode="normal" weight="5.5">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </DashedStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!2200 3500|2200 4500!2200 4500|800 4500!800 4500|800 3500!800 3500|2200 3500"/>
+                                                  <Edge cubics="!2200 3500(;2200,3500 2200,4500 2200,4500q2200 3500 2200 4500);"/>
+                                                  <Edge cubics="!2200 4500(;2200,4500 800,4500 800,4500q2200 4500 800 4500);"/>
+                                                  <Edge cubics="!800 4500(;800,4500 800,3500 800,3500q800 4500 800 3500);"/>
+                                                  <Edge cubics="!800 3500(;800,3500 2200,3500 2200,3500q800 3500 2200 3500);"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 4" color="#FF4FFF">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <SolidStroke scaleMode="normal" caps="none" weight="20">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </SolidStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!7200 2305/7990 895!7990 895/8200 2305"/>
+                                                  <Edge cubics="!7200 2305(7200,2305;7200,2305 7990,895 7990,895q7200 2305 7990 895);"/>
+                                                  <Edge cubics="!7990 895(;7990,895 8200,2305 8200,2305q7990 895 8200 2305)8200,2305;"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 3" color="#FF800A">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <SolidStroke scaleMode="normal" caps="square" weight="20">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </SolidStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!4800 2305/5590 895!5590 895/5800 2305"/>
+                                                  <Edge cubics="!4800 2305(4800,2305;4800,2305 5590,895 5590,895q4800 2305 5590 895);"/>
+                                                  <Edge cubics="!5590 895(;5590,895 5800,2305 5800,2305q5590 895 5800 2305)5800,2305;"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 2" color="#9933CC">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements>
+                                        <DOMShape>
+                                             <strokes>
+                                                  <StrokeStyle index="1">
+                                                       <SolidStroke scaleMode="normal" weight="5.5">
+                                                            <fill>
+                                                                 <SolidColor color="#FF0000"/>
+                                                            </fill>
+                                                       </SolidStroke>
+                                                  </StrokeStyle>
+                                             </strokes>
+                                             <edges>
+                                                  <Edge strokeStyle="1" edges="!4000 2500|2600 2500!2600 2500|2600 1500!2600 1500|4000 1500!4000 1500|4000 2500"/>
+                                                  <Edge cubics="!4000 1500(;4000,1500 4000,2500 4000,2500q4000 1500 4000 2500);"/>
+                                                  <Edge cubics="!2600 2500(2600,2500;2600,2500 2600,1500 2600,1500q2600 2500 2600 1500);"/>
+                                                  <Edge cubics="!2600 1500(;2600,1500 4000,1500 4000,1500q2600 1500 4000 1500);"/>
+                                                  <Edge cubics="!4000 2500(;4000,2500 2600,2500 2600,2500q4000 2500 2600 2500);"/>
+                                             </edges>
+                                        </DOMShape>
+                                   </elements>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+                    <DOMLayer name="Layer 1" color="#4FFF4F">
                          <frames>
                               <DOMFrame index="0" keyMode="9728">
                                    <elements>
@@ -15,167 +481,9 @@
                                                             </fill>
                                                        </SolidStroke>
                                                   </StrokeStyle>
-                                                  <StrokeStyle index="2">
-                                                       <SolidStroke scaleMode="normal" weight="5.5">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </SolidStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="3">
-                                                       <SolidStroke scaleMode="normal" caps="square" weight="20">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </SolidStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="4">
-                                                       <SolidStroke scaleMode="normal" weight="20" joints="bevel">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </SolidStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="5">
-                                                       <SolidStroke scaleMode="normal" weight="20" joints="miter">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </SolidStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="6">
-                                                       <SolidStroke scaleMode="normal" weight="20" joints="miter" miterLimit="1.5">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </SolidStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="7">
-                                                       <DashedStroke dash1="10" dash2="12" scaleMode="normal" weight="5.5">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </DashedStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="8">
-                                                       <DottedStroke scaleMode="normal" weight="5.5" dotSpace="8">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </DottedStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="9">
-                                                       <RaggedStroke scaleMode="normal" weight="5.5" pattern="random dotted" waveHeight="very wavy" waveLength="medium">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </RaggedStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="10">
-                                                       <SolidStroke scaleMode="normal" weight="5.5" sharpCorners="true">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </SolidStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="11">
-                                                       <StippleStroke scaleMode="normal" weight="5.5" dotSize="medium" variation="random sizes" density="very sparse">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </StippleStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="12">
-                                                       <HatchedStroke scaleMode="normal" weight="5.5" curve="medium curve" hatchThickness="medium" jiggle="loose" length="medium variation" rotate="slight" space="distant">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </HatchedStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="13">
-                                                       <SolidStroke scaleMode="normal" weight="20">
-                                                            <fill>
-                                                                 <LinearGradient>
-                                                                      <matrix>
-                                                                           <Matrix a="0.02301025390625" b="0.0287933349609375" c="-0.152603149414063" d="0.12188720703125" tx="295.95" ty="414.6"/>
-                                                                      </matrix>
-                                                                      <GradientEntry color="#00FF00" ratio="0.203921568627451"/>
-                                                                      <GradientEntry color="#FF0200" ratio="0.564705882352941"/>
-                                                                      <GradientEntry color="#FFFFB1" ratio="1"/>
-                                                                 </LinearGradient>
-                                                            </fill>
-                                                       </SolidStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="14">
-                                                       <SolidStroke scaleMode="normal" weight="20">
-                                                            <fill>
-                                                                 <RadialGradient spreadMethod="repeat" interpolationMethod="linearRGB">
-                                                                      <matrix>
-                                                                           <Matrix a="0.011932373046875" b="-0.001861572265625" c="0.0055389404296875" d="0.035675048828125" tx="440" ty="320"/>
-                                                                      </matrix>
-                                                                      <GradientEntry color="#00FF00" ratio="0.203921568627451"/>
-                                                                      <GradientEntry color="#FF0200" alpha="0.725490196078431" ratio="0.564705882352941"/>
-                                                                      <GradientEntry color="#FFFFB1" ratio="1"/>
-                                                                 </RadialGradient>
-                                                            </fill>
-                                                       </SolidStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="15">
-                                                       <SolidStroke scaleMode="horizontal" weight="5.5">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </SolidStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="16">
-                                                       <SolidStroke scaleMode="vertical" weight="5.5">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </SolidStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="17">
-                                                       <SolidStroke weight="5.5">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </SolidStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="18">
-                                                       <SolidStroke scaleMode="normal" weight="5.5" pixelHinting="true">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </SolidStroke>
-                                                  </StrokeStyle>
-                                                  <StrokeStyle index="19">
-                                                       <SolidStroke scaleMode="normal" caps="none" weight="20">
-                                                            <fill>
-                                                                 <SolidColor color="#FF0000"/>
-                                                            </fill>
-                                                       </SolidStroke>
-                                                  </StrokeStyle>
                                              </strokes>
                                              <edges>
-                                                  <Edge strokeStyle="3" edges="!5800 2400/6590 990!6590 990/6800 2400"/>
-                                                  <Edge strokeStyle="19" edges="!7800 2200/8590 790!8590 790/8800 2200"/>
-                                                  <Edge strokeStyle="13" edges="!7580 6100/7790 7510"/>
-                                                  <Edge strokeStyle="15" edges="!9590 6190|10190 6190!10190 6190|10190 6590!10190 6590|9590 6590!9590 6590|9590 6190"/>
-                                                  <Edge strokeStyle="17" edges="!9600 7400|10200 7400!10200 7400|10200 7800!10200 7800|9600 7800!9600 7800|9600 7400"/>
-                                                  <Edge strokeStyle="16" edges="!9600 6800|10200 6800!10200 6800|10200 7200!10200 7200|9600 7200!9600 7200|9600 6800"/>
-                                                  <Edge strokeStyle="14" edges="!8795 6095/9005 7505"/>
-                                                  <Edge strokeStyle="18" edges="!9700 5600|10300 5600!10300 5600|10300 6000!10300 6000|9700 6000!9700 6000|9700 5600"/>
-                                                  <Edge strokeStyle="6" edges="!9200 5210/9990 3800!9990 3800/10200 5210"/>
-                                                  <Edge strokeStyle="5" edges="!7500 5010/8290 3600!8290 3600/8500 5010"/>
-                                                  <Edge strokeStyle="2" edges="!4600 2600|3200 2600!3200 2600|3200 1600!3200 1600|4600 1600!4600 1600|4600 2600"/>
                                                   <Edge strokeStyle="1" edges="!2390 1590|2390 2590!2390 2590|990 2590!990 2590|990 1590!990 1590|2390 1590"/>
-                                                  <Edge strokeStyle="7" edges="!2400 5000|1000 5000!1000 5000|1000 4000!1000 4000|2400 4000!2400 4000|2400 5000"/>
-                                                  <Edge strokeStyle="10" edges="!500 6900|1900 6900!1900 6900|1900 7900!1900 7900|500 7900!500 7900|500 6900"/>
-                                                  <Edge strokeStyle="11" edges="!2500 6900|3900 6900!3900 6900|3900 7900!3900 7900|2500 7900!2500 7900|2500 6900"/>
-                                                  <Edge strokeStyle="8" edges="!1100 6600|1100 5600!1100 5600|2500 5600!2500 5600|2500 6600!2500 6600|1100 6600"/>
-                                                  <Edge strokeStyle="12" edges="!6000 7000|6000 8000!6000 8000|4600 8000!4600 8000|4600 7000!4600 7000|6000 7000"/>
-                                                  <Edge strokeStyle="9" edges="!3200 4900|3200 3900!3200 3900|4600 3900!4600 3900|4600 4900!4600 4900|3200 4900"/>
-                                                  <Edge strokeStyle="4" edges="!5400 5105/6190 3695!6190 3695/6400 5105"/>
                                                   <Edge cubics="!990 1590(;990,1590 2390,1590 2390,1590q990 1590 2390 1590);"/>
                                                   <Edge cubics="!2390 1590(;2390,1590 2390,2590 2390,2590q2390 1590 2390 2590);"/>
                                                   <Edge cubics="!2390 2590(;2390,2590 990,2590 990,2590q2390 2590 990 2590);"/>

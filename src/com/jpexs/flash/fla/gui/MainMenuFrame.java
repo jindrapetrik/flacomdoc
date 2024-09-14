@@ -20,6 +20,7 @@ package com.jpexs.flash.fla.gui;
 
 import com.jpexs.cfb.CompoundFileBinary;
 import com.jpexs.flash.fla.convertor.ContentsGenerator;
+import com.jpexs.flash.fla.convertor.FlaFormatVersion;
 import com.jpexs.flash.fla.convertor.streams.CfbOutputStorage;
 import com.jpexs.flash.fla.convertor.streams.DirectoryInputStorage;
 import com.jpexs.flash.fla.convertor.streams.InputStorageInterface;
@@ -28,6 +29,7 @@ import com.jpexs.flash.fla.convertor.streams.ZippedInputStorage;
 import java.awt.Container;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -60,26 +62,41 @@ public class MainMenuFrame extends JFrame {
         });
         setTitle("FLA ComDoc tools");
         Container cnt = getContentPane();
-        cnt.setLayout(new GridLayout(3, 1));
+        cnt.setLayout(new GridLayout(2, 2));
         
-        JButton convertButton = new JButton("Convert to CS4...");
-        convertButton.addActionListener(this::convertActionPerformed);
+        JButton convertCs4Button = new JButton("Convert to CS4...");
+        convertCs4Button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                convert(FlaFormatVersion.CS4);
+            }
+        }
+        );
+        JButton convertCs3Button = new JButton("Convert to CS3...");
+        convertCs3Button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                convert(FlaFormatVersion.CS3);
+            }
+        }
+        );
         JButton extractButton = new JButton("Extract FLA ComDoc...");
         extractButton.addActionListener(this::extractActionPerformed);
         JButton exitButton = new JButton("Exit");
         exitButton.addActionListener(this::exitActionPerformed);
         
-        cnt.add(convertButton);
+        cnt.add(convertCs4Button);
+        cnt.add(convertCs3Button);
         cnt.add(extractButton);
         cnt.add(exitButton);
         
         Gui.setWindowIcon(this);
-        setSize(400, 300);
+        setSize(400, 200);
         Gui.centerScreen(this);
     }
        
     
-    private void convertActionPerformed(ActionEvent e) {
+    private void convert(FlaFormatVersion flaFormatVersiond) {        
         JFileChooser ch = new JFileChooser(Gui.getConfigByKey(KEY_CONVERT_SRC_DIR, ""));        
         ch.setDialogTitle("Select source CS5+ document");
         ch.setFileFilter(new FileFilter() {
@@ -116,7 +133,7 @@ public class MainMenuFrame extends JFrame {
 
             @Override
             public String getDescription() {
-                return "FLA document CS4 (*.fla)";
+                return "FLA document " + flaFormatVersiond + " (*.fla)";
             }            
         });
         
@@ -143,7 +160,7 @@ public class MainMenuFrame extends JFrame {
             OutputStorageInterface outputStorage = new CfbOutputStorage(outputFile);
 
             ContentsGenerator contentsGenerator = new ContentsGenerator();
-            contentsGenerator.generate(inputStorage, outputStorage);
+            contentsGenerator.generate(inputStorage, outputStorage, flaFormatVersiond);
             
             inputStorage.close();
             outputStorage.close();

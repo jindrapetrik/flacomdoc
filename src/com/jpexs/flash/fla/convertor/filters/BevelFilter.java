@@ -18,7 +18,7 @@
  */
 package com.jpexs.flash.fla.convertor.filters;
 
-import com.jpexs.flash.fla.convertor.FlaCs4Writer;
+import com.jpexs.flash.fla.convertor.FlaWriter;
 import java.awt.Color;
 import java.io.IOException;
 
@@ -111,7 +111,7 @@ public class BevelFilter implements FilterInterface {
     }
 
     @Override
-    public void write(FlaCs4Writer os) throws IOException {
+    public void write(FlaWriter os) throws IOException {
         os.write(new byte[]{
             (byte) 0x03, (byte) 0x03,
             (byte) 0x04, (byte) 0x01,

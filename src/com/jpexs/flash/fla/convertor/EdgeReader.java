@@ -68,9 +68,9 @@ public class EdgeReader {
     }
 
     public static void main(String[] args) throws IOException {
-        File file = new File("testdata\\fla\\cs4\\...");
+        File file = new File("c:\\Dropbox\\Programovani\\JavaSE\\FlaComDoc\\testdata\\fla\\cs3\\0003_fills\\P 2 1726169870");
         FileInputStream fis = new FileInputStream(file);
-        fis.skip(523);
+        fis.skip(515);
         double x = 0;
         double y = 0;
         boolean first = true;
@@ -79,7 +79,7 @@ public class EdgeReader {
         while (fis.available() > 0) {
             int flags = fis.read();
 
-            if ((flags & FlaCs4Writer.FLAG_EDGE_NO_SELECTION) == FlaCs4Writer.FLAG_EDGE_NO_SELECTION) {
+            if ((flags & FlaWriter.FLAG_EDGE_NO_SELECTION) == FlaWriter.FLAG_EDGE_NO_SELECTION) {
                 int stroke = fis.read();
                 int fs0 = fis.read();
                 int fs1 = fis.read();
@@ -109,19 +109,19 @@ public class EdgeReader {
                 System.out.print("edges=\"");
             }
             sb.append("0x").append(Integer.toHexString(flags)).append(" ");
-            if ((flags & FlaCs4Writer.FLAG_EDGE_FROM_SHORT) == FlaCs4Writer.FLAG_EDGE_FROM_SHORT) {
+            if ((flags & FlaWriter.FLAG_EDGE_FROM_SHORT) == FlaWriter.FLAG_EDGE_FROM_SHORT) {
                 x += readShort(fis);
                 y += readShort(fis);
                 sb.append(" from short ").append(doubleToStr(x)).append(" ").append(doubleToStr(y));
 
                 //System.out.print("!" + doubleToStr(x) + " " + doubleToStr(y));
-            } else if ((flags & FlaCs4Writer.FLAG_EDGE_FROM_BYTE) == FlaCs4Writer.FLAG_EDGE_FROM_BYTE) {
+            } else if ((flags & FlaWriter.FLAG_EDGE_FROM_BYTE) == FlaWriter.FLAG_EDGE_FROM_BYTE) {
                 x += readByte(fis);
                 y += readByte(fis);
                 sb.append(" from byte ").append(doubleToStr(x)).append(" ").append(doubleToStr(y));
 
                 //System.out.print("!" + doubleToStr(x) + " " + doubleToStr(y));
-            } else if ((flags & FlaCs4Writer.FLAG_EDGE_FROM_FLOAT) == FlaCs4Writer.FLAG_EDGE_FROM_FLOAT) {
+            } else if ((flags & FlaWriter.FLAG_EDGE_FROM_FLOAT) == FlaWriter.FLAG_EDGE_FROM_FLOAT) {
                 x += readFloat(fis);
                 y += readFloat(fis);
                 sb.append(" from float ").append(doubleToStr(x)).append(" ").append(doubleToStr(y));
@@ -129,25 +129,25 @@ public class EdgeReader {
                 sb.append(" from none");
             }
 
-            //if ((flags & FlaCs4Writer.FLAG_EDGE_FROM_MASK) > 0) {
+            //if ((flags & FlaWriter.FLAG_EDGE_FROM_MASK) > 0) {
             edges.add("!" + doubleToStr(x) + " " + doubleToStr(y));
             //}
 
             boolean hasControl = false;
-            if ((flags & FlaCs4Writer.FLAG_EDGE_CONTROL_SHORT) == FlaCs4Writer.FLAG_EDGE_CONTROL_SHORT) {
+            if ((flags & FlaWriter.FLAG_EDGE_CONTROL_SHORT) == FlaWriter.FLAG_EDGE_CONTROL_SHORT) {
                 double cx = x + readShort(fis);
                 double cy = y + readShort(fis);
                 edges.add("[" + doubleToStr(cx) + " " + doubleToStr(cy));
                 hasControl = true;
                 sb.append(" control short ").append(doubleToStr(cx)).append(" ").append(doubleToStr(cy));
 
-            } else if ((flags & FlaCs4Writer.FLAG_EDGE_CONTROL_BYTE) == FlaCs4Writer.FLAG_EDGE_CONTROL_BYTE) {
+            } else if ((flags & FlaWriter.FLAG_EDGE_CONTROL_BYTE) == FlaWriter.FLAG_EDGE_CONTROL_BYTE) {
                 double cx = x + readByte(fis);
                 double cy = y + readByte(fis);
                 edges.add("[" + doubleToStr(cx) + " " + doubleToStr(cy));
                 hasControl = true;
                 sb.append(" control byte ").append(doubleToStr(cx)).append(" ").append(doubleToStr(cy));
-            } else if ((flags & FlaCs4Writer.FLAG_EDGE_CONTROL_FLOAT) == FlaCs4Writer.FLAG_EDGE_CONTROL_FLOAT) {
+            } else if ((flags & FlaWriter.FLAG_EDGE_CONTROL_FLOAT) == FlaWriter.FLAG_EDGE_CONTROL_FLOAT) {
                 double cx = x + readFloat(fis);
                 double cy = y + readFloat(fis);
                 edges.add("[" + doubleToStr(cx) + " " + doubleToStr(cy));
@@ -157,7 +157,7 @@ public class EdgeReader {
                 sb.append(" control none");
             }
 
-            if ((flags & FlaCs4Writer.FLAG_EDGE_TO_SHORT) == FlaCs4Writer.FLAG_EDGE_TO_SHORT) {
+            if ((flags & FlaWriter.FLAG_EDGE_TO_SHORT) == FlaWriter.FLAG_EDGE_TO_SHORT) {
                 x += readShort(fis);
                 y += readShort(fis);
                 String prefix = "";
@@ -166,7 +166,7 @@ public class EdgeReader {
                 }
                 edges.add(prefix + doubleToStr(x) + " " + doubleToStr(y));
                 sb.append(" to short ").append(doubleToStr(x)).append(" ").append(doubleToStr(y));
-            } else if ((flags & FlaCs4Writer.FLAG_EDGE_TO_BYTE) == FlaCs4Writer.FLAG_EDGE_TO_BYTE) {
+            } else if ((flags & FlaWriter.FLAG_EDGE_TO_BYTE) == FlaWriter.FLAG_EDGE_TO_BYTE) {
                 x += readByte(fis);
                 y += readByte(fis);
                 String prefix = "";
@@ -175,7 +175,7 @@ public class EdgeReader {
                 }
                 edges.add(prefix + doubleToStr(x) + " " + doubleToStr(y));
                 sb.append(" to byte ").append(doubleToStr(x)).append(" ").append(doubleToStr(y));
-            } else if ((flags & FlaCs4Writer.FLAG_EDGE_TO_FLOAT) == FlaCs4Writer.FLAG_EDGE_TO_FLOAT) {
+            } else if ((flags & FlaWriter.FLAG_EDGE_TO_FLOAT) == FlaWriter.FLAG_EDGE_TO_FLOAT) {
                 x += readFloat(fis);
                 y += readFloat(fis);
                 String prefix = "";
