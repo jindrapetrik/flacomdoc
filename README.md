@@ -21,10 +21,13 @@ And graphics user interface (GUI) will show up where you can do the conversion a
 
 ## Commandline usage
 
-To convert CS5+ FLA/XFL to CS4:
+To convert CS5+ FLA/XFL to lower:
 ```
-java -jar flacomdoc.jar convert inputfile.fla/xfl outputfile.fla
+java -jar flacomdoc.jar convert [--format <format>] inputfile.fla/xfl outputfile.fla
 ```
+
+For `--format` option you can choose `CS4` or `CS3`.
+
 
 To extract CS4 and lower FLA (ComDoc format):
 
