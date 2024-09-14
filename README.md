@@ -4,7 +4,7 @@
 This project has following goals:
  * Provide tool for extracting Flash binary FLA format CS4 and lower
  * Allow conversion of XFL FLA format CS5+ to binary FLA format CS4 or lower
- * Use this as a library in [JPEXS Free Flash Decompiler](https://github.com/jindrapetrik/jpexs-decompiler) to export to FLA CS4
+ * Use this as a library in [JPEXS Free Flash Decompiler](https://github.com/jindrapetrik/jpexs-decompiler) to export to FLA CS4 or lower
 
 ## How to compile
 The directory contains Netbeans project which you can open and then build here.
