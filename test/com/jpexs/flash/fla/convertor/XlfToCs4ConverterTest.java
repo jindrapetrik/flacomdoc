@@ -235,7 +235,7 @@ public class XlfToCs4ConverterTest {
 
     //@Test
     public void mytest() throws Exception {
-        //testConvertCs3("0017_classictween");
+        //testConvertCs4("0027_groups");
     }
 
     private static void deleteDir(File f) throws IOException {

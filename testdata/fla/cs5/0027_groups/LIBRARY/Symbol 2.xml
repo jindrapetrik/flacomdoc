@@ -1,0 +1,43 @@
+<DOMSymbolItem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://ns.adobe.com/xfl/2008/" name="Symbol 2" itemID="66e6b52e-0000025f" sourceLibraryItemHRef="Symbol 2" lastModified="1726395694">
+  <timeline>
+    <DOMTimeline name="Symbol 2">
+      <layers>
+        <DOMLayer name="Layer 1" color="#4FFF4F" current="true" isSelected="true">
+          <frames>
+            <DOMFrame index="0" keyMode="9728">
+              <elements>
+                <DOMShape>
+                  <fills>
+                    <FillStyle index="1">
+                      <SolidColor color="#FF9900"/>
+                    </FillStyle>
+                  </fills>
+                  <strokes>
+                    <StrokeStyle index="1">
+                      <SolidStroke scaleMode="normal">
+                        <fill>
+                          <SolidColor/>
+                        </fill>
+                      </SolidStroke>
+                    </StrokeStyle>
+                  </strokes>
+                  <edges>
+                    <Edge fillStyle1="1" strokeStyle="1" edges="!973 973S6[806 1140 570 1140!570 1140[334 1140 167 973!167 973[0 806 0 570!0 570[0 334 167 167!167 167[334 0 570 0!570 0[806 0 973 167!973 167[1140 334 1140 570!1140 570[1140 806 973 973"/>
+                    <Edge cubics="!167 167(;278,56 413,0 570,0q167 167Q334 0q570 0)570,0;"/>
+                    <Edge cubics="!0 570(0,570;0,413 56,278 167,167q0 570Q0 334q167 167)167,167;"/>
+                    <Edge cubics="!973 167(;1084,278 1140,413 1140,570q973 167Q1140 334q1140 570)1140,570;"/>
+                    <Edge cubics="!570 0(;727,0 862,56 973,167q570 0Q806 0q973 167);"/>
+                    <Edge cubics="!570 1140(;413,1140 278,1084 167,973q570 1140Q334 1140q167 973);"/>
+                    <Edge cubics="!973 973(;862,1084 727,1140 570,1140q973 973Q806 1140q570 1140);"/>
+                    <Edge cubics="!167 973(;56,862 0,727 0,570q167 973Q0 806q0 570);"/>
+                    <Edge cubics="!1140 570(;1140,727 1084,862 973,973q1140 570Q1140 806q973 973);"/>
+                  </edges>
+                </DOMShape>
+              </elements>
+            </DOMFrame>
+          </frames>
+        </DOMLayer>
+      </layers>
+    </DOMTimeline>
+  </timeline>
+</DOMSymbolItem>

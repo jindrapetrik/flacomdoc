@@ -251,7 +251,8 @@ public class PageGenerator extends AbstractGenerator {
             FlaWriter fg,
             Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
         useClass("CPicVideoStream", fg, definedClasses, totalObjectCount);
-        instanceHeader(videoInstance, fg, 0x04);
+        fg.write(0x05);
+        instanceHeader(videoInstance, fg, 0x04, true);
 
         long frameLeft = 0;
         if (videoInstance.hasAttribute("frameLeft")) {
@@ -337,43 +338,89 @@ public class PageGenerator extends AbstractGenerator {
         }
 
         useClass("CPicBitmap", fg, definedClasses, totalObjectCount);
-        instanceHeader(bitmapInstance, fg, 0x02);
+        fg.write(0x05);
+        instanceHeader(bitmapInstance, fg, 0x02, true);
         fg.writeUI16(bitmapId);
         fg.write(0x00);
     }
 
-    protected void handleElements(Element elementsNode,
+    protected void handleGroup(Element element,
+            FlaWriter fg,
+            Map<String, Integer> definedClasses,
+            Reference<Integer> totalObjectCount,
+            Reference<Integer> copiedComponentPathRef,
+            FlaFormatVersion flaFormatVersion,
+            boolean motionTweenEnd
+    ) throws IOException {
+        Element membersElement = getSubElementByName(element, "members");
+        if (membersElement != null) {
+            List<Element> members = getAllSubElements(membersElement);
+            useClass("CPicShape", fg, definedClasses, totalObjectCount);
+            fg.write(0x05);
+            boolean selected = false;
+            if (element.hasAttribute("selected")) {
+                selected = "true".equals(element.getAttribute("selected"));
+            }
+            boolean locked = false;
+            if (element.hasAttribute("locked")) {
+                locked = "true".equals(element.getAttribute("locked"));
+            }
+            fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00));
+            handleElements(members, fg, definedClasses, totalObjectCount, copiedComponentPathRef, flaFormatVersion, motionTweenEnd);
+        }
+    }
+
+    protected void handleElements(List<Element> elements,
             FlaWriter fg,
             Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
             FlaFormatVersion flaFormatVersion,
             boolean motionTweenEnd
     ) throws IOException {
-        if (elementsNode == null) {
-            return;
-        }
-        List<Element> instances = getAllSubElements(elementsNode);
-        for (int instanceIndex = 0; instanceIndex < instances.size(); instanceIndex++) {
-            Element instance = instances.get(instanceIndex);
-            switch (instance.getTagName()) {
+        for (int instanceIndex = 0; instanceIndex < elements.size(); instanceIndex++) {
+            Element element = elements.get(instanceIndex);
+            switch (element.getTagName()) {
                 case "DOMSymbolInstance":
-                    handleSymbolInstance(instance, fg, definedClasses, totalObjectCount, copiedComponentPathRef, flaFormatVersion, motionTweenEnd);
+                    handleSymbolInstance(element, fg, definedClasses, totalObjectCount, copiedComponentPathRef, flaFormatVersion, motionTweenEnd);
                     break;
                 case "DOMBitmapInstance":
-                    handleBitmapInstance(instance, fg, definedClasses, totalObjectCount);
+                    handleBitmapInstance(element, fg, definedClasses, totalObjectCount);
                     break;
                 case "DOMVideoInstance":
-                    handleVideoInstance(instance, fg, definedClasses, totalObjectCount);
+                    handleVideoInstance(element, fg, definedClasses, totalObjectCount);
                     break;
                 case "DOMStaticText":
                 case "DOMDynamicText":
                 case "DOMInputText":
-                    handleText(instance, fg, definedClasses, totalObjectCount, flaFormatVersion);
+                    handleText(element, fg, definedClasses, totalObjectCount, flaFormatVersion);
                     break;
                 case "DOMTLFText":
                     Logger.getLogger(PageGenerator.class.getName()).warning("DOMTLFText element is not supported");
                     break;
+                case "DOMGroup":
+                    handleGroup(element, fg, definedClasses, totalObjectCount, copiedComponentPathRef, flaFormatVersion, motionTweenEnd);
+                    break;
             }
+        }
+
+        boolean hasShape = false;
+        for (int e = 0; e < elements.size(); e++) {
+            Element element = elements.get(e);
+            if ("DOMShape".equals(element.getNodeName())) {
+                handleShape(element, fg, false, definedClasses, totalObjectCount);
+                hasShape = true;
+                break;
+            }
+        }
+
+        if (!hasShape) {
+            instanceHeader(null, fg, 0x06, false);
+            fg.write(0x05);
+            fg.writeUI32(0); //totalEdgeCount
+            fg.write(0x00, 0x00); //fillStyleCount
+            fg.write(0x00, 0x00); //strokeStyleCount
+            fg.write(0x00); //??
+            fg.writeUI32(0); //totalCubicsCount                                    
         }
     }
 
@@ -716,12 +763,12 @@ public class PageGenerator extends AbstractGenerator {
         if (symbolInstance.hasAttribute("centerPoint3DY")) {
             centerPoint3DY = Double.parseDouble(symbolInstance.getAttribute("centerPoint3DY"));
         }
-        
+
         double centerPoint3DZ = 0;
         if (symbolInstance.hasAttribute("centerPoint3DZ")) {
             centerPoint3DZ = Double.parseDouble(symbolInstance.getAttribute("centerPoint3DZ"));
         }
-        
+
         ColorEffectInterface colorEffect = new NoColorEffect();
 
         Element colorElement = getSubElementByName(symbolInstance, "color");
@@ -832,7 +879,8 @@ public class PageGenerator extends AbstractGenerator {
         long centerPoint3DYLong = Math.round(centerPoint3DY * 20);
         long centerPoint3DZLong = Math.round(centerPoint3DZ * 20);
 
-        instanceHeader(symbolInstance, fg, flaFormatVersion.getSymbolType());
+        fg.write(0x05);
+        instanceHeader(symbolInstance, fg, flaFormatVersion.getSymbolType(), true);
 
         fg.write((firstFrame & 0xFF), ((firstFrame >> 8) & 0xFF));
         switch (symbolType) {
@@ -902,11 +950,11 @@ public class PageGenerator extends AbstractGenerator {
                 0x00);
 
         if (flaFormatVersion == FlaFormatVersion.CS4) {
-            float[] matrix3D = new float[] {
-                1,0,0,0,
-                0,1,0,0,
-                0,0,1,0,
-                0,0,0,1
+            float[] matrix3D = new float[]{
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
             };
             if (symbolInstance.hasAttribute("matrix3D")) {
                 String matrix3DStr = symbolInstance.getAttribute("matrix3D");
@@ -915,15 +963,15 @@ public class PageGenerator extends AbstractGenerator {
                     Logger.getLogger(PageGenerator.class.getName()).warning("matrix3D attribute has incorrect number of parts");
                 } else {
                     for (int i = 0; i < 16; i++) {
-                        matrix3D[i] = Float.parseFloat(matrixParts[i]);                       
+                        matrix3D[i] = Float.parseFloat(matrixParts[i]);
                     }
                 }
             }
-            
+
             for (int i = 0; i < 16; i++) {
                 fg.writeFloat(matrix3D[i]);
             }
-            
+
             double rotationX = 0;
             if (symbolInstance.hasAttribute("rotationX")) {
                 rotationX = Double.parseDouble(symbolInstance.getAttribute("rotationX"));
@@ -936,11 +984,11 @@ public class PageGenerator extends AbstractGenerator {
             if (symbolInstance.hasAttribute("rotationZ")) {
                 rotationZ = Double.parseDouble(symbolInstance.getAttribute("rotationZ"));
             }
-            
+
             fg.writeDouble(rotationX);
             fg.writeDouble(rotationY);
             fg.writeDouble(rotationZ);
-                        
+
             if (symbolType != FlaWriter.SYMBOLTYPE_MOVIE_CLIP) {
                 fg.write(
                         0x00, 0x00, 0x00, 0x80,
@@ -951,9 +999,9 @@ public class PageGenerator extends AbstractGenerator {
                         (int) (centerPoint3DYLong & 0xFF), (int) ((centerPoint3DYLong >> 8) & 0xFF), (int) ((centerPoint3DYLong >> 16) & 0xFF), (int) ((centerPoint3DYLong >> 24) & 0xFF)
                 );
             }
-            
+
             fg.write(
-                        (int) (centerPoint3DZLong & 0xFF), (int) ((centerPoint3DZLong >> 8) & 0xFF), (int) ((centerPoint3DZLong >> 16) & 0xFF), (int) ((centerPoint3DZLong >> 24) & 0xFF)
+                    (int) (centerPoint3DZLong & 0xFF), (int) ((centerPoint3DZLong >> 8) & 0xFF), (int) ((centerPoint3DZLong >> 16) & 0xFF), (int) ((centerPoint3DZLong >> 24) & 0xFF)
             );
 
             fg.write(0x00, 0x00);
@@ -997,22 +1045,22 @@ public class PageGenerator extends AbstractGenerator {
         fg.writeLenUnicodeString(componentTxt);
     }
 
-    private void instanceHeader(Element element, FlaWriter fg, int instanceType) throws IOException {
+    private void instanceHeader(Element element, FlaWriter fg, int instanceType, boolean isInstance) throws IOException {
 
         Matrix placeMatrix = parseMatrix(getSubElementByName(element, "matrix"));
 
         boolean selected = false;
-        if (element.hasAttribute("selected")) {
+        if (element != null && element.hasAttribute("selected")) {
             selected = "true".equals(element.getAttribute("selected"));
         }
 
         boolean locked = false;
-        if (element.hasAttribute("locked")) {
+        if (element != null && element.hasAttribute("locked")) {
             locked = "true".equals(element.getAttribute("locked"));
         }
 
         boolean cacheAsBitmap = false;
-        if ("DOMSymbolInstance".equals(element.getTagName()) && element.hasAttribute("cacheAsBitmap")) {
+        if (element != null && "DOMSymbolInstance".equals(element.getTagName()) && element.hasAttribute("cacheAsBitmap")) {
             cacheAsBitmap = "true".equals(element.getAttribute("cacheAsBitmap"));
         }
 
@@ -1029,9 +1077,10 @@ public class PageGenerator extends AbstractGenerator {
             }
         }
 
-        fg.write(0x05);
-        fg.write(
-                (selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00), 0x00, 0x00);
+        if (isInstance) {
+            fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00));
+        }
+        fg.write(0x00, 0x00);
         if (transformationPointX == null) {
             fg.write(0x00, 0x00, 0x00, 0x80);
             fg.write(0x00, 0x00, 0x00, 0x80);
@@ -1249,7 +1298,8 @@ public class PageGenerator extends AbstractGenerator {
 
             //orientation="vertical right to left", "vertical left to right"
             //fontRenderingMode="device" , "bitmap", "standard", "customThicknessSharpness"
-            instanceHeader(element, fg, flaFormatVersion.getTextVersion());
+            fg.write(0x05);
+            instanceHeader(element, fg, flaFormatVersion.getTextVersion(), true);
             fg.writeUI32((int) Math.round(left * 20));
             fg.writeUI32((int) Math.round((left + width) * 20));
             fg.writeUI32((int) Math.round(top * 20));
@@ -1737,6 +1787,348 @@ public class PageGenerator extends AbstractGenerator {
         }
     }
 
+    private void handleShape(Element element, FlaWriter fg, boolean inGroup, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
+        instanceHeader(element, fg, 0x06, false);
+        fg.write(0x05);
+        Node fillsNode = getSubElementByName(element, "fills");
+        List<Element> fillStyles = new ArrayList<>();
+        if (fillsNode != null) {
+            fillStyles = getAllSubElementsByName(fillsNode, "FillStyle");
+        }
+
+        Comparator<Node> indexComparator = new Comparator<Node>() {
+            @Override
+            public int compare(Node o1, Node o2) {
+                Node indexAttr1Node = o1.getAttributes().getNamedItem("index");
+                int index1 = 0;
+                if (indexAttr1Node != null) {
+                    index1 = Integer.parseInt(indexAttr1Node.getTextContent());
+                }
+                Node indexAttr2Node = o2.getAttributes().getNamedItem("index");
+                int index2 = 0;
+                if (indexAttr2Node != null) {
+                    index2 = Integer.parseInt(indexAttr2Node.getTextContent());
+                }
+                return index1 - index2;
+            }
+        };
+
+        fillStyles.sort(indexComparator);
+        Node strokesNode = getSubElementByName(element, "strokes");
+        List<Element> strokeStyles = new ArrayList<>();
+        if (strokesNode != null) {
+            strokeStyles = getAllSubElementsByName(strokesNode, "StrokeStyle");
+        }
+        strokeStyles.sort(indexComparator);
+
+        Node edgesNode = getSubElementByName(element, "edges");
+        List<Element> edges = new ArrayList<>();
+        if (edgesNode != null) {
+            edges = getAllSubElementsByName(edgesNode, "Edge");
+        }
+
+        int totalEdgeCount = 0;
+
+        for (Element edge : edges) {
+            if (edge.hasAttribute("edges")) {
+                totalEdgeCount += FlaWriter.getEdgesCount(edge.getAttribute("edges"));
+            }
+        }
+
+        fg.writeUI32(totalEdgeCount);
+        fg.write(fillStyles.size(), 0x00);
+        for (Node fillStyle : fillStyles) {
+            Node fillStyleVal = getFirstSubElement(fillStyle);
+            handleFill(fillStyleVal, fg);
+        }
+        fg.write(strokeStyles.size(), 0x00);
+        for (Node strokeStyle : strokeStyles) {
+            Node strokeStyleVal = getFirstSubElement(strokeStyle);
+            int scaleMode = FlaWriter.SCALEMODE_NONE;
+
+            double weight = 1.0;
+            Node weightAttr = strokeStyleVal.getAttributes().getNamedItem("weight");
+            if (weightAttr != null) {
+                weight = Double.parseDouble(weightAttr.getTextContent());
+            }
+
+            float miterLimit = 3f;
+            Node miterLimitAttr = strokeStyleVal.getAttributes().getNamedItem("miterLimit");
+            if (miterLimitAttr != null) {
+                miterLimit = Float.parseFloat(miterLimitAttr.getTextContent());
+            }
+
+            int styleParam1 = 0;
+            int styleParam2 = 0;
+
+            int joints = FlaWriter.JOINSTYLE_ROUND;
+            int caps = FlaWriter.CAPSTYLE_ROUND;
+            boolean pixelHinting = false;
+            Node pixelHintingAttr = strokeStyleVal.getAttributes().getNamedItem("pixelHinting");
+            if (pixelHintingAttr != null) {
+                if ("true".equals(pixelHintingAttr.getTextContent())) {
+                    pixelHinting = true;
+                }
+            }
+
+            Node scaleModeAttr = strokeStyleVal.getAttributes().getNamedItem("scaleMode");
+            if (scaleModeAttr != null) {
+                if ("normal".equals(scaleModeAttr.getTextContent())) {
+                    scaleMode = FlaWriter.SCALEMODE_NORMAL;
+                }
+                if ("horizontal".equals(scaleModeAttr.getTextContent())) {
+                    scaleMode = FlaWriter.SCALEMODE_HORIZONTAL;
+                }
+                if ("vertical".equals(scaleModeAttr.getTextContent())) {
+                    scaleMode = FlaWriter.SCALEMODE_VERTICAL;
+                }
+            }
+
+            switch (strokeStyleVal.getNodeName()) {
+                case "SolidStroke":
+                    styleParam1 = 0;
+                    styleParam2 = 0;
+
+                    Node capsAttr = strokeStyleVal.getAttributes().getNamedItem("caps");
+                    if (capsAttr != null) {
+                        if ("none".equals(capsAttr.getTextContent())) {
+                            caps = FlaWriter.CAPSTYLE_NONE;
+                        }
+                        if ("square".equals(capsAttr.getTextContent())) {
+                            caps = FlaWriter.CAPSTYLE_SQUARE;
+                        }
+                    }
+
+                    Node jointsAttr = strokeStyleVal.getAttributes().getNamedItem("joints");
+                    if (jointsAttr != null) {
+                        if ("bevel".equals(jointsAttr.getTextContent())) {
+                            joints = FlaWriter.JOINSTYLE_BEVEL;
+                        }
+                        if ("miter".equals(jointsAttr.getTextContent())) {
+                            joints = FlaWriter.JOINSTYLE_MITER;
+                        }
+                    }
+                    break;
+                case "DashedStroke":
+                    double dash1 = 6;
+                    double dash2 = 6;
+                    Node dash1Attr = strokeStyleVal.getAttributes().getNamedItem("dash1");
+                    if (dash1Attr != null) {
+                        dash1 = Double.parseDouble(dash1Attr.getTextContent());
+                    }
+                    Node dash2Attr = strokeStyleVal.getAttributes().getNamedItem("dash2");
+                    if (dash2Attr != null) {
+                        dash2 = Double.parseDouble(dash2Attr.getTextContent());
+                    }
+
+                    if (dash1 < 0.25 || dash1 > 300.0) {
+                        throw new IllegalArgumentException("DashedStroke.dash1 is invalid");
+                    }
+                    if (dash2 < 0.25 || dash2 > 300.0) {
+                        throw new IllegalArgumentException("DashedStroke.dash2 is invalid");
+                    }
+
+                    styleParam1 = (int) Math.round(dash1 * 20);
+                    styleParam2 = (int) Math.round(dash2 * 20);
+                    break;
+                case "DottedStroke":
+                    double dotSpace = 3;
+                    Node dotSpaceAttr = strokeStyleVal.getAttributes().getNamedItem("dotSpace");
+                    if (dotSpaceAttr != null) {
+                        dotSpace = Double.parseDouble(dotSpaceAttr.getTextContent());
+                    }
+                    if (dotSpace < 0.0 || dotSpace > 300.0) {
+                        throw new IllegalArgumentException("DottedStroke.dotSpace is invalid");
+                    }
+                    styleParam2 = (int) (0x10 * Math.round(dotSpace * 10) + 0x02);
+                    break;
+                case "RaggedStroke":
+                    int pattern = getAttributeAsInt(strokeStyleVal, "pattern", Arrays.asList("solid", "simple", "random", "dotted", "random dotted", "triple dotted", "random tripple dotted"), "simple");
+                    int waveHeight = getAttributeAsInt(strokeStyleVal, "waveHeight", Arrays.asList("flat", "wavy", "very wavy", "wild"), "wavy");
+                    int waveLength = getAttributeAsInt(strokeStyleVal, "waveLength", Arrays.asList("very short", "short", "medium", "long"), "short");
+                    styleParam2 = 0x08 * pattern + 0x40 * waveHeight + 0x100 * waveLength + 0x03;
+                    break;
+                case "StippleStroke":
+                    int dotSize = getAttributeAsInt(strokeStyleVal, "dotSize", Arrays.asList("tiny", "small", "medium", "large"), "small");
+                    int variation = getAttributeAsInt(strokeStyleVal, "variation", Arrays.asList("one size", "small variation", "varied sizes", "random sizes"), "varied sizes");
+                    int density = getAttributeAsInt(strokeStyleVal, "density", Arrays.asList("very dense", "dense", "sparse", "very sparse"), "sparse");
+
+                    styleParam2 = 0x08 * dotSize + 0x20 * variation + 0x80 * density + 0x04;
+                    break;
+                case "HatchedStroke":
+                    int hatchThickness = getAttributeAsInt(strokeStyleVal, "hatchThickness", Arrays.asList("hairline", "thin", "medium", "thick"), "hairline");
+                    int space = getAttributeAsInt(strokeStyleVal, "space", Arrays.asList("very close", "close", "distant", "very distant"), "distant");
+                    int jiggle = getAttributeAsInt(strokeStyleVal, "jiggle", Arrays.asList("none", "bounce", "loose", "wild"), "none");
+                    int rotate = getAttributeAsInt(strokeStyleVal, "rotate", Arrays.asList("none", "slight", "medium", "free"), "none");
+                    int curve = getAttributeAsInt(strokeStyleVal, "curve", Arrays.asList("straight", "slight curve", "medium curve", "very curved"), "straight");
+                    int length = getAttributeAsInt(strokeStyleVal, "length", Arrays.asList("equal", "slight variation", "medium variation", "random"), "equal");
+
+                    styleParam2 = 0x08 * hatchThickness
+                            + 0x20 * space
+                            + 0x200 * jiggle
+                            + 0x80 * rotate
+                            + 0x800 * curve
+                            + 0x2000 * length
+                            + 0x05;
+                    break;
+            }
+
+            Node sharpCornersAttr = strokeStyleVal.getAttributes().getNamedItem("sharpCorners");
+            if (sharpCornersAttr != null) {
+                if ("true".equals(sharpCornersAttr.getTextContent())) {
+                    styleParam2 += 0x8000;
+                }
+            }
+
+            Node fill = getSubElementByName(strokeStyleVal, "fill");
+            if (fill != null) {
+                Node fillStyleVal = getFirstSubElement(fill);
+                Color baseColor = new Color(0x00, 0x00, 0x00, debugRandom ? 'U' : 0x00);
+                if ("SolidColor".equals(fillStyleVal.getNodeName())) {
+                    baseColor = parseColorWithAlpha(fillStyleVal);
+                } else if ("BitmapFill".equals(fillStyleVal.getNodeName())) {
+                    baseColor = Color.red;
+                }
+
+                fg.writeStrokeBegin(baseColor, weight, pixelHinting, scaleMode, caps, joints, miterLimit, styleParam1, styleParam2);
+                handleFill(fillStyleVal, fg);
+            }
+        }
+        fg.beginShape();
+        for (Element edge : edges) {
+            int strokeStyle = 0;
+            int fillStyle0 = 0;
+            int fillStyle1 = 0;
+            Node strokeStyleAttr = edge.getAttributes().getNamedItem("strokeStyle");
+            if (strokeStyleAttr != null) {
+                strokeStyle = Integer.parseInt(strokeStyleAttr.getTextContent());
+            }
+            Node fillStyle0StyleAttr = edge.getAttributes().getNamedItem("fillStyle0");
+            if (fillStyle0StyleAttr != null) {
+                fillStyle0 = Integer.parseInt(fillStyle0StyleAttr.getTextContent());
+            }
+            Node fillStyle1StyleAttr = edge.getAttributes().getNamedItem("fillStyle1");
+            if (fillStyle1StyleAttr != null) {
+                fillStyle1 = Integer.parseInt(fillStyle1StyleAttr.getTextContent());
+            }
+            Node edgesAttrNode = edge.getAttributes().getNamedItem("edges");
+            if (edgesAttrNode != null) {
+                String edgesStr = edgesAttrNode.getTextContent();
+                fg.writeEdges(edgesStr, strokeStyle, fillStyle0, fillStyle1);
+            }
+        }
+
+        fg.write(0x00); //?
+
+        int totalCubicsCount = 0;
+
+        for (Element edge : edges) {
+            if (edge.hasAttribute("cubics")) {
+                totalCubicsCount++;
+            }
+        }
+
+        fg.writeUI32(totalCubicsCount);
+        for (Element edge : edges) {
+            if (edge.hasAttribute("cubics")) {
+                String cubics = edge.getAttribute("cubics");
+                Matcher cubicsMatcher = CUBICS_PATTERN.matcher(cubics);
+                if (!cubicsMatcher.matches()) {
+                    Logger.getLogger(PageGenerator.class.getName()).warning("Cubics pattern does not match for input string " + cubics);
+                    continue;
+                }
+                int mx = Integer.parseInt(cubicsMatcher.group("mx"));
+                int my = Integer.parseInt(cubicsMatcher.group("my"));
+                int x1 = Integer.parseInt(cubicsMatcher.group("x1"));
+                int y1 = Integer.parseInt(cubicsMatcher.group("y1"));
+                int x2 = Integer.parseInt(cubicsMatcher.group("x2"));
+                int y2 = Integer.parseInt(cubicsMatcher.group("y2"));
+                int ex = Integer.parseInt(cubicsMatcher.group("ex"));
+                int ey = Integer.parseInt(cubicsMatcher.group("ey"));
+
+                Integer pBCPx = null;
+                if (cubicsMatcher.group("pBCPx") != null) {
+                    pBCPx = Integer.parseInt(cubicsMatcher.group("pBCPx"));
+                }
+                Integer pBCPy = null;
+                if (cubicsMatcher.group("pBCPy") != null) {
+                    pBCPy = Integer.parseInt(cubicsMatcher.group("pBCPy"));
+                }
+                Integer nBCPx = null;
+                if (cubicsMatcher.group("nBCPx") != null) {
+                    nBCPx = Integer.parseInt(cubicsMatcher.group("nBCPx"));
+                }
+                Integer nBCPy = null;
+                if (cubicsMatcher.group("nBCPy") != null) {
+                    nBCPy = Integer.parseInt(cubicsMatcher.group("nBCPy"));
+                }
+
+                String xy = cubicsMatcher.group("xy");
+                Matcher m2 = CUBICS_XY_PATTERN.matcher(xy);
+                List<String> letterList = new ArrayList<>();
+                List<Integer> xList = new ArrayList<>();
+                List<Integer> yList = new ArrayList<>();
+                String lastLetter = "q";
+                while (m2.find()) {
+                    xList.add(Integer.parseInt(m2.group("x")));
+                    yList.add(Integer.parseInt(m2.group("y")));
+                    String letter = m2.group("letter");
+                    if (letter == null || letter.isEmpty()) {
+                        letter = lastLetter;
+                    }
+                    lastLetter = letter;
+                    letterList.add(letter);
+                }
+
+                fg.writeUI32(mx);
+                fg.writeUI32(my);
+                fg.writeUI32(x1);
+                fg.writeUI32(y1);
+                fg.writeUI32(x2);
+                fg.writeUI32(y2);
+                fg.writeUI32(ex);
+                fg.writeUI32(ey);
+                fg.write(letterList.size());
+                for (int i = 0; i < letterList.size(); i++) {
+                    fg.writeUI32(xList.get(i));
+                    fg.writeUI32(yList.get(i));
+                    switch (letterList.get(i)) {
+                        case "Q":
+                            fg.write(0x01, 0x00);
+                            break;
+                        case "q":
+                            fg.write(0x00, 0x00);
+                            break;
+                        case "P":
+                            fg.write(0x01, 0x01);
+                            break;
+                        case "p":
+                            fg.write(0x00, 0x01);
+                            break;
+                    }
+                }
+
+                int pnFlags = 0;
+                if (pBCPx != null) {
+                    pnFlags |= 1;
+                }
+                if (nBCPx != null) {
+                    pnFlags |= 2;
+                }
+                fg.write(pnFlags);
+                if (pBCPx != null) {
+                    fg.writeUI32(pBCPx);
+                    fg.writeUI32(pBCPy);
+                }
+                if (nBCPx != null) {
+                    fg.writeUI32(nBCPx);
+                    fg.writeUI32(nBCPy);
+                }
+            }
+        }
+
+    }
+
     private void writeLayerContents(
             Element layer,
             FlaWriter fg,
@@ -1776,371 +2168,19 @@ public class PageGenerator extends AbstractGenerator {
                 fg.write(0x00);
                 totalFramesCountRef.setVal(totalFramesCountRef.getVal() + 1);
                 Element frame = frames.get(f);
-
                 Element elementsNode = getSubElementByName(frame, "elements");
 
                 String tweenType = frame.getAttribute("tweenType");
 
-                handleElements(elementsNode, fg, definedClasses, totalObjectCount, copiedComponentPathRef, flaFormatVersion, prevTweenType.equals("motion"));
-
-                prevTweenType = tweenType;
                 List<Element> elements = new ArrayList<>();
                 if (elementsNode != null) {
                     elements = getAllSubElements(elementsNode);
-                }
-                fg.writeKeyFrameMiddle();
-                boolean emptyFrame = true;
-                for (int e = 0; e < elements.size(); e++) {
-                    Element element = elements.get(e);
-                    if ("DOMShape".equals(element.getNodeName())) {
-                        emptyFrame = false;
-                        Node fillsNode = getSubElementByName(element, "fills");
-                        List<Element> fillStyles = new ArrayList<>();
-                        if (fillsNode != null) {
-                            fillStyles = getAllSubElementsByName(fillsNode, "FillStyle");
-                        }
+                }                
 
-                        Comparator<Node> indexComparator = new Comparator<Node>() {
-                            @Override
-                            public int compare(Node o1, Node o2) {
-                                Node indexAttr1Node = o1.getAttributes().getNamedItem("index");
-                                int index1 = 0;
-                                if (indexAttr1Node != null) {
-                                    index1 = Integer.parseInt(indexAttr1Node.getTextContent());
-                                }
-                                Node indexAttr2Node = o2.getAttributes().getNamedItem("index");
-                                int index2 = 0;
-                                if (indexAttr2Node != null) {
-                                    index2 = Integer.parseInt(indexAttr2Node.getTextContent());
-                                }
-                                return index1 - index2;
-                            }
-                        };
+                handleElements(elements, fg, definedClasses, totalObjectCount, copiedComponentPathRef, flaFormatVersion, prevTweenType.equals("motion"));
 
-                        fillStyles.sort(indexComparator);
-                        Node strokesNode = getSubElementByName(element, "strokes");
-                        List<Element> strokeStyles = new ArrayList<>();
-                        if (strokesNode != null) {
-                            strokeStyles = getAllSubElementsByName(strokesNode, "StrokeStyle");
-                        }
-                        strokeStyles.sort(indexComparator);
+                prevTweenType = tweenType;
 
-                        Node edgesNode = getSubElementByName(element, "edges");
-                        List<Element> edges = new ArrayList<>();
-                        if (edgesNode != null) {
-                            edges = getAllSubElementsByName(edgesNode, "Edge");
-                        }
-
-                        int totalEdgeCount = 0;
-
-                        for (Element edge : edges) {
-                            if (edge.hasAttribute("edges")) {
-                                totalEdgeCount += FlaWriter.getEdgesCount(edge.getAttribute("edges"));
-                            }
-                        }
-
-                        fg.writeUI32(totalEdgeCount);
-                        fg.write(fillStyles.size(), 0x00);
-                        for (Node fillStyle : fillStyles) {
-                            Node fillStyleVal = getFirstSubElement(fillStyle);
-                            handleFill(fillStyleVal, fg);
-                        }
-                        fg.write(strokeStyles.size(), 0x00);
-                        for (Node strokeStyle : strokeStyles) {
-                            Node strokeStyleVal = getFirstSubElement(strokeStyle);
-                            int scaleMode = FlaWriter.SCALEMODE_NONE;
-
-                            double weight = 1.0;
-                            Node weightAttr = strokeStyleVal.getAttributes().getNamedItem("weight");
-                            if (weightAttr != null) {
-                                weight = Double.parseDouble(weightAttr.getTextContent());
-                            }
-
-                            float miterLimit = 3f;
-                            Node miterLimitAttr = strokeStyleVal.getAttributes().getNamedItem("miterLimit");
-                            if (miterLimitAttr != null) {
-                                miterLimit = Float.parseFloat(miterLimitAttr.getTextContent());
-                            }
-
-                            int styleParam1 = 0;
-                            int styleParam2 = 0;
-
-                            int joints = FlaWriter.JOINSTYLE_ROUND;
-                            int caps = FlaWriter.CAPSTYLE_ROUND;
-                            boolean pixelHinting = false;
-                            Node pixelHintingAttr = strokeStyleVal.getAttributes().getNamedItem("pixelHinting");
-                            if (pixelHintingAttr != null) {
-                                if ("true".equals(pixelHintingAttr.getTextContent())) {
-                                    pixelHinting = true;
-                                }
-                            }
-
-                            Node scaleModeAttr = strokeStyleVal.getAttributes().getNamedItem("scaleMode");
-                            if (scaleModeAttr != null) {
-                                if ("normal".equals(scaleModeAttr.getTextContent())) {
-                                    scaleMode = FlaWriter.SCALEMODE_NORMAL;
-                                }
-                                if ("horizontal".equals(scaleModeAttr.getTextContent())) {
-                                    scaleMode = FlaWriter.SCALEMODE_HORIZONTAL;
-                                }
-                                if ("vertical".equals(scaleModeAttr.getTextContent())) {
-                                    scaleMode = FlaWriter.SCALEMODE_VERTICAL;
-                                }
-                            }
-
-                            switch (strokeStyleVal.getNodeName()) {
-                                case "SolidStroke":
-                                    styleParam1 = 0;
-                                    styleParam2 = 0;
-
-                                    Node capsAttr = strokeStyleVal.getAttributes().getNamedItem("caps");
-                                    if (capsAttr != null) {
-                                        if ("none".equals(capsAttr.getTextContent())) {
-                                            caps = FlaWriter.CAPSTYLE_NONE;
-                                        }
-                                        if ("square".equals(capsAttr.getTextContent())) {
-                                            caps = FlaWriter.CAPSTYLE_SQUARE;
-                                        }
-                                    }
-
-                                    Node jointsAttr = strokeStyleVal.getAttributes().getNamedItem("joints");
-                                    if (jointsAttr != null) {
-                                        if ("bevel".equals(jointsAttr.getTextContent())) {
-                                            joints = FlaWriter.JOINSTYLE_BEVEL;
-                                        }
-                                        if ("miter".equals(jointsAttr.getTextContent())) {
-                                            joints = FlaWriter.JOINSTYLE_MITER;
-                                        }
-                                    }
-                                    break;
-                                case "DashedStroke":
-                                    double dash1 = 6;
-                                    double dash2 = 6;
-                                    Node dash1Attr = strokeStyleVal.getAttributes().getNamedItem("dash1");
-                                    if (dash1Attr != null) {
-                                        dash1 = Double.parseDouble(dash1Attr.getTextContent());
-                                    }
-                                    Node dash2Attr = strokeStyleVal.getAttributes().getNamedItem("dash2");
-                                    if (dash2Attr != null) {
-                                        dash2 = Double.parseDouble(dash2Attr.getTextContent());
-                                    }
-
-                                    if (dash1 < 0.25 || dash1 > 300.0) {
-                                        throw new IllegalArgumentException("DashedStroke.dash1 is invalid");
-                                    }
-                                    if (dash2 < 0.25 || dash2 > 300.0) {
-                                        throw new IllegalArgumentException("DashedStroke.dash2 is invalid");
-                                    }
-
-                                    styleParam1 = (int) Math.round(dash1 * 20);
-                                    styleParam2 = (int) Math.round(dash2 * 20);
-                                    break;
-                                case "DottedStroke":
-                                    double dotSpace = 3;
-                                    Node dotSpaceAttr = strokeStyleVal.getAttributes().getNamedItem("dotSpace");
-                                    if (dotSpaceAttr != null) {
-                                        dotSpace = Double.parseDouble(dotSpaceAttr.getTextContent());
-                                    }
-                                    if (dotSpace < 0.0 || dotSpace > 300.0) {
-                                        throw new IllegalArgumentException("DottedStroke.dotSpace is invalid");
-                                    }
-                                    styleParam2 = (int) (0x10 * Math.round(dotSpace * 10) + 0x02);
-                                    break;
-                                case "RaggedStroke":
-                                    int pattern = getAttributeAsInt(strokeStyleVal, "pattern", Arrays.asList("solid", "simple", "random", "dotted", "random dotted", "triple dotted", "random tripple dotted"), "simple");
-                                    int waveHeight = getAttributeAsInt(strokeStyleVal, "waveHeight", Arrays.asList("flat", "wavy", "very wavy", "wild"), "wavy");
-                                    int waveLength = getAttributeAsInt(strokeStyleVal, "waveLength", Arrays.asList("very short", "short", "medium", "long"), "short");
-                                    styleParam2 = 0x08 * pattern + 0x40 * waveHeight + 0x100 * waveLength + 0x03;
-                                    break;
-                                case "StippleStroke":
-                                    int dotSize = getAttributeAsInt(strokeStyleVal, "dotSize", Arrays.asList("tiny", "small", "medium", "large"), "small");
-                                    int variation = getAttributeAsInt(strokeStyleVal, "variation", Arrays.asList("one size", "small variation", "varied sizes", "random sizes"), "varied sizes");
-                                    int density = getAttributeAsInt(strokeStyleVal, "density", Arrays.asList("very dense", "dense", "sparse", "very sparse"), "sparse");
-
-                                    styleParam2 = 0x08 * dotSize + 0x20 * variation + 0x80 * density + 0x04;
-                                    break;
-                                case "HatchedStroke":
-                                    int hatchThickness = getAttributeAsInt(strokeStyleVal, "hatchThickness", Arrays.asList("hairline", "thin", "medium", "thick"), "hairline");
-                                    int space = getAttributeAsInt(strokeStyleVal, "space", Arrays.asList("very close", "close", "distant", "very distant"), "distant");
-                                    int jiggle = getAttributeAsInt(strokeStyleVal, "jiggle", Arrays.asList("none", "bounce", "loose", "wild"), "none");
-                                    int rotate = getAttributeAsInt(strokeStyleVal, "rotate", Arrays.asList("none", "slight", "medium", "free"), "none");
-                                    int curve = getAttributeAsInt(strokeStyleVal, "curve", Arrays.asList("straight", "slight curve", "medium curve", "very curved"), "straight");
-                                    int length = getAttributeAsInt(strokeStyleVal, "length", Arrays.asList("equal", "slight variation", "medium variation", "random"), "equal");
-
-                                    styleParam2 = 0x08 * hatchThickness
-                                            + 0x20 * space
-                                            + 0x200 * jiggle
-                                            + 0x80 * rotate
-                                            + 0x800 * curve
-                                            + 0x2000 * length
-                                            + 0x05;
-                                    break;
-                            }
-
-                            Node sharpCornersAttr = strokeStyleVal.getAttributes().getNamedItem("sharpCorners");
-                            if (sharpCornersAttr != null) {
-                                if ("true".equals(sharpCornersAttr.getTextContent())) {
-                                    styleParam2 += 0x8000;
-                                }
-                            }
-
-                            Node fill = getSubElementByName(strokeStyleVal, "fill");
-                            if (fill != null) {
-                                Node fillStyleVal = getFirstSubElement(fill);
-                                Color baseColor = new Color(0x00, 0x00, 0x00, debugRandom ? 'U' : 0x00);
-                                if ("SolidColor".equals(fillStyleVal.getNodeName())) {
-                                    baseColor = parseColorWithAlpha(fillStyleVal);
-                                } else if ("BitmapFill".equals(fillStyleVal.getNodeName())) {
-                                    baseColor = Color.red;
-                                }
-
-                                fg.writeStrokeBegin(baseColor, weight, pixelHinting, scaleMode, caps, joints, miterLimit, styleParam1, styleParam2);
-                                handleFill(fillStyleVal, fg);
-                            }
-                        }
-                        fg.beginShape();
-                        for (Element edge : edges) {
-                            int strokeStyle = 0;
-                            int fillStyle0 = 0;
-                            int fillStyle1 = 0;
-                            Node strokeStyleAttr = edge.getAttributes().getNamedItem("strokeStyle");
-                            if (strokeStyleAttr != null) {
-                                strokeStyle = Integer.parseInt(strokeStyleAttr.getTextContent());
-                            }
-                            Node fillStyle0StyleAttr = edge.getAttributes().getNamedItem("fillStyle0");
-                            if (fillStyle0StyleAttr != null) {
-                                fillStyle0 = Integer.parseInt(fillStyle0StyleAttr.getTextContent());
-                            }
-                            Node fillStyle1StyleAttr = edge.getAttributes().getNamedItem("fillStyle1");
-                            if (fillStyle1StyleAttr != null) {
-                                fillStyle1 = Integer.parseInt(fillStyle1StyleAttr.getTextContent());
-                            }
-                            Node edgesAttrNode = edge.getAttributes().getNamedItem("edges");
-                            if (edgesAttrNode != null) {
-                                String edgesStr = edgesAttrNode.getTextContent();
-                                fg.writeEdges(edgesStr, strokeStyle, fillStyle0, fillStyle1);
-                            }
-                        }
-
-                        fg.write(0x00); //?
-
-                        int totalCubicsCount = 0;
-
-                        for (Element edge : edges) {
-                            if (edge.hasAttribute("cubics")) {
-                                totalCubicsCount++;
-                            }
-                        }
-
-                        fg.writeUI32(totalCubicsCount);
-                        for (Element edge : edges) {
-                            if (edge.hasAttribute("cubics")) {
-                                String cubics = edge.getAttribute("cubics");
-                                Matcher cubicsMatcher = CUBICS_PATTERN.matcher(cubics);
-                                if (!cubicsMatcher.matches()) {
-                                    Logger.getLogger(PageGenerator.class.getName()).warning("Cubics pattern does not match for input string " + cubics);
-                                    continue;
-                                }
-                                int mx = Integer.parseInt(cubicsMatcher.group("mx"));
-                                int my = Integer.parseInt(cubicsMatcher.group("my"));
-                                int x1 = Integer.parseInt(cubicsMatcher.group("x1"));
-                                int y1 = Integer.parseInt(cubicsMatcher.group("y1"));
-                                int x2 = Integer.parseInt(cubicsMatcher.group("x2"));
-                                int y2 = Integer.parseInt(cubicsMatcher.group("y2"));
-                                int ex = Integer.parseInt(cubicsMatcher.group("ex"));
-                                int ey = Integer.parseInt(cubicsMatcher.group("ey"));
-
-                                Integer pBCPx = null;
-                                if (cubicsMatcher.group("pBCPx") != null) {
-                                    pBCPx = Integer.parseInt(cubicsMatcher.group("pBCPx"));
-                                }
-                                Integer pBCPy = null;
-                                if (cubicsMatcher.group("pBCPy") != null) {
-                                    pBCPy = Integer.parseInt(cubicsMatcher.group("pBCPy"));
-                                }
-                                Integer nBCPx = null;
-                                if (cubicsMatcher.group("nBCPx") != null) {
-                                    nBCPx = Integer.parseInt(cubicsMatcher.group("nBCPx"));
-                                }
-                                Integer nBCPy = null;
-                                if (cubicsMatcher.group("nBCPy") != null) {
-                                    nBCPy = Integer.parseInt(cubicsMatcher.group("nBCPy"));
-                                }
-
-                                String xy = cubicsMatcher.group("xy");
-                                Matcher m2 = CUBICS_XY_PATTERN.matcher(xy);
-                                List<String> letterList = new ArrayList<>();
-                                List<Integer> xList = new ArrayList<>();
-                                List<Integer> yList = new ArrayList<>();
-                                String lastLetter = "q";
-                                while (m2.find()) {
-                                    xList.add(Integer.parseInt(m2.group("x")));
-                                    yList.add(Integer.parseInt(m2.group("y")));
-                                    String letter = m2.group("letter");
-                                    if (letter == null || letter.isEmpty()) {
-                                        letter = lastLetter;
-                                    }
-                                    lastLetter = letter;
-                                    letterList.add(letter);
-                                }
-
-                                fg.writeUI32(mx);
-                                fg.writeUI32(my);
-                                fg.writeUI32(x1);
-                                fg.writeUI32(y1);
-                                fg.writeUI32(x2);
-                                fg.writeUI32(y2);
-                                fg.writeUI32(ex);
-                                fg.writeUI32(ey);
-                                fg.write(letterList.size());
-                                for (int i = 0; i < letterList.size(); i++) {
-                                    fg.writeUI32(xList.get(i));
-                                    fg.writeUI32(yList.get(i));
-                                    switch (letterList.get(i)) {
-                                        case "Q":
-                                            fg.write(0x01, 0x00);
-                                            break;
-                                        case "q":
-                                            fg.write(0x00, 0x00);
-                                            break;
-                                        case "P":
-                                            fg.write(0x01, 0x01);
-                                            break;
-                                        case "p":
-                                            fg.write(0x00, 0x01);
-                                            break;
-                                    }
-                                }
-
-                                int pnFlags = 0;
-                                if (pBCPx != null) {
-                                    pnFlags |= 1;
-                                }
-                                if (nBCPx != null) {
-                                    pnFlags |= 2;
-                                }
-                                fg.write(pnFlags);
-                                if (pBCPx != null) {
-                                    fg.writeUI32(pBCPx);
-                                    fg.writeUI32(pBCPy);
-                                }
-                                if (nBCPx != null) {
-                                    fg.writeUI32(nBCPx);
-                                    fg.writeUI32(nBCPy);
-                                }
-                            }
-                        }
-
-                    }
-                }
-
-                if (emptyFrame) {
-                    fg.writeUI32(0); //totalEdgeCount
-                    fg.write(0x00, 0x00); //fillStyleCount
-                    fg.write(0x00, 0x00); //strokeStyleCount
-                    fg.write(0x00); //??
-                    fg.writeUI32(0); //totalCubicsCount                    
-                }
                 int keyMode = FlaWriter.KEYMODE_STANDARD;
                 if (frame.hasAttribute("keyMode")) {
                     keyMode = Integer.parseInt(frame.getAttribute("keyMode"));
@@ -2614,7 +2654,7 @@ public class PageGenerator extends AbstractGenerator {
 
                 Element motionObjectXML = getSubElementByName(frame, "motionObjectXML");
                 if (motionObjectXML != null) {
-                    if (flaFormatVersion == FlaFormatVersion.CS4) {                   
+                    if (flaFormatVersion == FlaFormatVersion.CS4) {
                         fg.write(0xFF, 0xFE, 0xFF);
                         fg.writeLenUnicodeString(getInnerXml(motionObjectXML));
                         long visibleAnimationKeyframes = 0x1FFFFF;
