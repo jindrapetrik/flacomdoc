@@ -93,6 +93,9 @@ public abstract class AbstractGenerator {
     }
 
     protected List<Element> getAllSubElementsByName(Node n, String name) {
+        if (n == null) {
+            return new ArrayList<>();
+        }
         NodeList list = n.getChildNodes();
         List<Element> ret = new ArrayList<>();
         for (int i = 0; i < list.getLength(); i++) {

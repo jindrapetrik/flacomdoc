@@ -514,6 +514,27 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.writeLenUnicodeString(linkageBaseClass);
     }
 
+    private String getParentFolderItemID(Element document, String itemName) {
+        if (!itemName.contains("/")) {
+            return null;
+        }
+        String folderName = itemName.substring(0, itemName.lastIndexOf("/"));
+        Element foldersElement = getSubElementByName(document, "folders");
+        if (foldersElement == null) {
+            return null;
+        }
+        List<Element> domFolderItems = getAllSubElementsByName(foldersElement, "DOMFolderItem");
+        for (Element domFolderItem : domFolderItems) {
+            if (domFolderItem.getAttribute("name").equals(folderName)) {
+                if (domFolderItem.hasAttribute("itemID")) {
+                    return domFolderItem.getAttribute("itemID");
+                }
+                return null;
+            }
+        }
+        return null;
+    }
+
     private int writeSymbols(FlaWriter fg, Element document, DocumentBuilder docBuilder, InputStorageInterface sourceDir, OutputStorageInterface outputDir, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, FlaFormatVersion flaFormatVersion) throws SAXException, IOException, FileNotFoundException, ParserConfigurationException {
         int symbolCount = 0;
         List<Element> includes = getSymbols(document);
@@ -562,6 +583,9 @@ public class ContentsGenerator extends AbstractGenerator {
                 symbolName = domTimelineElement.getAttribute("name");
             }
 
+            String symbolFullName = symbolElement.getAttribute("name");
+            String parentFolderItemId = getParentFolderItemID(document, symbolFullName);
+
             //scaleGridLeft="22.75" scaleGridRight="68.25" scaleGridTop="22.75" scaleGridBottom="68.25" 
             float scaleGridLeft = 0f;
             if (symbolElement.hasAttribute("scaleGridLeft")) {
@@ -605,8 +629,14 @@ public class ContentsGenerator extends AbstractGenerator {
             fg.write(
                     0x00, 0x00, symbolType,
                     0xFF, 0xFE, 0xFF, 0x00,
-                    0x01, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+                    0x01, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00,
+                    0x01, 0x00, 0x00, 0x00);
+            if (parentFolderItemId == null) {
+                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+            } else {
+                fg.writeItemID(parentFolderItemId);
+            }
+            fg.write(0x01, 0x00, 0x00, 0x00);
 
             fg.writeItemID(itemID);
             writeAsLinkage(fg, symbolElement);
@@ -1034,6 +1064,74 @@ public class ContentsGenerator extends AbstractGenerator {
             fg.write(0xFF, 0xFE, 0xFF, 0x00);
             fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFC, 0x00);
             writeColorDef(fg, 0x04, flaFormatVersion, definedClasses, objectsCount);
+
+            Element foldersElement = getSubElementByName(document, "folders");
+            List<Element> domFolderItems = new ArrayList<>();
+            if (foldersElement != null) {
+                domFolderItems = getAllSubElementsByName(foldersElement, "DOMFolderItem");
+            }
+
+            fg.writeUI32(domFolderItems.size());
+
+            for (Element domFolderItem : domFolderItems) {
+                fg.write(0x04, 0x00, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF);
+                String folderFullName = domFolderItem.getAttribute("name");
+                String folderName = folderFullName;
+                String parentFolder = "";
+                if (folderFullName.contains("/")) {
+                    folderName = folderFullName.substring(folderFullName.lastIndexOf("/") + 1);
+                    parentFolder = folderFullName.substring(0, folderFullName.lastIndexOf("/"));
+                }
+                fg.writeLenUnicodeString(folderName);
+                fg.write(
+                        0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+
+                if (parentFolder.isEmpty()) {
+                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                } else {
+                    boolean parentFound = false;
+                    for (Element domFolderItem2 : domFolderItems) {
+                        if (domFolderItem2.getAttribute("name").equals(parentFolder)) {
+                            String parentItemID = domFolderItem2.getAttribute("itemID");
+                            fg.writeItemID(parentItemID);
+                            parentFound = true;
+                            break;
+                        }
+                    }
+                    if (!parentFound) {
+                        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                    }
+                }
+
+                fg.write(0x01, 0x00, 0x00, 0x00);
+                String itemID = generateItemID(generatedItemIdOrder);
+                if (domFolderItem.hasAttribute("itemID")) {
+                    itemID = domFolderItem.getAttribute("itemID");
+                }
+                fg.writeItemID(itemID);
+
+                boolean isExpanded = false;
+                if (domFolderItem.hasAttribute("isExpanded")) {
+                    isExpanded = "true".equals(domFolderItem.getAttribute("isExpanded"));
+                }
+
+                fg.write(isExpanded ? 1 : 0, 0x00,
+                        0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x02, 0x00, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0xFF, 0xFF, 0xFF, 0xFF, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00);
+            }
+
+            fg.write(0x00, 0x00, 0x01);
+
             fg.write(0x00,
                     0xFF, 0xFE, 0xFF);
             fg.writeLenUnicodeString("PublishQTProperties::QTSndSettings");
@@ -1195,20 +1293,29 @@ public class ContentsGenerator extends AbstractGenerator {
         String mediaFile = "M " + mediaCount + " " + getTimeCreatedAsString();
         dw.writeLenUnicodeString(debugRandom ? "YYY" : mediaFile);
         dw.write(0xFF, 0xFE, 0xFF);
-        String name = "";
+        String fullName = "";
         if (domSoundItem.hasAttribute("name")) {
-            name = domSoundItem.getAttribute("name");
+            fullName = domSoundItem.getAttribute("name");
         }
-        dw.writeLenUnicodeString(name);
+        String name = fullName;
+        if (name.contains("/")) {
+            name = name.substring(name.lastIndexOf("/") + 1);
+        }
+        String parentFolderItemID = getParentFolderItemID(domSoundItem.getOwnerDocument().getDocumentElement(), fullName);
 
+        dw.writeLenUnicodeString(name);
         String importFilePath = "";
         dw.writeUI16(mediaCount);
         dw.write(0xFF, 0xFE, 0xFF);
         dw.writeLenUnicodeString(debugRandom ? "YYY" : importFilePath);
         writeTimeCreated(dw);
-        dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+        dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+        if (parentFolderItemID == null) {
+            dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+        } else {
+            dw.writeItemID(parentFolderItemID);
+        }
+        dw.write(0x01, 0x00, 0x00, 0x00);
         String itemID = generateItemID(generatedItemIdOrder);
         if (domSoundItem.hasAttribute("itemID")) {
             itemID = domSoundItem.getAttribute("itemID");
@@ -1309,10 +1416,16 @@ public class ContentsGenerator extends AbstractGenerator {
         String mediaFile = "M " + mediaCount + " " + getTimeCreatedAsString();
         dw.writeLenUnicodeString(debugRandom ? "YYY" : mediaFile);
         dw.write(0xFF, 0xFE, 0xFF);
-        String name = "";
+        String fullName = "";
         if (domVideoItem.hasAttribute("name")) {
-            name = domVideoItem.getAttribute("name");
+            fullName = domVideoItem.getAttribute("name");
         }
+        String name = fullName;
+        if (name.contains("/")) {
+            name = name.substring(name.lastIndexOf("/") + 1);
+        }
+        String parentFolderItemID = getParentFolderItemID(domVideoItem.getOwnerDocument().getDocumentElement(), fullName);
+
         dw.writeLenUnicodeString(name);
 
         String importFilePath = "";
@@ -1320,9 +1433,13 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.write(0xFF, 0xFE, 0xFF);
         dw.writeLenUnicodeString(debugRandom ? "YYY" : importFilePath);
         writeTimeCreated(dw);
-        dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+        dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+        if (parentFolderItemID == null) {
+            dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+        } else {
+            dw.writeItemID(parentFolderItemID);
+        }
+        dw.write(0x01, 0x00, 0x00, 0x00);
         String itemID = generateItemID(generatedItemIdOrder);
         if (domVideoItem.hasAttribute("itemID")) {
             itemID = domVideoItem.getAttribute("itemID");
@@ -1393,10 +1510,16 @@ public class ContentsGenerator extends AbstractGenerator {
         String mediaFile = "M " + mediaCount + " " + getTimeCreatedAsString();
         dw.writeLenUnicodeString(debugRandom ? "YYY" : mediaFile);
 
-        String name = "";
+        String fullName = "";
         if (domBitmapItem.hasAttribute("name")) {
-            name = domBitmapItem.getAttribute("name");
+            fullName = domBitmapItem.getAttribute("name");
         }
+        String name = fullName;
+        if (name.contains("/")) {
+            name = name.substring(name.lastIndexOf("/") + 1);
+        }
+        String parentFolderItemID = getParentFolderItemID(domBitmapItem.getOwnerDocument().getDocumentElement(), fullName);
+
         String sourceExternalFilepath = domBitmapItem.getAttribute("sourceExternalFilepath");
         dw.write(0xFF, 0xFE, 0xFF);
         dw.writeLenUnicodeString(name);
@@ -1405,8 +1528,13 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.write(0xFF, 0xFE, 0xFF);
         dw.writeLenUnicodeString(debugRandom ? "YYY" : importFilePath);
         writeTimeCreated(dw);
-        dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+        dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+        if (parentFolderItemID == null) {
+            dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+        } else {
+            dw.writeItemID(parentFolderItemID);
+        }
+        dw.write(0x01, 0x00, 0x00, 0x00);
 
         String itemID = generateItemID(generatedItemIdOrder);
         if (domBitmapItem.hasAttribute("itemID")) {
@@ -1564,7 +1692,16 @@ public class ContentsGenerator extends AbstractGenerator {
         int fontCount = 0;
         for (Element domFontItem : domFontItems) {
             fontCount++;
-            String name = domFontItem.getAttribute("name"); //assuming has name
+            String fullName = "";
+            if (domFontItem.hasAttribute("name")) {
+                fullName = domFontItem.getAttribute("name");
+            }
+            String name = fullName;
+            if (name.contains("/")) {
+                name = name.substring(name.lastIndexOf("/") + 1);
+            }
+            String parentFolderItemID = getParentFolderItemID(domFontItem.getOwnerDocument().getDocumentElement(), fullName);
+
             String fontPsName = domFontItem.getAttribute("font"); //assuming has font
             int id = Integer.parseInt(domFontItem.getAttribute("id"));
 
@@ -1601,62 +1738,60 @@ public class ContentsGenerator extends AbstractGenerator {
             if (flaFormatVersion == FlaFormatVersion.CS4) {
                 dw.write(0xFF, 0xFE, 0xFF);
                 dw.writeLenUnicodeString(fontPsName);
-
-                //following part might be copied from textfield
                 if (debugRandom) {
-                    dw.write('U', 'U', 'U', 'U');
                     dw.write('U', 'U', 'U', 'U');
                 } else {
                     dw.write(0x00, 0x00, 0x00, 0x40);
-                    dw.write(0x00, 0x00, 0x00, 0x00);
                 }
-                dw.write(debugRandom ? 'U' : 0x12, //something magic, see PageGenerator for details
-                        0x00);
-                dw.write(bold ? 1 : 0);
-                dw.write(italic ? 1 : 0);
-                dw.write(0x00,
-                        0x00, 0x00,
-                        debugRandom ? 'U' : 0x00, debugRandom ? 'U' : 0x00, 0x00, 0x00,
-                        0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00);
-                //end of copied part           
-
-                dw.write(0xFF, 0xFE, 0xFF, 0x00,
-                        0x00, 0x00, debugRandom ? 'U' : 0x00, 0x00,
-                        0xFF, 0xFE, 0xFF, 0x00,
-                        0x02,
-                        debugRandom ? 'U' : 0x01,
-                        0x00, 0x00,
-                        debugRandom ? 'U' : 0x00,
-                        debugRandom ? 'U' : 0x00,
-                        0x00, 0x00,
-                        debugRandom ? 'U' : 0x00,
-                        debugRandom ? 'U' : 0x00,
-                        0xFF, 0xFE, 0xFF, 0x00);
-
+            }
+            //following part might be copied from textfield
+            if (debugRandom) {
+                dw.write('U', 'U', 'U', 'U');
             } else {
-                if (debugRandom) {
-                    dw.write('U', 'U', 'U', 'U');
-                } else {
-                    dw.write(0x00, 0x00, 0x00, 0xFF); //fillColor, might be copied from text
-                }
-                dw.write(debugRandom ? 'U' : 0x12); //something magic, see PageGenerator for details
-                dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-                dw.write(debugRandom ? 'U' : 0xF0);
-                dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 
-                        debugRandom ? 'U' : 0x01, 
-                        0x00, 0x00,
-                        0x02, 0x02,
-                        0x00, 0x00,
-                        0xC0, 0x3F, //?
-                        0x00, 0x00,
-                        0x20, 0x40, //?
-                        0x00);
+                dw.write(0x00, 0x00, 0x00, 0x00);
+            }
+            dw.write(debugRandom ? 'U' : 0x12); //something magic, see PageGenerator for details
+            dw.write(0x00);
+            dw.write(bold ? 1 : 0);
+            dw.write(italic ? 1 : 0);
+            dw.write(0x00,
+                    debugRandom ? 'U' : 0x00, //maybe unused = not used in any text???
+                    0x00,
+                    debugRandom ? 'U' : 0x00, debugRandom ? 'U' : 0x00, 0x00, 0x00,
+                    0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00);
+            //end of copied part           
+
+            if (flaFormatVersion == FlaFormatVersion.CS4) {
+                dw.write(0xFF, 0xFE, 0xFF);
+            }
+            dw.write(0x00,
+                    0x00, 0x00, debugRandom ? 'U' : 0x00, 0x00);
+            if (flaFormatVersion == FlaFormatVersion.CS4) {
+                dw.write(0xFF, 0xFE, 0xFF);
+            }
+            dw.write(0x00,
+                    0x02,
+                    debugRandom ? 'U' : 0x01,
+                    0x00, 0x00,
+                    debugRandom ? 'U' : 0x00,
+                    debugRandom ? 'U' : 0x00,
+                    0x00, 0x00,
+                    debugRandom ? 'U' : 0x00,
+                    debugRandom ? 'U' : 0x00);
+            if (flaFormatVersion == FlaFormatVersion.CS4) {
+                dw.write(0xFF, 0xFE, 0xFF);
+            }
+            dw.write(0x00);            
+
+            dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+            if (parentFolderItemID == null) {
+                dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+            } else {
+                dw.writeItemID(parentFolderItemID);
             }
 
-            dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+            dw.write(0x01, 0x00, 0x00, 0x00);
 
             dw.writeItemID(itemID);
             writeAsLinkage(dw, domFontItem);
@@ -1741,8 +1876,7 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.write(0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01);
-
+                0x00);
     }
 
     protected void writeMap(FlaWriter dw, Map<String, String> map, boolean isUni) throws IOException {
