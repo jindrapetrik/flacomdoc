@@ -50,6 +50,13 @@ public abstract class AbstractGenerator {
             psNameToFontName.put(font.getPSName(), font);
         }
     }
+    protected final FlaFormatVersion flaFormatVersion;
+
+    public AbstractGenerator(FlaFormatVersion flaFormatVersion) {
+        this.flaFormatVersion = flaFormatVersion;
+    }
+    
+    
 
     public void setDebugRandom(boolean debugRandom) {
         this.debugRandom = debugRandom;

@@ -23,12 +23,17 @@ package com.jpexs.flash.fla.convertor;
  * @author JPEXS
  */
 public enum FlaFormatVersion {
-    F8(0x3F, 0x17, 4, 4, 0x18, 4, 4, 0x0B, 4,4,6, 0x13, 3, 2, 0xD, 0xC, 4,4,4,4,6, 3, 6, 6, 9, 494),
-    CS3(0x43, 0x18, 5, 5, 0x1A, 5, 5, 0x0B, 5,5,7, 0x13, 6, 2, 0xD, 0xC, 5,5,5,5,6, 3, 6, 6, 10, 544),
-    CS4(0x47, 0x19, 5, 5, 0x1D, 5, 5, 0x0D, 5,5,7, 0x16, 6, 3, 0xE, 0xF, 5,5,5,5,7, 4, 7, 7, 11, 485);
+    MX2004(0x38, 0x16, 5,5,5,3,2, 2, 0x17, 4, 2, 0x0B, 2,4,5,5, 0x0E, 2, 2, 0xA, 0xC, 0xA, 2,2,2,2,6, 3, 6,0x9, 6,5, 5, 5,9, 494),
+    F8(0x3F, 0x17, 7,7,6,4,4, 4, 0x18, 4, 4, 0x0B, 4,4,7,6, 0x13, 3, 2, 0xC, 0xD, 0xC, 4,4,4,4,6, 3, 6,0xA, 6,7, 7,7,9, 494),
+    CS3(0x43, 0x18, 7,7,7,4,5, 5, 0x1A, 5, 5, 0x0B, 5,5,7,7, 0x13, 6, 2, 0xC, 0xD, 0xC, 5,5,5,5,6, 3, 6,0xA, 6,7, 7,7,10, 544),
+    CS4(0x47, 0x19, 7,7,7,4,5, 5, 0x1D, 5, 5, 0x0D, 5,5,7,7, 0x16, 6, 3, 0xF, 0xE, 0xF, 5,5,5,5,7, 4, 7,0xA, 7,7, 7,7,11, 485);
 
     private final int contentsVersion;
     private final int documentPageVersion;
+    private final int documentPageVersionB;
+    private final int documentPageVersionC;
+    private final int documentPageVersionD;
+    private final int colorDefVersion;
     private final int pageVersion;
     private final int frameVersion;
     private final int frameVersionB;
@@ -38,9 +43,11 @@ public enum FlaFormatVersion {
     private final int spriteVersion;
     private final int spriteVersionB;
     private final int spriteVersionC;
+    private final int spriteVersionD;
     private final int symbolType;
     private final int shapeType;
     private final int fontVersion;
+    private final int fontVersionB;
     private final int textVersion;
     private final int textVersionB;
     private final int textVersionC;
@@ -50,7 +57,11 @@ public enum FlaFormatVersion {
     private final int mediaBitsVersion;
     private final int mediaBitsVersionB;
     private final int mediaSoundVersion;
+    private final int mediaSoundVersionB;
     private final int mediaVideoVersion;
+    private final int mediaVideoVersionB;
+    private final int asLinkageVersion;
+    private final int libraryFolderVersion;
     //this is actually one version up since we exported the FLA from newer version to older
     private final int generatorVersion;
     private final int generatorBuild;
@@ -59,6 +70,10 @@ public enum FlaFormatVersion {
     FlaFormatVersion(
             int contentsVersion,
             int documentPageVersion,
+            int documentPageVersionB,
+            int documentPageVersionC,
+            int documentPageVersionD,
+            int colorDefVersion,
             int pageVersion,
             int frameVersion,
             int frameVersionB,
@@ -68,9 +83,11 @@ public enum FlaFormatVersion {
             int spriteVersion,   
             int spriteVersionB,
             int spriteVersionC,
+            int spriteVersionD,
             int symbolType,
             int shapeType,
             int fontVersion,
+            int fontVersionB,
             int textVersion,
             int textVersionB,
             int textVersionC,
@@ -80,12 +97,20 @@ public enum FlaFormatVersion {
             int mediaBitsVersion,
             int mediaBitsVersionB,
             int mediaSoundVersion,
+            int mediaSoundVersionB,
             int mediaVideoVersion,
+            int mediaVideoVersionB,
+            int asLinkageVersion,
+            int libraryFolderVersion,
             int generatorVersion,
-            int generatorBuild
+            int generatorBuild 
     ) {
         this.contentsVersion = contentsVersion;
         this.documentPageVersion = documentPageVersion;
+        this.documentPageVersionB = documentPageVersionB;
+        this.documentPageVersionC = documentPageVersionC;
+        this.documentPageVersionD = documentPageVersionD;
+        this.colorDefVersion = colorDefVersion;
         this.pageVersion = pageVersion;
         this.frameVersion = frameVersion;
         this.frameVersionB = frameVersionB;
@@ -95,9 +120,11 @@ public enum FlaFormatVersion {
         this.spriteVersion = spriteVersion;
         this.spriteVersionB = spriteVersionB;
         this.spriteVersionC = spriteVersionC;
+        this.spriteVersionD = spriteVersionD;
         this.symbolType = symbolType;
         this.shapeType = shapeType;
         this.fontVersion = fontVersion;
+        this.fontVersionB = fontVersionB;
         this.textVersion = textVersion;
         this.textVersionB = textVersionB;
         this.bitmapVersion = bitmapVersion;
@@ -106,7 +133,11 @@ public enum FlaFormatVersion {
         this.mediaBitsVersion = mediaBitsVersion;
         this.mediaBitsVersionB = mediaBitsVersionB;
         this.mediaSoundVersion = mediaSoundVersion;
+        this.mediaSoundVersionB = mediaSoundVersionB;
         this.mediaVideoVersion = mediaVideoVersion;
+        this.mediaVideoVersionB = mediaVideoVersionB;
+        this.asLinkageVersion = asLinkageVersion;
+        this.libraryFolderVersion = libraryFolderVersion;
         this.generatorVersion = generatorVersion;
         this.generatorBuild = generatorBuild;
         this.textVersionC = textVersionC;
@@ -120,6 +151,22 @@ public enum FlaFormatVersion {
         return documentPageVersion;
     }
 
+    public int getDocumentPageVersionB() {
+        return documentPageVersionB;
+    }
+
+    public int getDocumentPageVersionC() {
+        return documentPageVersionC;
+    }           
+
+    public int getDocumentPageVersionD() {
+        return documentPageVersionD;
+    }        
+
+    public int getColorDefVersion() {
+        return colorDefVersion;
+    }
+            
     public int getPageVersion() {
         return pageVersion;
     }
@@ -156,6 +203,10 @@ public enum FlaFormatVersion {
         return spriteVersionC;
     }        
 
+    public int getSpriteVersionD() {
+        return spriteVersionD;
+    }        
+
     public int getSymbolType() {
         return symbolType;
     }
@@ -167,6 +218,10 @@ public enum FlaFormatVersion {
     public int getFontVersion() {
         return fontVersion;
     }
+
+    public int getFontVersionB() {
+        return fontVersionB;
+    }        
 
     public int getTextVersion() {
         return textVersion;
@@ -204,9 +259,25 @@ public enum FlaFormatVersion {
         return mediaSoundVersion;
     }
 
+    public int getMediaSoundVersionB() {
+        return mediaSoundVersionB;
+    }        
+
     public int getMediaVideoVersion() {
         return mediaVideoVersion;
     }
+
+    public int getMediaVideoVersionB() {
+        return mediaVideoVersionB;
+    }    
+    
+    public int getAsLinkageVersion() {
+        return asLinkageVersion;
+    }        
+
+    public int getLibraryFolderVersion() {
+        return libraryFolderVersion;
+    }        
 
     public int getGeneratorVersion() {
         return generatorVersion;

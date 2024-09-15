@@ -80,6 +80,10 @@ public class ContentsGenerator extends AbstractGenerator {
 
     private static final SecureRandom random = new SecureRandom();
 
+    public ContentsGenerator(FlaFormatVersion flaFormatVersion) {
+        super(flaFormatVersion);
+    }
+
     private void writeTime(FlaWriter fg, long time) throws IOException {
         if (debugRandom) {
             fg.write('X', 'X', 'X', 'X');
@@ -483,7 +487,7 @@ public class ContentsGenerator extends AbstractGenerator {
         }
 
         dw.write(0x00, 0x00,
-                0x00, 0x00, 0x07,
+                0x00, 0x00, flaFormatVersion.getAsLinkageVersion(),
                 (linkageExportForAS ? 1 : 0) + (linkageImportForRS ? 2 : 0),
                 0x00, 0x00, 0x00,
                 0xFF, 0xFE, 0xFF);
@@ -509,9 +513,12 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.writeLenUnicodeString(sourceLibraryItemHRef);
         dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0xFF, 0xFF, 0xFF, 0xFF, 0x00,
-                0xFF, 0xFE, 0xFF);
-        dw.writeLenUnicodeString(linkageBaseClass);
+                0xFF, 0xFF, 0xFF, 0xFF);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+            dw.write(0x00);
+            dw.write(0xFF, 0xFE, 0xFF);
+            dw.writeLenUnicodeString(linkageBaseClass);
+        }
     }
 
     private String getParentFolderItemID(Element document, String itemName) {
@@ -535,7 +542,7 @@ public class ContentsGenerator extends AbstractGenerator {
         return null;
     }
 
-    private int writeSymbols(FlaWriter fg, Element document, DocumentBuilder docBuilder, InputStorageInterface sourceDir, OutputStorageInterface outputDir, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, FlaFormatVersion flaFormatVersion) throws SAXException, IOException, FileNotFoundException, ParserConfigurationException {
+    private int writeSymbols(FlaWriter fg, Element document, DocumentBuilder docBuilder, InputStorageInterface sourceDir, OutputStorageInterface outputDir, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws SAXException, IOException, FileNotFoundException, ParserConfigurationException {
         int symbolCount = 0;
         List<Element> includes = getSymbols(document);
         List<Element> sorted = new ArrayList<>(includes);
@@ -644,18 +651,27 @@ public class ContentsGenerator extends AbstractGenerator {
             fg.write(0x00);
             writeTime(fg, symbolTime);
             fg.write(0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00,
-                    0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF,
+                    0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+                    flaFormatVersion.getSpriteVersionC(),
+                    0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF,
                     0x00, 0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0xFF, 0xFE,
                     0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00,
-                    0xFF, 0xFE, 0xFF, 0x00,
-                    flaFormatVersion.getSpriteVersionC(),
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                fg.write(0x00,
+                        0xFF, 0xFE, 0xFF, 0x00);
+            }
+            fg.write(
+                    flaFormatVersion.getSpriteVersionD(),
                     0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x03, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x03, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
                     0xFE, 0xFF, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                fg.write(0x00, 0x00, 0x00, 0x00);
+            }
 
             if (flaFormatVersion.ordinal() >= flaFormatVersion.CS3.ordinal()) {
                 fg.write(0x01, 0x00, 0x00, 0x00,
@@ -668,18 +684,20 @@ public class ContentsGenerator extends AbstractGenerator {
                     0x00, 0x00, 0x00, 0x00,
                     0xFF, 0xFE, 0xFF, 0x00);
 
-            if (scaleGridLeft != 0f || scaleGridRight != 0f || scaleGridTop != 0f || scaleGridBottom != 0f) {
-                fg.write(0x01, 0x00, 0x00, 0x00);
-                fg.writeUI32(Math.round(scaleGridRight * 20));
-                fg.writeUI32(Math.round(scaleGridLeft * 20));
-                fg.writeUI32(Math.round(scaleGridBottom * 20));
-                fg.writeUI32(Math.round(scaleGridTop * 20));
-            } else {
-                fg.write(0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x80,
-                        0x00, 0x00, 0x00, 0x80,
-                        0x00, 0x00, 0x00, 0x80,
-                        0x00, 0x00, 0x00, 0x80);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                if (scaleGridLeft != 0f || scaleGridRight != 0f || scaleGridTop != 0f || scaleGridBottom != 0f) {
+                    fg.write(0x01, 0x00, 0x00, 0x00);
+                    fg.writeUI32(Math.round(scaleGridRight * 20));
+                    fg.writeUI32(Math.round(scaleGridLeft * 20));
+                    fg.writeUI32(Math.round(scaleGridBottom * 20));
+                    fg.writeUI32(Math.round(scaleGridTop * 20));
+                } else {
+                    fg.write(0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x80,
+                            0x00, 0x00, 0x00, 0x80,
+                            0x00, 0x00, 0x00, 0x80,
+                            0x00, 0x00, 0x00, 0x80);
+                }
             }
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
                 fg.write(0x00,
@@ -689,10 +707,10 @@ public class ContentsGenerator extends AbstractGenerator {
             if (flaFormatVersion == FlaFormatVersion.CS4) {
                 fg.write(0x00, 0x00);
             }
-            PageGenerator symbolPageGenerator = new PageGenerator();
+            PageGenerator symbolPageGenerator = new PageGenerator(flaFormatVersion);
             symbolPageGenerator.setDebugRandom(debugRandom);
             try (OutputStream sos = outputDir.getOutputStream(symbolFile)) {
-                symbolPageGenerator.generatePageFile(domTimelineElement, sos, flaFormatVersion);
+                symbolPageGenerator.generatePageFile(domTimelineElement, sos);
             }
         }
 
@@ -701,8 +719,7 @@ public class ContentsGenerator extends AbstractGenerator {
 
     public void generate(
             InputStorageInterface sourceDir,
-            OutputStorageInterface outputDir,
-            FlaFormatVersion flaFormatVersion
+            OutputStorageInterface outputDir
     ) throws SAXException, IOException, ParserConfigurationException {
 
         InputStream domDocumentIs = sourceDir.readFile("DOMDocument.xml");
@@ -757,8 +774,12 @@ public class ContentsGenerator extends AbstractGenerator {
             fg.write(flaFormatVersion.getContentsVersion());
             fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+                    0x00, 0x00, 0x00
             );
+
+            if (flaFormatVersion.ordinal() >= flaFormatVersion.F8.ordinal()) {
+                fg.write(0x00, 0x00, 0x00, 0x00);
+            }
 
             if (flaFormatVersion.ordinal() >= flaFormatVersion.CS3.ordinal()) {
                 fg.write(0x00, 0x00, 0x00, 0x00);
@@ -805,7 +826,7 @@ public class ContentsGenerator extends AbstractGenerator {
                 String pageItemID = generateItemID(generatedItemIdOrder);
 
                 fg.writeItemID(pageItemID);
-                fg.write(0x00, 0x00, 0x00, 0x00, 0x07,
+                fg.write(0x00, 0x00, 0x00, 0x00, flaFormatVersion.getDocumentPageVersionB(),
                         0x00, 0x00, 0x00, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
@@ -814,16 +835,19 @@ public class ContentsGenerator extends AbstractGenerator {
                         0xFF, 0xFE, 0xFF, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00,
-                        0xFF, 0xFE, 0xFF, 0x00,
-                        0x00);
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00);
+
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                    fg.write(0xFF, 0xFE, 0xFF, 0x00,
+                            0x00);
+                }
                 writeTimeCreated(fg);
                 fg.write(
                         0xFF, 0xFE, 0xFF, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0x02, 0x00, 0x00, 0x00, 0x00,
                         0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-                        0x07, 0x00, 0x00, 0x00, 0x00,
+                        flaFormatVersion.getDocumentPageVersionC(), 0x00, 0x00, 0x00, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
@@ -831,10 +855,14 @@ public class ContentsGenerator extends AbstractGenerator {
                         0xFF, 0xFE, 0xFF, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF,
-                        0xFF, 0xFF, 0x00,
-                        0xFF, 0xFE, 0xFF, 0x00,
-                        flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal() ? 0x07 : 0x06,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0xFF, 0xFF, 0xFF, 0xFF);
+
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                    fg.write(0x00,
+                            0xFF, 0xFE, 0xFF, 0x00);
+                }
+                fg.write(flaFormatVersion.getDocumentPageVersionD(),
                         0x00, 0x00, 0x00, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -854,7 +882,11 @@ public class ContentsGenerator extends AbstractGenerator {
                         0x00, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00);
+                        0x00);
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                    fg.write(0x00, 0x00, 0x00, 0x00);
+                }
+
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
                     fg.write(
                             0x01, 0x00, 0x00, 0x00,
@@ -868,12 +900,16 @@ public class ContentsGenerator extends AbstractGenerator {
                 );
 
                 fg.write(debugRandom ? 'U' : 0x00, 0x00, 0x00, 0x00,
-                        0xFF, 0xFE, 0xFF, 0x00,
-                        0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x80,
-                        0x00, 0x00, 0x00, 0x80,
-                        0x00, 0x00, 0x00, 0x80,
-                        0x00, 0x00, 0x00, 0x80);
+                        0xFF, 0xFE, 0xFF, 0x00
+                );
+
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                    fg.write(0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x80,
+                            0x00, 0x00, 0x00, 0x80,
+                            0x00, 0x00, 0x00, 0x80,
+                            0x00, 0x00, 0x00, 0x80);
+                }
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
                     fg.write(0x00, 0x00, 0x00, 0x00,
@@ -884,10 +920,10 @@ public class ContentsGenerator extends AbstractGenerator {
                     fg.write(0x00, 0x00);
                 }
 
-                PageGenerator pageGenerator = new PageGenerator();
+                PageGenerator pageGenerator = new PageGenerator(flaFormatVersion);
                 pageGenerator.setDebugRandom(debugRandom);
                 try (OutputStream pos = outputDir.getOutputStream(pageName)) {
-                    pageGenerator.generatePageFile(domTimeline, pos, flaFormatVersion);
+                    pageGenerator.generatePageFile(domTimeline, pos);
                 }
             }
 
@@ -901,6 +937,7 @@ public class ContentsGenerator extends AbstractGenerator {
             if (document.hasAttribute("nextSceneIdentifier")) {
                 nextSceneIdentifier = Integer.parseInt(document.getAttribute("nextSceneIdentifier"));
             }
+
             fg.write(0x00, 0x00);
             if (debugRandom) {
                 fg.write('U');
@@ -914,12 +951,12 @@ public class ContentsGenerator extends AbstractGenerator {
                     1 + currentTimeline,
                     0x00);
 
-            int symbolCount = writeSymbols(fg, document, docBuilder, sourceDir, outputDir, generatedItemIdOrder, definedClasses, objectsCount, flaFormatVersion);
+            int symbolCount = writeSymbols(fg, document, docBuilder, sourceDir, outputDir, generatedItemIdOrder, definedClasses, objectsCount);
 
             fg.write(0x00, 0x00);
             fg.write(debugRandom ? 'U' : 0x01); //??
             fg.write(0x00);
-            int mediaCount = writeMedia(fg, document, generatedItemIdOrder, definedClasses, objectsCount, outputDir, sourceDir, flaFormatVersion);
+            int mediaCount = writeMedia(fg, document, generatedItemIdOrder, definedClasses, objectsCount, outputDir, sourceDir);
 
             fg.write(0x00, 0x00,
                     1 + mediaCount, 0x00); //?
@@ -1097,7 +1134,7 @@ public class ContentsGenerator extends AbstractGenerator {
             fg.write(0xFF, 0xFE, 0xFF, 0x00);
             fg.write(0xFF, 0xFE, 0xFF, 0x00);
             fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFC, 0x00);
-            writeColorDef(fg, 0x04, flaFormatVersion, definedClasses, objectsCount);
+            writeColorDef(fg, flaFormatVersion, definedClasses, objectsCount);
 
             Element foldersElement = getSubElementByName(document, "folders");
             List<Element> domFolderItems = new ArrayList<>();
@@ -1151,7 +1188,7 @@ public class ContentsGenerator extends AbstractGenerator {
                 }
 
                 fg.write(isExpanded ? 1 : 0, 0x00,
-                        0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, flaFormatVersion.getLibraryFolderVersion(), 0x00, 0x00, 0x00, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
@@ -1159,9 +1196,12 @@ public class ContentsGenerator extends AbstractGenerator {
                         0xFF, 0xFE, 0xFF, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0xFF, 0xFF, 0xFF, 0xFF, 0x00,
-                        0xFF, 0xFE, 0xFF, 0x00,
-                        0x00);
+                        0xFF, 0xFF, 0xFF, 0xFF, 0x00
+                );
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                    fg.write(0xFF, 0xFE, 0xFF, 0x00,
+                            0x00);
+                }
             }
 
             fg.write(0x00, 0x00, 0x01);
@@ -1252,69 +1292,75 @@ public class ContentsGenerator extends AbstractGenerator {
                     0xFF, 0xFE, 0xFF,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
-            fg.write(0xFF, 0xFE, 0xFF);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                fg.write(0xFF, 0xFE, 0xFF);
 
-            if (flaFormatVersion == FlaFormatVersion.CS4) {
-                String creatorInfo = "";
-                if (document.hasAttribute("creatorInfo")) {
-                    creatorInfo = document.getAttribute("creatorInfo");
-                }
-                if (debugRandom) {
-                    fg.writeLenUnicodeString("YYY");
+                if (flaFormatVersion == FlaFormatVersion.CS4) {
+                    String creatorInfo = "";
+                    if (document.hasAttribute("creatorInfo")) {
+                        creatorInfo = document.getAttribute("creatorInfo");
+                    }
+                    if (debugRandom) {
+                        fg.writeLenUnicodeString("YYY");
+                    } else {
+                        fg.writeLenUnicodeString(getXmpp(creatorInfo));
+                    }
                 } else {
-                    fg.writeLenUnicodeString(getXmpp(creatorInfo));
+                    fg.write(0x00);
                 }
-            } else {
+                fg.write(0xFF, 0xFE, 0xFF, 00);
+                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                fg.write(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
+                fg.write(0x00, 0x00, 0x00, 0x00, 0x00);
+                int majorVersion = 0;
+                if (document.hasAttribute("majorVersion")) {
+                    majorVersion = Integer.parseInt(document.getAttribute("majorVersion"));
+                }
+                fg.write(debugRandom ? 'X' : majorVersion);
+                fg.write(0x00, 0x00, 0x00);
+                int buildNumber = 0;
+                if (document.hasAttribute("buildNumber")) {
+                    buildNumber = Integer.parseInt(document.getAttribute("buildNumber"));
+                }
+
+                if (debugRandom) {
+                    fg.write('X', 'X');
+                } else {
+                    fg.writeUI16(buildNumber);
+                }
+                fg.write(0x00, 0x00);
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+                    fg.write('C');
+                } else {
+                    fg.write('B');
+                }
                 fg.write(0x00);
-            }
-            fg.write(0xFF, 0xFE, 0xFF, 00);
-            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-            fg.write(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
-            fg.write(0x00, 0x00, 0x00, 0x00, 0x00);
-            int majorVersion = 0;
-            if (document.hasAttribute("majorVersion")) {
-                majorVersion = Integer.parseInt(document.getAttribute("majorVersion"));
-            }
-            fg.write(debugRandom ? 'X' : majorVersion);
-            fg.write(0x00, 0x00, 0x00);
-            int buildNumber = 0;
-            if (document.hasAttribute("buildNumber")) {
-                buildNumber = Integer.parseInt(document.getAttribute("buildNumber"));
-            }
 
-            if (debugRandom) {
-                fg.write('X', 'X');
-            } else {
-                fg.writeUI16(buildNumber);
-            }
-            fg.write(0x00, 0x00);
-            if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
-                fg.write('C');
-            } else {
-                fg.write('B');
-            }
-            fg.write(0x00);
+                String versionInfo = "";
+                if (document.hasAttribute("versionInfo")) {
+                    versionInfo = document.getAttribute("versionInfo");
+                }
 
-            String versionInfo = "";
-            if (document.hasAttribute("versionInfo")) {
-                versionInfo = document.getAttribute("versionInfo");
-            }
+                if (debugRandom) {
+                    fg.write('N', 'N', 'N');
+                } else {
+                    fg.write(versionInfo.getBytes());
+                    String timecount = " timecount = " + getTimeCreatedAsString();
+                    fg.write(timecount.getBytes());
+                }
+                fg.write(0x00);
+                if (flaFormatVersion == FlaFormatVersion.CS4) {
+                    if (debugRandom) {
+                        fg.write('U', 'U', 'U', 'U', 'U', 'U', 'U', 'U');
+                    } else {
+                        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x4B, 0x40);
+                    }
+                    fg.write(0x7C, 0x15, 0x00, 0x00, 0xA0, 0x0F, 0x00, 0x00,
+                            0x01);
 
-            if (debugRandom) {
-                fg.write('N', 'N', 'N');
-            } else {
-                fg.write(versionInfo.getBytes());
-                String timecount = " timecount = " + getTimeCreatedAsString();
-                fg.write(timecount.getBytes());
+                    fg.write(0x00, 0x00, 0x00);
+                }
             }
-            fg.write(0x00);
-            if (debugRandom) {
-                fg.write('U', 'U', 'U', 'U', 'U', 'U', 'U', 'U');
-            } else {
-                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x4B, 0x40);
-            }
-            fg.write(0x7C, 0x15, 0x00, 0x00, 0xA0, 0x0F, 0x00, 0x00,
-                    0x01, 0x00, 0x00, 0x00);
         }
     }
 
@@ -1409,7 +1455,7 @@ public class ContentsGenerator extends AbstractGenerator {
         }
 
         writeAsLinkage(dw, domSoundItem);
-        dw.write(0x00, 0x01, 0x00, 0x00, 0x00, 0x0A,
+        dw.write(0x00, 0x01, 0x00, 0x00, 0x00, flaFormatVersion.getMediaSoundVersionB(),
                 formatAsNum, 0x00);
         dw.writeUI32(sampleCount);
 
@@ -1426,7 +1472,9 @@ public class ContentsGenerator extends AbstractGenerator {
                 0xFF, 0xFE, 0xFF);
 
         dw.writeLenUnicodeString(deviceSoundHRef);
-        dw.write(0x00, 0x00, 0x00, 0x00);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+            dw.write(0x00, 0x00, 0x00, 0x00);
+        }
 
         boolean hasBinData = false;
         if (domSoundItem.hasAttribute("soundDataHRef")) {
@@ -1486,7 +1534,7 @@ public class ContentsGenerator extends AbstractGenerator {
         }
         dw.writeItemID(itemID);
 
-        dw.write(0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00);
+        dw.write(0x00, 0x00, 0x00, 0x00, flaFormatVersion.getMediaVideoVersionB(), 0x00, 0x00, 0x00, 0x00);
         dw.write(0xFF, 0xFE, 0xFF, 0x00);
         dw.write(0xFF, 0xFE, 0xFF, 0x00);
         dw.write(0xFF, 0xFE, 0xFF, 0x00);
@@ -1496,9 +1544,11 @@ public class ContentsGenerator extends AbstractGenerator {
         dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
         dw.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
         dw.write(0xFF, 0xFF, 0xFF, 0xFF, 0x00);
-        dw.write(0xFF, 0xFE, 0xFF, 0x00);
-
-        dw.write(0x00, 0x01, 0x00, 0x00, 0x00);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+            dw.write(0xFF, 0xFE, 0xFF, 0x00);
+            dw.write(0x00);
+        }
+        dw.write(0x01, 0x00, 0x00, 0x00);
 
         boolean hasBinData = false;
         if (domVideoItem.hasAttribute("videoDataHRef")) {
@@ -1666,7 +1716,7 @@ public class ContentsGenerator extends AbstractGenerator {
         }
     }
 
-    protected int writeMedia(FlaWriter dw, Element document, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, OutputStorageInterface outputDir, InputStorageInterface sourceDir, FlaFormatVersion flaFormatVersion) throws IOException {
+    protected int writeMedia(FlaWriter dw, Element document, Reference<Long> generatedItemIdOrder, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, OutputStorageInterface outputDir, InputStorageInterface sourceDir) throws IOException {
         Element mediaElement = getSubElementByName(document, "media");
 
         List<Element> media = new ArrayList<>();
@@ -1766,13 +1816,11 @@ public class ContentsGenerator extends AbstractGenerator {
             dw.writeLenUnicodeString(name);
             dw.writeUI16(id);
             writeTimeCreated(dw);
+            dw.write(flaFormatVersion.getFontVersionB());
+            dw.write(0x00, 0x00);
             if (flaFormatVersion == FlaFormatVersion.CS4) {
-                dw.write(0x0F, 0x00, 0x00,
-                        0xFF, 0xFE, 0xFF);
-            } else {
-                dw.write(0x0C, 0x00, 0x00);
+                dw.write(0xFF, 0xFE, 0xFF);
             }
-
             dw.writeLenUnicodeString(fontFamily);
 
             if (flaFormatVersion == FlaFormatVersion.CS4) {
@@ -1810,19 +1858,22 @@ public class ContentsGenerator extends AbstractGenerator {
             if (flaFormatVersion == FlaFormatVersion.CS4) {
                 dw.write(0xFF, 0xFE, 0xFF);
             }
-            dw.write(0x00,
-                    0x02,
-                    debugRandom ? 'U' : 0x01,
-                    0x00, 0x00,
-                    debugRandom ? 'U' : 0x00,
-                    debugRandom ? 'U' : 0x00,
-                    0x00, 0x00,
-                    debugRandom ? 'U' : 0x00,
-                    debugRandom ? 'U' : 0x00);
-            if (flaFormatVersion == FlaFormatVersion.CS4) {
-                dw.write(0xFF, 0xFE, 0xFF);
-            }
             dw.write(0x00);
+
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                dw.write(0x02,
+                        debugRandom ? 'U' : 0x01,
+                        0x00, 0x00,
+                        debugRandom ? 'U' : 0x00,
+                        debugRandom ? 'U' : 0x00,
+                        0x00, 0x00,
+                        debugRandom ? 'U' : 0x00,
+                        debugRandom ? 'U' : 0x00);
+                if (flaFormatVersion == FlaFormatVersion.CS4) {
+                    dw.write(0xFF, 0xFE, 0xFF);
+                }
+                dw.write(0x00);
+            }
 
             dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
             if (parentFolderItemID == null) {
@@ -1853,12 +1904,12 @@ public class ContentsGenerator extends AbstractGenerator {
 
     }
 
-    protected void writeColorDef(FlaWriter dw, int lastByte, FlaFormatVersion flaFormatVersion, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws IOException {
+    protected void writeColorDef(FlaWriter dw, FlaFormatVersion flaFormatVersion, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws IOException {
 
         //254 swatches        
         for (int s = 0; s < solidSwatches.size(); s++) {
             useClass("CColorDef", 0x00, dw, definedClasses, objectsCount);
-            dw.write(lastByte);
+            dw.write(flaFormatVersion.getColorDefVersion());
             SolidSwatchItem sw = solidSwatches.get(s);
             dw.write(sw.red, sw.green, sw.blue, 0xFF, 0x00, 0x00, sw.hue, 0x00, sw.saturation, 0x00, sw.brightness);
             dw.write(0x00);
@@ -1874,7 +1925,7 @@ public class ContentsGenerator extends AbstractGenerator {
         for (int x = 0; x < extendedSwatches.size(); x++) {
             ExtendedSwatchItem ex = extendedSwatches.get(x);
             useClass("CColorDef", 0x00, dw, definedClasses, objectsCount);
-            dw.write(lastByte);
+            dw.write(flaFormatVersion.getColorDefVersion());
             /*if (x == 5) {
                 dw.write(0xFF, 0xFF, 0xFF);
             } else if (x == 6) {
@@ -1889,7 +1940,7 @@ public class ContentsGenerator extends AbstractGenerator {
             //}
             dw.write(0xFF, ex.getType(), 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, ex.entries.size());
-            if (lastByte == 0x04) {
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
                 dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
             }
             for (GradientEntry en : ex.entries) {
@@ -1916,7 +1967,7 @@ public class ContentsGenerator extends AbstractGenerator {
 
         dw.write(0x00, 0x03, 0x00, 0x00, 0x00);
         //if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
-        
+
         if (debugRandom) {
             dw.write('U', 0x00, 0x00, 0x00,
                     'U', 'U', 0x00, 0x00,
@@ -1925,13 +1976,13 @@ public class ContentsGenerator extends AbstractGenerator {
                     'U', 'U', 0x00, 0x00,
                     0x01,
                     0x00, 0x00, 0x00, 'U');
-        } else {        
-            dw.write(0x00, 0x00, 0x00, 0x00, 
-                    0x00, 0x00, 0x00, 0x00, 
-                    0x00, 0x00, 0x00, 0x00, 
-                    0x00, 0x00, 0x00, 0x00, 
-                    0x00, 0x00, 0x00, 0x00, 
-                    0x01, 
+        } else {
+            dw.write(0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00,
+                    0x01,
                     0x00, 0x00, 0x00, 0x01);
         }
         //In F8:
@@ -1978,8 +2029,178 @@ public class ContentsGenerator extends AbstractGenerator {
                 return getPropertiesCs3(basePublishName, width, height);
             case F8:
                 return getPropertiesF8(basePublishName, width, height);
+            case MX2004:
+                return getPropertiesMx2004(basePublishName, width, height);
         }
         return null;
+    }
+
+    private Map<String, String> getPropertiesMx2004(String basePublishName, int width, int height) {
+        Map<String, String> propertiesMap = new LinkedHashMap<>();
+        propertiesMap.put("PublishFormatProperties::htmlFileName", basePublishName + ".html");
+        propertiesMap.put("PublishHtmlProperties::StartPaused", "0");
+        propertiesMap.put("Vector::AS3 Package Paths", ".");
+        propertiesMap.put("PublishRNWKProperties::speed256K", "0");
+        propertiesMap.put("PublishGifProperties::PaletteName", "");
+        propertiesMap.put("PublishFormatProperties::jpeg", "0");
+        propertiesMap.put("PublishHtmlProperties::Loop", "1");
+        propertiesMap.put("PublishProfileProperties::name", "Default");
+        propertiesMap.put("Vector::Debugging Permitted", "0");
+        propertiesMap.put("Vector::UseNetwork", "0");
+        propertiesMap.put("Vector::RSLPreloaderMethod", "0");
+        propertiesMap.put("PublishQTProperties::MatchMovieDim", "1");
+        propertiesMap.put("PublishQTProperties::AlphaOption", "");
+        propertiesMap.put("PublishQTProperties::LayerOption", "");
+        propertiesMap.put("PublishHtmlProperties::UsingDefaultAlternateFilename", "1");
+        propertiesMap.put("PublishHtmlProperties::Units", "0");
+        propertiesMap.put("PublishHtmlProperties::DeblockingFilter", "0");
+        propertiesMap.put("PublishHtmlProperties::showTagWarnMsg", "1");
+        propertiesMap.put("Vector::External Player", "");
+        propertiesMap.put("Vector::DocumentClass", "");
+        propertiesMap.put("PublishRNWKProperties::singleRateAudio", "0");
+        propertiesMap.put("PublishRNWKProperties::speedSingleISDN", "0");
+        propertiesMap.put("PublishPNGProperties::OptimizeColors", "1");
+        propertiesMap.put("PublishQTProperties::Width", "" + width);
+        propertiesMap.put("PublishFormatProperties::projectorMac", "0");
+        propertiesMap.put("PublishFormatProperties::gifDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::flashFileName", basePublishName + ".swf");
+        propertiesMap.put("Vector::Package Paths", "");
+        propertiesMap.put("Vector::Compress Movie", "1");
+        propertiesMap.put("Vector::ScriptStuckDelay", "15");
+        propertiesMap.put("PublishRNWKProperties::flashBitRate", "1200");
+        propertiesMap.put("PublishRNWKProperties::mediaCopyright", "(c) 2000");
+        propertiesMap.put("PublishGifProperties::Smooth", "1");
+        propertiesMap.put("PublishFormatProperties::html", "1");
+        propertiesMap.put("PublishFormatProperties::pngFileName", basePublishName + ".png");
+        propertiesMap.put("PublishHtmlProperties::VerticalAlignment", "1");
+        propertiesMap.put("PublishHtmlProperties::Quality", "4");
+        propertiesMap.put("Vector::Invisible Layer", "1");
+        propertiesMap.put("Vector::AS3ExportFrame", "1");
+        propertiesMap.put("PublishRNWKProperties::exportAudio", "1");
+        propertiesMap.put("PublishRNWKProperties::speed384K", "0");
+        propertiesMap.put("PublishRNWKProperties::exportSMIL", "1");
+        propertiesMap.put("PublishGifProperties::DitherOption", "");
+        propertiesMap.put("PublishHtmlProperties::DeviceFont", "0");
+        propertiesMap.put("Vector::Override Sounds", "0");
+        propertiesMap.put("PublishRNWKProperties::mediaDescription", "");
+        propertiesMap.put("PublishPNGProperties::FilterOption", "");
+        propertiesMap.put("PublishFormatProperties::gif", "0");
+        propertiesMap.put("PublishFormatProperties::jpegDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::rnwkDefaultName", "1");
+        propertiesMap.put("PublishHtmlProperties::VersionDetectionIfAvailable", "0");
+        propertiesMap.put("PublishHtmlProperties::HorizontalAlignment", "1");
+        propertiesMap.put("PublishHtmlProperties::DisplayMenu", "1");
+        propertiesMap.put("Vector::Protect", "0");
+        propertiesMap.put("Vector::Quality", "80");
+        propertiesMap.put("PublishJpegProperties::DPI", "4718592");
+        propertiesMap.put("PublishGifProperties::Interlace", "0");
+        propertiesMap.put("PublishGifProperties::DitherSolids", "0");
+        propertiesMap.put("PublishPNGProperties::Smooth", "1");
+        propertiesMap.put("PublishPNGProperties::BitDepth", "24-bit with Alpha");
+        propertiesMap.put("PublishQTProperties::Flatten", "1");
+        propertiesMap.put("PublishFormatProperties::qtFileName", basePublishName + ".mov");
+        propertiesMap.put("Vector::AS3Flags", "4102");
+        propertiesMap.put("PublishRNWKProperties::speed28K", "1");
+        propertiesMap.put("PublishRNWKProperties::mediaTitle", "");
+        propertiesMap.put("PublishRNWKProperties::mediaKeywords", "");
+        propertiesMap.put("PublishGifProperties::Width", "" + width);
+        propertiesMap.put("PublishGifProperties::Loop", "1");
+        propertiesMap.put("PublishFormatProperties::flash", "1");
+        propertiesMap.put("Vector::IncludeXMP", "1");
+        propertiesMap.put("PublishJpegProperties::Quality", "80");
+        propertiesMap.put("PublishRNWKProperties::realVideoRate", "100000");
+        propertiesMap.put("PublishRNWKProperties::speedDualISDN", "0");
+        propertiesMap.put("PublishGifProperties::MatchMovieDim", "1");
+        propertiesMap.put("PublishGifProperties::PaletteOption", "");
+        propertiesMap.put("PublishPNGProperties::DitherOption", "");
+        propertiesMap.put("PublishFormatProperties::projectorMacDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::pngDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::projectorWinFileName", basePublishName + ".exe");
+        propertiesMap.put("PublishHtmlProperties::Align", "0");
+        propertiesMap.put("PublishProfileProperties::version", "1");
+        propertiesMap.put("Vector::Package Export Frame", "1");
+        propertiesMap.put("PublishJpegProperties::MatchMovieDim", "1");
+        propertiesMap.put("PublishPNGProperties::MatchMovieDim", "1");
+        propertiesMap.put("PublishPNGProperties::PaletteOption", "");
+        propertiesMap.put("PublishFormatProperties::flashDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::jpegFileName", basePublishName + ".jpg");
+        propertiesMap.put("PublishHtmlProperties::Width", "" + width);
+        propertiesMap.put("PublishHtmlProperties::Height", "" + height);
+        propertiesMap.put("Vector::Omit Trace Actions", "0");
+        propertiesMap.put("Vector::Debugging Password", "");
+        propertiesMap.put("Vector::Export Swc", "0");
+        propertiesMap.put("PublishJpegProperties::Progressive", "0");
+        propertiesMap.put("PublishPNGProperties::DitherSolids", "0");
+        propertiesMap.put("PublishQTProperties::PlayEveryFrame", "0");
+        propertiesMap.put("PublishFormatProperties::png", "0");
+        propertiesMap.put("PublishFormatProperties::rnwk", "0");
+        propertiesMap.put("PublishFormatProperties::htmlDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::projectorMacFileName", basePublishName + ".app");
+        propertiesMap.put("PublishHtmlProperties::UsingDefaultContentFilename", "1");
+        propertiesMap.put("PublishHtmlProperties::WindowMode", "0");
+        propertiesMap.put("PublishHtmlProperties::TemplateFileName", "");
+        propertiesMap.put("Vector::DeviceSound", "0");
+        propertiesMap.put("Vector::AS3Coach", "4");
+        propertiesMap.put("Vector::AS3AutoDeclare", "4096");
+        propertiesMap.put("Vector::UseAS3Namespace", "1");
+        propertiesMap.put("Vector::DefaultLibraryLinkage", "0");
+        propertiesMap.put("PublishJpegProperties::Size", "0");
+        propertiesMap.put("PublishGifProperties::Height", "" + height);
+        propertiesMap.put("PublishPNGProperties::Interlace", "0");
+        propertiesMap.put("PublishHtmlProperties::ContentFilename", basePublishName + "_content.html");
+        propertiesMap.put("PublishHtmlProperties::AlternateFilename", basePublishName + "_alternate.html");
+        propertiesMap.put("PublishHtmlProperties::OwnAlternateFilename", "");
+        propertiesMap.put("Vector::Report", "0");
+        propertiesMap.put("PublishRNWKProperties::speed56K", "1");
+        propertiesMap.put("PublishGifProperties::LoopCount", "");
+        propertiesMap.put("PublishGifProperties::TransparentOption", "");
+        propertiesMap.put("PublishGifProperties::MaxColors", "255");
+        propertiesMap.put("PublishPNGProperties::RemoveGradients", "0");
+        propertiesMap.put("PublishQTProperties::Height", "" + height);
+        propertiesMap.put("PublishFormatProperties::qt", "0");
+        propertiesMap.put("Vector::Stream Compress", "7");
+        propertiesMap.put("Vector::Event Format", "0");
+        propertiesMap.put("Vector::Version", "7");
+        propertiesMap.put("Vector::AS3Strict", "2");
+        propertiesMap.put("Vector::HardwareAcceleration", "0");
+        propertiesMap.put("Vector::RSLPreloaderSWF", "$(AppConfig)/ActionScript 3.0/rsls/loader_animation.swf");
+        propertiesMap.put("PublishRNWKProperties::audioFormat", "0");
+        propertiesMap.put("PublishGifProperties::OptimizeColors", "1");
+        propertiesMap.put("PublishFormatProperties::projectorWinDefaultName", "1");
+        propertiesMap.put("PublishHtmlProperties::Scale", "0");
+        propertiesMap.put("Vector::Event Compress", "7");
+        propertiesMap.put("Vector::ActionScriptVersion", "2");
+        propertiesMap.put("Vector::StreamUse8kSampleRate", "0");
+        propertiesMap.put("Vector::EventUse8kSampleRate", "0");
+        propertiesMap.put("PublishJpegProperties::Height", "" + height);
+        propertiesMap.put("PublishRNWKProperties::speed512K", "0");
+        propertiesMap.put("PublishGifProperties::RemoveGradients", "0");
+        propertiesMap.put("PublishPNGProperties::Width", "" + width);
+        propertiesMap.put("PublishPNGProperties::Height", "" + height);
+        propertiesMap.put("PublishFormatProperties::qtDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::gifFileName", basePublishName + ".gif");
+        propertiesMap.put("PublishHtmlProperties::VersionInfo", "10,1,52,0;9,0,124,0;8,0,24,0;7,0,14,0;6,0,79,0;5,0,58,0;4,0,32,0;3,0,8,0;2,0,1,12;1,0,0,1;");
+        propertiesMap.put("Vector::DeblockingFilter", "0");
+        propertiesMap.put("Vector::Stream Format", "0");
+        propertiesMap.put("PublishJpegProperties::Width", "" + width);
+        propertiesMap.put("PublishRNWKProperties::exportFlash", "1");
+        propertiesMap.put("PublishRNWKProperties::showBitrateDlog", "1");
+        propertiesMap.put("PublishRNWKProperties::speedCorporateLAN", "0");
+        propertiesMap.put("PublishRNWKProperties::mediaAuthor", "");
+        propertiesMap.put("PublishGifProperties::Animated", "0");
+        propertiesMap.put("PublishGifProperties::TransparentAlpha", "128");
+        propertiesMap.put("PublishPNGProperties::Transparent", "0");
+        propertiesMap.put("PublishPNGProperties::PaletteName", "");
+        propertiesMap.put("PublishQTProperties::UseQTSoundCompression", "0");
+        propertiesMap.put("PublishQTProperties::Looping", "0");
+        propertiesMap.put("PublishFormatProperties::defaultNames", "1");
+        propertiesMap.put("PublishFormatProperties::projectorWin", "0");
+        propertiesMap.put("PublishFormatProperties::rnwkFileName", basePublishName + ".smil");
+        propertiesMap.put("PublishHtmlProperties::UsingOwnAlternateFile", "0");
+        propertiesMap.put("PublishPNGProperties::MaxColors", "255");
+        propertiesMap.put("PublishQTProperties::ControllerOption", "0");
+        propertiesMap.put("PublishQTProperties::PausedAtStart", "0");
+        return propertiesMap;
     }
 
     private Map<String, String> getPropertiesF8(String basePublishName, int width, int height) {

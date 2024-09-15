@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
@@ -42,15 +43,12 @@ import org.testng.annotations.DataProvider;
 public class XlfToCs4ConverterTest {
 
     private static final String SOURCE_DIR = "testdata/fla/cs5";
-    private static final String EXPECTED_DIR_CS4 = "testdata/fla/cs4";
-    private static final String EXPECTED_DIR_CS3 = "testdata/fla/cs3";
-    private static final String EXPECTED_DIR_F8 = "testdata/fla/f8";
-
-
-    private static final String OUTPUT_DIR_CS4 = "out/tests/fla/cs4";
-    private static final String OUTPUT_DIR_CS3 = "out/tests/fla/cs3";
-    private static final String OUTPUT_DIR_F8 = "out/tests/fla/f8";
-
+    
+    
+    private static final String EXPECTED_BASE_DIR= "testdata/fla";
+    
+    private static final String OUTPUT_BASE_DIR = "out/tests/fla";
+    
     private Comparator<File> getFileComparator() {
         return new Comparator<File>() {
             @Override
@@ -73,6 +71,11 @@ public class XlfToCs4ConverterTest {
     @DataProvider(name = "folders-f8")
     public Object[][] provideFoldersF8() {
         return provideFolders(FlaFormatVersion.F8);
+    }
+    
+    @DataProvider(name = "folders-mx2004")
+    public Object[][] provideFoldersMx2004() {
+        return provideFolders(FlaFormatVersion.MX2004);
     }
     
     private Object[][] provideFolders(FlaFormatVersion flaFormatVersion) {
@@ -111,34 +114,18 @@ public class XlfToCs4ConverterTest {
 
     private void convert(String folderName, FlaFormatVersion flaFormatVersion) throws Exception {
 
-        String outputDirParent = "";
-        String expectedDirParent = "";
-
-        switch (flaFormatVersion) {
-            case CS4:
-                outputDirParent = OUTPUT_DIR_CS4;
-                expectedDirParent = EXPECTED_DIR_CS4;
-                break;
-            case CS3:
-                outputDirParent = OUTPUT_DIR_CS3;
-                expectedDirParent = EXPECTED_DIR_CS3;
-                break;
-            case F8:
-                outputDirParent = OUTPUT_DIR_F8;
-                expectedDirParent = EXPECTED_DIR_F8;
-                break;
-        }
+        String outputDirParent = OUTPUT_BASE_DIR + "/" + flaFormatVersion.name().toLowerCase();
+        String expectedDirParent = EXPECTED_BASE_DIR + "/" + flaFormatVersion.name().toLowerCase();       
 
         File actualDir = new File(outputDirParent + "/" + folderName);
         deleteDir(actualDir);
         if (!actualDir.exists()) {
             actualDir.mkdirs();
         }
-        ContentsGenerator contentsGenerator = new ContentsGenerator();
+        ContentsGenerator contentsGenerator = new ContentsGenerator(flaFormatVersion);
         contentsGenerator.setDebugRandom(true);
         contentsGenerator.generate(new DirectoryInputStorage(new File(SOURCE_DIR + "/" + folderName)),
-                new DirectoryOutputStorage(actualDir),
-                flaFormatVersion
+                new DirectoryOutputStorage(actualDir)                
         );
 
         File expectedDir = new File(expectedDirParent + "/" + folderName);
@@ -185,7 +172,8 @@ public class XlfToCs4ConverterTest {
 
             //assertEquals(actualData.length, expectedData.length, "File data length of file " + actualFile);
             int epos = 0;
-            for (int apos = 0; apos < actualData.length && epos < expectedData.length; apos++, epos++) {
+            int apos = 0;
+            for (; apos < actualData.length && epos < expectedData.length; apos++, epos++) {
                 if (actualData[apos] == 'X') { //special - all randomness is replaced with 'X' - setDebugRandom(true)
                     continue;
                 }
@@ -200,6 +188,16 @@ public class XlfToCs4ConverterTest {
                         epos++;
                     }
                     apos += 3;
+                }
+                
+                if (apos + 2 < actualData.length
+                        && actualData[apos] == 'V'
+                        && actualData[apos + 1] == 'V'
+                        && actualData[apos + 2] == 'V') {
+                    int len = expectedData[epos];
+                    epos += len;
+                    apos += 3 - 1;
+                    continue;
                 }
 
                 if (/*apos - 3 > 0 &&*/apos + 6 < actualData.length && actualData[apos] == 3
@@ -232,6 +230,7 @@ public class XlfToCs4ConverterTest {
                 }
                 assertEquals(actualData[apos] & 0xFF, expectedData[epos] & 0xFF, "Byte in file " + actualFile + " on position apos=" + apos + ", epos=" + epos);
             }
+            assertEquals(apos, actualData.length, "The file " + actualFile + " is longer than expected file");
         }
     }
 
@@ -249,10 +248,15 @@ public class XlfToCs4ConverterTest {
     public void testConvertF8(String folder) throws Exception {
         convert(folder, FlaFormatVersion.F8);
     }
+    
+    @Test(dataProvider = "folders-mx2004")
+    public void testConvertMx2004(String folder) throws Exception {
+        convert(folder, FlaFormatVersion.MX2004);
+    }
 
     //@Test
     public void mytest() throws Exception {
-        //testConvertF8("0012_texts");
+        //testConvertMx2004("0014_sounds");
     }
 
     private static void deleteDir(File f) throws IOException {
@@ -280,8 +284,8 @@ public class XlfToCs4ConverterTest {
     }
 
     public static void main(String[] args) throws Exception {
-        for (String expectedDirParent : Arrays.asList(EXPECTED_DIR_F8, EXPECTED_DIR_CS3, EXPECTED_DIR_CS4)) {
-
+        for (FlaFormatVersion flaFormatVersion : FlaFormatVersion.values()) {
+            String expectedDirParent = EXPECTED_BASE_DIR + "/" + flaFormatVersion.name().toLowerCase();
             File expectedDir = new File(expectedDirParent);
             for (File f : expectedDir.listFiles()) {
                 if (f.isDirectory()) {

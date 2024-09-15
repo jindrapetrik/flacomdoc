@@ -81,6 +81,10 @@ public class PageGenerator extends AbstractGenerator {
     private static final Pattern CUBICS_PATTERN = Pattern.compile("^!(?<mx>[0-9]+) +(?<my>[0-9]+) *\\(((?<pBCPx>[0-9]+) *, *(?<pBCPy>[0-9]+))? *; *(?<x1>[0-9]+),(?<y1>[0-9]+) +(?<x2>[0-9]+),(?<y2>[0-9]+) +(?<ex>[0-9]+),(?<ey>[0-9]+) *(?<xy>([QqPp]? *[0-9]+ +[0-9]+)+) *\\)((?<nBCPx>[0-9]+) *, *(?<nBCPy>[0-9]+))? *; *$");
     private static final Pattern CUBICS_XY_PATTERN = Pattern.compile("(?<letter>[QqPp]?) *(?<x>[0-9]+) +(?<y>[0-9]+)");
 
+    public PageGenerator(FlaFormatVersion flaFormatVersion) {
+        super(flaFormatVersion);
+    }
+
     /*protected void useClass(String className, FlaWriter os, Map<String, Integer> definedClasses,            Reference<Integer> totalObjectCount) throws IOException {
         if (definedClasses.contains(className)) {
             os.write(1 + 2 * definedClasses.indexOf(className));
@@ -250,8 +254,7 @@ public class PageGenerator extends AbstractGenerator {
     protected void handleVideoInstance(Element videoInstance,
             FlaWriter fg,
             Map<String, Integer> definedClasses,
-            Reference<Integer> totalObjectCount,
-            FlaFormatVersion flaFormatVersion) throws IOException {
+            Reference<Integer> totalObjectCount) throws IOException {
         useClass("CPicVideoStream", fg, definedClasses, totalObjectCount);
         fg.write(flaFormatVersion.getVideoStreamVersion());
         instanceHeader(videoInstance, fg, 0x04, true);
@@ -312,8 +315,7 @@ public class PageGenerator extends AbstractGenerator {
 
     protected void handleBitmapInstance(Element bitmapInstance,
             FlaWriter fg,
-            Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
-            FlaFormatVersion flaFormatVersion
+            Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount
     ) throws IOException {
         if (!bitmapInstance.hasAttribute("libraryItemName")) {
             return;
@@ -353,7 +355,6 @@ public class PageGenerator extends AbstractGenerator {
             Map<String, Integer> definedClasses,
             Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
-            FlaFormatVersion flaFormatVersion,
             boolean motionTweenEnd
     ) throws IOException {
         Element membersElement = getSubElementByName(element, "members");
@@ -370,7 +371,7 @@ public class PageGenerator extends AbstractGenerator {
                 locked = "true".equals(element.getAttribute("locked"));
             }
             fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00));
-            handleElements(members, fg, definedClasses, totalObjectCount, copiedComponentPathRef, flaFormatVersion, motionTweenEnd);
+            handleElements(members, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd);
         }
     }
 
@@ -378,31 +379,30 @@ public class PageGenerator extends AbstractGenerator {
             FlaWriter fg,
             Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
-            FlaFormatVersion flaFormatVersion,
             boolean motionTweenEnd
     ) throws IOException {
         for (int instanceIndex = 0; instanceIndex < elements.size(); instanceIndex++) {
             Element element = elements.get(instanceIndex);
             switch (element.getTagName()) {
                 case "DOMSymbolInstance":
-                    handleSymbolInstance(element, fg, definedClasses, totalObjectCount, copiedComponentPathRef, flaFormatVersion, motionTweenEnd);
+                    handleSymbolInstance(element, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd);
                     break;
                 case "DOMBitmapInstance":
-                    handleBitmapInstance(element, fg, definedClasses, totalObjectCount, flaFormatVersion);
+                    handleBitmapInstance(element, fg, definedClasses, totalObjectCount);
                     break;
                 case "DOMVideoInstance":
-                    handleVideoInstance(element, fg, definedClasses, totalObjectCount, flaFormatVersion);
+                    handleVideoInstance(element, fg, definedClasses, totalObjectCount);
                     break;
                 case "DOMStaticText":
                 case "DOMDynamicText":
                 case "DOMInputText":
-                    handleText(element, fg, definedClasses, totalObjectCount, flaFormatVersion);
+                    handleText(element, fg, definedClasses, totalObjectCount);
                     break;
                 case "DOMTLFText":
                     Logger.getLogger(PageGenerator.class.getName()).warning("DOMTLFText element is not supported");
                     break;
                 case "DOMGroup":
-                    handleGroup(element, fg, definedClasses, totalObjectCount, copiedComponentPathRef, flaFormatVersion, motionTweenEnd);
+                    handleGroup(element, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd);
                     break;
             }
         }
@@ -411,7 +411,7 @@ public class PageGenerator extends AbstractGenerator {
         for (int e = 0; e < elements.size(); e++) {
             Element element = elements.get(e);
             if ("DOMShape".equals(element.getNodeName())) {
-                handleShape(element, fg, false, definedClasses, totalObjectCount, flaFormatVersion);
+                handleShape(element, fg, false, definedClasses, totalObjectCount);
                 hasShape = true;
                 break;
             }
@@ -670,7 +670,6 @@ public class PageGenerator extends AbstractGenerator {
             FlaWriter fg,
             Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
-            FlaFormatVersion flaFormatVersion,
             boolean motionTweenEnd
     ) throws IOException {
 
@@ -936,22 +935,24 @@ public class PageGenerator extends AbstractGenerator {
                 debugRandom ? 'X' : libraryItemIndex, 0x00, 0x00, 0x00, //FIXME? this is probably a long val
                 0x00, 0x00, 0x00
         );
+        
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+            if (!filters.isEmpty()) {
+                fg.write(0x01,
+                        filters.size(), 0x00, 0x00, 0x00);
 
-        if (!filters.isEmpty()) {
-            fg.write(0x01,
-                    filters.size(), 0x00, 0x00, 0x00);
-
-            for (FilterInterface filter : filters) {
-                filter.write(fg);
+                for (FilterInterface filter : filters) {
+                    filter.write(fg);
+                }
+            } else {
+                fg.write(0x00);
             }
-        } else {
-            fg.write(0x00);
-        }
 
-        fg.write(
-                blendMode,
-                0x00, //??
-                0x00);
+            fg.write(
+                    blendMode,
+                    0x00, //??
+                    0x00);
+        }
 
         if (flaFormatVersion == FlaFormatVersion.CS4) {
             float[] matrix3D = new float[]{
@@ -1112,13 +1113,16 @@ public class PageGenerator extends AbstractGenerator {
                 );
             }
         }
-        fg.write(0x00, cacheAsBitmap ? 1 : 0, instanceType);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+            fg.write(0x00, cacheAsBitmap ? 1 : 0);
+        }
+        fg.write(instanceType);
         fg.writeMatrix(placeMatrix);
     }
 
     static int textCount = 0;
 
-    private void handleText(Element element, FlaWriter fg, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount, FlaFormatVersion flaFormatVersion) throws IOException {
+    private void handleText(Element element, FlaWriter fg, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
         if ("DOMStaticText".equals(element.getTagName())
                 || "DOMDynamicText".equals(element.getTagName())
                 || "DOMInputText".equals(element.getTagName())) {
@@ -1641,31 +1645,34 @@ public class PageGenerator extends AbstractGenerator {
                     fg.write(0xFF, 0xFE, 0xFF);
                 }
                 fg.writeLenUnicodeString(target);
-                fg.write(0x02);
+                
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {               
+                    fg.write(0x02);
 
-                switch (fontRenderingMode) {
-                    case FONTRENDERING_DEFAULT:
-                        fg.write(1);
-                        break;
-                    case FONTRENDERING_CUSTOM:
-                        fg.write(2);
-                        break;
-                    default:
-                        fg.write(0);
-                        break;
+                    switch (fontRenderingMode) {
+                        case FONTRENDERING_DEFAULT:
+                            fg.write(1);
+                            break;
+                        case FONTRENDERING_CUSTOM:
+                            fg.write(2);
+                            break;
+                        default:
+                            fg.write(0);
+                            break;
+                    }
+                    if (flaFormatVersion == FlaFormatVersion.CS4
+                            || fontRenderingMode != FONTRENDERING_DEVICE) {
+                        fg.writeFloat(antiAliasThickness);
+                        fg.writeFloat(antiAliasSharpness);
+                    } else {
+                        fg.write(0, 0, 0, 0);
+                        fg.write(0, 0, 0, 0);
+                    }
+                    if (flaFormatVersion == FlaFormatVersion.CS4) {
+                        fg.write(0xFF, 0xFE, 0xFF);
+                    }
+                    fg.writeLenUnicodeString(url);
                 }
-                if (flaFormatVersion == FlaFormatVersion.CS4
-                        || fontRenderingMode != FONTRENDERING_DEVICE) {
-                    fg.writeFloat(antiAliasThickness);
-                    fg.writeFloat(antiAliasSharpness);
-                } else {
-                    fg.write(0, 0, 0, 0);
-                    fg.write(0, 0, 0, 0);
-                }
-                if (flaFormatVersion == FlaFormatVersion.CS4) {
-                    fg.write(0xFF, 0xFE, 0xFF);
-                }
-                fg.writeLenUnicodeString(url);
                 fg.write(characters.getBytes("UTF-16LE"));
             }
 
@@ -1679,16 +1686,19 @@ public class PageGenerator extends AbstractGenerator {
                     0xFF, 0xFE, 0xFF, 0x00,
                     0xFF, 0xFE, 0xFF);
             fg.writeLenUnicodeString(String.join("|", allEmbedRanges));
-            if (!filters.isEmpty()) {
-                fg.write(0x01);
-                fg.writeUI32(filters.size()); //Is it really 4 bytes long?
-                for (FilterInterface filter : filters) {
-                    filter.write(fg);
+            
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                if (!filters.isEmpty()) {
+                    fg.write(0x01);
+                    fg.writeUI32(filters.size()); //Is it really 4 bytes long?
+                    for (FilterInterface filter : filters) {
+                        filter.write(fg);
+                    }
+                } else {
+                    fg.write(0x00);
                 }
-            } else {
-                fg.write(0x00);
+                fg.write(0x00, 0x00);
             }
-            fg.write(0x00, 0x00);
         }
     }
 
@@ -1803,7 +1813,7 @@ public class PageGenerator extends AbstractGenerator {
         }
     }
 
-    private void handleShape(Element element, FlaWriter fg, boolean inGroup, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount, FlaFormatVersion flaFormatVersion) throws IOException {
+    private void handleShape(Element element, FlaWriter fg, boolean inGroup, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
         instanceHeader(element, fg, flaFormatVersion.getShapeType(), false);
         fg.write(0x05);
         Node fillsNode = getSubElementByName(element, "fills");
@@ -2007,7 +2017,9 @@ public class PageGenerator extends AbstractGenerator {
                 }
 
                 fg.writeStrokeBegin(baseColor, weight, pixelHinting, scaleMode, caps, joints, miterLimit, styleParam1, styleParam2);
-                handleFill(fillStyleVal, fg);
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                    handleFill(fillStyleVal, fg);
+                }
             }
         }
         fg.beginShape();
@@ -2152,8 +2164,7 @@ public class PageGenerator extends AbstractGenerator {
             FlaWriter fg,
             Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
-            Reference<Integer> totalFramesCountRef,
-            FlaFormatVersion flaFormatVersion
+            Reference<Integer> totalFramesCountRef
     ) throws IOException {
         useClass("CPicLayer", fg, definedClasses, totalObjectCount);
         fg.write(flaFormatVersion.getLayerVersion());
@@ -2195,7 +2206,7 @@ public class PageGenerator extends AbstractGenerator {
                     elements = getAllSubElements(elementsNode);
                 }
 
-                handleElements(elements, fg, definedClasses, totalObjectCount, copiedComponentPathRef, flaFormatVersion, prevTweenType.equals("motion"));
+                handleElements(elements, fg, definedClasses, totalObjectCount, copiedComponentPathRef, prevTweenType.equals("motion"));
 
                 prevTweenType = tweenType;
 
@@ -2600,61 +2611,73 @@ public class PageGenerator extends AbstractGenerator {
                         0x00, 0x00,
                         0x00,
                         anchor ? 1 : 0,
-                        0x00, 0x00, 0x00,
-                        useSingleEaseCurve ? 1 : 0, 0x00, 0x00, 0x00);
+                        0x00, 0x00, 0x00
+                );
 
-                boolean hasCustomEase = false;
-                if (frame.hasAttribute("hasCustomEase")) {
-                    hasCustomEase = "true".equals(frame.getAttribute("hasCustomEase"));
-                }
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                    fg.write(useSingleEaseCurve ? 1 : 0, 0x00, 0x00, 0x00);
 
-                fg.writeUI32(hasCustomEase ? 1 : 0);
-                if (hasCustomEase) {
-                    Element tweensElement = getSubElementByName(frame, "tweens");
-                    List<String> properties = Arrays.asList("position", "rotation", "scale", "color", "filters", "all");
+                    boolean hasCustomEase = false;
+                    if (frame.hasAttribute("hasCustomEase")) {
+                        hasCustomEase = "true".equals(frame.getAttribute("hasCustomEase"));
+                    }
 
-                    if (tweensElement == null) {
-                        for (int i = 0; i < properties.size(); i++) {
-                            fg.writeUI32(0);
-                        }
-                    } else {
-                        List<Element> customEaseElements = getAllSubElementsByName(tweensElement, "CustomEase");
-                        Map<String, Element> targetToCustomEase = new HashMap<>();
-                        for (Element el : customEaseElements) {
-                            if (!el.hasAttribute("target")) {
-                                continue;
-                            }
-                            targetToCustomEase.put(el.getAttribute("target"), el);
-                        }
+                    fg.writeUI32(hasCustomEase ? 1 : 0);
+                    if (hasCustomEase) {
+                        Element tweensElement = getSubElementByName(frame, "tweens");
+                        List<String> properties = Arrays.asList("position", "rotation", "scale", "color", "filters", "all");
 
-                        for (String property : properties) {
-                            if (!targetToCustomEase.containsKey(property)) {
+                        if (tweensElement == null) {
+                            for (int i = 0; i < properties.size(); i++) {
                                 fg.writeUI32(0);
-                                continue;
+                            }
+                        } else {
+                            List<Element> customEaseElements = getAllSubElementsByName(tweensElement, "CustomEase");
+                            Map<String, Element> targetToCustomEase = new HashMap<>();
+                            for (Element el : customEaseElements) {
+                                if (!el.hasAttribute("target")) {
+                                    continue;
+                                }
+                                targetToCustomEase.put(el.getAttribute("target"), el);
                             }
 
-                            List<Element> points = getAllSubElementsByName(targetToCustomEase.get(property), "Point");
-
-                            int numPoints = 2 + (points.size() - 4) / 3;
-                            fg.writeUI32(numPoints);
-                            for (int p = 0; p < points.size(); p++) {
-                                Element point = points.get(p);
-                                double x = 0;
-                                if (point.hasAttribute("x")) {
-                                    x = Double.parseDouble(point.getAttribute("x"));
-                                }
-                                double y = 0;
-                                if (point.hasAttribute("y")) {
-                                    y = Double.parseDouble(point.getAttribute("y"));
-                                }
-                                if (x < 0) {
-                                    x = 0;
-                                }
-                                if (y < 0) {
-                                    y = 0;
+                            for (String property : properties) {
+                                if (!targetToCustomEase.containsKey(property)) {
+                                    fg.writeUI32(0);
+                                    continue;
                                 }
 
-                                if (p == 0 || p == points.size() - 1) {
+                                List<Element> points = getAllSubElementsByName(targetToCustomEase.get(property), "Point");
+
+                                int numPoints = 2 + (points.size() - 4) / 3;
+                                fg.writeUI32(numPoints);
+                                for (int p = 0; p < points.size(); p++) {
+                                    Element point = points.get(p);
+                                    double x = 0;
+                                    if (point.hasAttribute("x")) {
+                                        x = Double.parseDouble(point.getAttribute("x"));
+                                    }
+                                    double y = 0;
+                                    if (point.hasAttribute("y")) {
+                                        y = Double.parseDouble(point.getAttribute("y"));
+                                    }
+                                    if (x < 0) {
+                                        x = 0;
+                                    }
+                                    if (y < 0) {
+                                        y = 0;
+                                    }
+
+                                    if (p == 0 || p == points.size() - 1) {
+                                        if (debugRandom) {
+                                            //ignore rounding errors
+                                            fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
+                                            fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
+                                        } else {
+                                            fg.writeDouble(x);
+                                            fg.writeDouble(y);
+                                        }
+                                    }
                                     if (debugRandom) {
                                         //ignore rounding errors
                                         fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
@@ -2664,19 +2687,10 @@ public class PageGenerator extends AbstractGenerator {
                                         fg.writeDouble(y);
                                     }
                                 }
-                                if (debugRandom) {
-                                    //ignore rounding errors
-                                    fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
-                                    fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
-                                } else {
-                                    fg.writeDouble(x);
-                                    fg.writeDouble(y);
-                                }
                             }
                         }
                     }
                 }
-
                 Element motionObjectXML = getSubElementByName(frame, "motionObjectXML");
                 if (motionObjectXML != null) {
                     if (flaFormatVersion == FlaFormatVersion.CS4) {
@@ -2745,9 +2759,15 @@ public class PageGenerator extends AbstractGenerator {
                 heightMultiplier = Integer.parseInt(layer.getAttribute("heightMultiplier"));
             }
 
-            fg.write(
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00,
-                    0x00, flaFormatVersion.getLayerVersionB(), 0xFF, 0xFE, 0xFF
+            fg.write(0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x80,
+                    0x00, 0x00, 0x00, 0x80);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                fg.write(0x00, 0x00);
+            }
+
+            fg.write(flaFormatVersion.getLayerVersionB(),
+                    0xFF, 0xFE, 0xFF
             );
 
             fg.writeLenUnicodeString(layerName);
@@ -2859,8 +2879,7 @@ public class PageGenerator extends AbstractGenerator {
             Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
             Reference<Integer> totalFramesCountRef,
-            Map<Integer, Integer> layerIndexToNValue,
-            FlaFormatVersion flaFormatVersion
+            Map<Integer, Integer> layerIndexToNValue
     ) throws IOException {
         if (writtenLayers.contains(layerIndex)) {
             return;
@@ -2910,9 +2929,9 @@ public class PageGenerator extends AbstractGenerator {
         int nValue = 1 + definedClasses.size() + totalObjectCount.getVal();
         layerIndexToNValue.put(layerIndex, nValue);
 
-        writeLayerContents(layer, fg, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, flaFormatVersion);
+        writeLayerContents(layer, fg, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef);
         if (parentLayerIndex > -1 && !writtenLayers.contains(parentLayerIndex)) {
-            writeLayer(fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, flaFormatVersion);
+            writeLayer(fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue);
         } else {
             if (parentLayerIndex > -1) {
                 fg.writeUI16(layerIndexToNValue.get(parentLayerIndex));
@@ -2947,7 +2966,7 @@ public class PageGenerator extends AbstractGenerator {
         }
     }
 
-    public void generatePageFile(Element domTimeLine, OutputStream os, FlaFormatVersion flaFormatVersion) throws SAXException, IOException, ParserConfigurationException {
+    public void generatePageFile(Element domTimeLine, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
         FlaWriter fg = new FlaWriter(os, flaFormatVersion);
         fg.setDebugRandom(debugRandom);
         Map<String, Integer> definedClasses = new HashMap<>();
@@ -2972,7 +2991,7 @@ public class PageGenerator extends AbstractGenerator {
             Set<Integer> writtenLayers = new HashSet<>();
 
             for (int layerIndex = layers.size() - 1; layerIndex >= 0; layerIndex--) {
-                writeLayer(fg, layers, layerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, flaFormatVersion);
+                writeLayer(fg, layers, layerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue);
             }
         }
         int currentFrame = 0;
@@ -2987,8 +3006,17 @@ public class PageGenerator extends AbstractGenerator {
 
         fg.write(
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
-                0x80, 0x00, 0x00, 0x07, nextLayerId, 0x00, nextFolderId, 0x00, currentFrame, 0x00, 0x00, 0x00
-        );
+                0x80);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+            fg.write(0x00, 0x00, 0x07, nextLayerId, 0x00, nextFolderId, 0x00, currentFrame, 0x00, 0x00, 0x00);        
+        } else {
+            fg.write(0x05);
+            if (debugRandom) {
+                fg.write('U', 'U', 'U', 'U');
+            } else {
+                fg.write(0x02, 0x00, 0x01, 0x00);
+            }
+        }
         if (domTimeLine.hasAttribute("guides")) {
             String guidesXml = domTimeLine.getAttribute("guides");
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();

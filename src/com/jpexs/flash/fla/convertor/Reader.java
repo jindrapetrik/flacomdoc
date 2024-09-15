@@ -28,8 +28,8 @@ import java.io.RandomAccessFile;
 public class Reader {
 
     public static void main(String[] args) throws Exception {
-        RandomAccessFile fis = new RandomAccessFile("testdata\\fla\\f8\\0001_empty_doc\\Contents", "r");
-        fis.seek(541); //TODO: enter valid position
+        RandomAccessFile fis = new RandomAccessFile("testdata\\fla\\mx2004\\0001_empty_doc\\Contents", "r");
+        fis.seek(503); //TODO: enter valid position
         int len = fis.read() + (fis.read() << 8);
         System.out.println("len = " + len);
         for (int i = 0; i < len; i++) {
@@ -47,7 +47,19 @@ public class Reader {
             b = new byte[vlen * 2];
             fis.read(b);
             String val = new String(b, "UTF-16LE");
-            System.out.println("propertiesMap.put(\"" + key + "\", \"" + val.replace("\"", "\\\"") + "\");");
+            
+            String vale = "\"" + val.replace("\"", "\\\"") + "\"";
+            if (key.endsWith("::Width") && val.equals("550")) {
+                vale = "\"\" + width";
+            }
+            if (key.endsWith("::Height") && val.equals("400")) {
+                vale = "\"\" + height";
+            }
+            if (val.startsWith("Untitled-1")) {
+                val = val.substring("Untitled-1".length());
+                vale = "basePublishName + \"" + val.replace("\"", "\\\"") + "\"";
+            }             
+            System.out.println("propertiesMap.put(\"" + key + "\", "+vale+");");
         }
         fis.close();
     }

@@ -377,7 +377,7 @@ public class FlaWriter {
             writeXY(toX, toY);
         }
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
-            if (controlX == null) {            
+            if (controlX == null) {
                 logger.log(Level.FINE, "writing generalLineFlag {0}", generalLine ? 1 : 0);
                 write(generalLine ? 1 : 0);
             }
@@ -667,13 +667,15 @@ public class FlaWriter {
         write(0x00, 0x00, 0x00, debugRandom ? 'U' : 0x00);
         write(type, 0x00);
         writeMatrix(gradientMatrix);
-        write(
-                colors.length,
-                (int) Math.round(focalRatio * 256), 0x00, 0x00, 0x00, (flow + (linearRgb ? 1 : 0)), 0x00, 0x00, 0x00
-        );
+        write(colors.length);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+            write((int) Math.round(focalRatio * 256), 0x00,
+                    0x00, 0x00, (flow + (linearRgb ? 1 : 0)), 0x00, 0x00, 0x00
+            );
+        }
         for (int i = 0; i < colors.length; i++) {
-            write((int) Math.round(stopPos[i] * 255), colors[i].getRed(), colors[i].getGreen(), colors[i].getBlue(), 
-            debugRandom ? 'X' : colors[i].getAlpha() //rounding errors
+            write((int) Math.round(stopPos[i] * 255), colors[i].getRed(), colors[i].getGreen(), colors[i].getBlue(),
+                    debugRandom ? 'X' : colors[i].getAlpha() //rounding errors
             );
         }
     }
@@ -756,9 +758,11 @@ public class FlaWriter {
                 lineColor.getRed(), lineColor.getGreen(), lineColor.getBlue(), lineColor.getAlpha(),
                 (strokeWidthTwips & 0xFF), ((strokeWidthTwips >> 8) & 0xFF),
                 (styleParam1 & 0xFF), ((styleParam1 >> 8) & 0xFF),
-                (styleParam2 & 0xFF), ((styleParam2 >> 8) & 0xFF),
-                (pixelHinting ? 1 : 0), scaleMode, capStyle,
-                joinStyle, (int) ((miter - Math.floor(miter)) * 256), (int) Math.floor(miter));
+                (styleParam2 & 0xFF), ((styleParam2 >> 8) & 0xFF));
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+            write((pixelHinting ? 1 : 0), scaleMode, capStyle,
+                    joinStyle, (int) ((miter - Math.floor(miter)) * 256), (int) Math.floor(miter));
+        }
     }
 
     public void writeSolidStroke(
@@ -783,15 +787,13 @@ public class FlaWriter {
                 0x00, 0x00, 0x00, 0x80, //tp
                 0x00, 0x00, 0x00, 0x80, //tp
                 0x00, 0x00, 0x06,
-                
                 //matrix
-                0x00, 0x00, 0x01, 0x00, 
-                0x00, 0x00, 0x00, 0x00, 
+                0x00, 0x00, 0x01, 0x00,
                 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x01, 0x00, 
-                0x00, 0x00, 0x00, 0x00, 
-                0x00, 0x00, 0x00, 0x00, 
-                
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x01, 0x00,
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00,
                 0x05);
     }
 

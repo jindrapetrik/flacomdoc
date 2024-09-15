@@ -181,8 +181,8 @@ public class Main {
                     }
                     OutputStorageInterface outputStorage = new CfbOutputStorage(outputFile);
 
-                    ContentsGenerator contentsGenerator = new ContentsGenerator();
-                    contentsGenerator.generate(inputStorage, outputStorage, flaFormatVersion);
+                    ContentsGenerator contentsGenerator = new ContentsGenerator(flaFormatVersion);
+                    contentsGenerator.generate(inputStorage, outputStorage);
                     inputStorage.close();
                     outputStorage.close();
                     System.out.println("OK");
