@@ -202,9 +202,6 @@ auxiliary.show.customizer.message=<message>
                         <location>README.md</location>
                     </source-file>
                     <source-file>
-                        <location>TODO.md</location>
-                    </source-file>
-                    <source-file>
                         <location>LICENSE.md</location>
                     </source-file>                    
                 </items>

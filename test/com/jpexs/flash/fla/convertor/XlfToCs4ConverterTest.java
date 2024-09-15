@@ -81,6 +81,10 @@ public class XlfToCs4ConverterTest {
         
         for (int i = sourceFilesList.size() - 1; i >= 0; i--) {
             String name  = sourceFilesList.get(i).getName();
+            if (name.endsWith("-todo")) {
+                sourceFilesList.remove(i);
+                continue;
+            }
             if (name.contains("-")) {
                 String suffix = name.substring(name.indexOf("-") + 1);
                 FlaFormatVersion lowestFlaVersion = FlaFormatVersion.valueOf(suffix.toUpperCase());

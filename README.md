@@ -4,7 +4,7 @@
 This project has following goals:
  * Provide tool for extracting Flash binary FLA format CS4 and lower
  * Allow conversion of XFL FLA format CS5+ to binary FLA format CS4 or lower
- * Use this as a library in [JPEXS Free Flash Decompiler](https://github.com/jindrapetrik/jpexs-decompiler) to export to FLA CS4 or lower
+ * Use this as a library in [JPEXS Free Flash Decompiler] to export to FLA CS4 or lower
 
 ## How to compile
 The directory contains Netbeans project which you can open and then build here.
@@ -40,8 +40,12 @@ For conversion, target FLA format can be choosen between CS4 and CS3.
 For ComDoc extraction, all FLA formats CS4 and lower.
 
 
-## What is missing
-See [TODO.md](TODO.md) for known missing features.
+## What is known to be missing
+ * 3D rotations
+ * Compiled clips
+ * Components
+ * Inverse Kinematics
+ * Support for FLA below CS3
 
 ## License
 This work is licensed under LGPL v2.1, see [LICENSE.md](LICENSE.md) for details.
@@ -53,5 +57,5 @@ GUI Application uses FLA icon from [FatCow icons pack].
 ## Author
 Jindra Petřík aka JPEXS
 
-
+[JPEXS Free Flash Decompiler]: https://github.com/jindrapetrik/jpexs-decompiler
 [FatCow icons pack]: http://www.fatcow.com/free-icons
