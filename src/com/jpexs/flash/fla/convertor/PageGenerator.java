@@ -716,7 +716,12 @@ public class PageGenerator extends AbstractGenerator {
         if (symbolInstance.hasAttribute("centerPoint3DY")) {
             centerPoint3DY = Double.parseDouble(symbolInstance.getAttribute("centerPoint3DY"));
         }
-
+        
+        double centerPoint3DZ = 0;
+        if (symbolInstance.hasAttribute("centerPoint3DZ")) {
+            centerPoint3DZ = Double.parseDouble(symbolInstance.getAttribute("centerPoint3DZ"));
+        }
+        
         ColorEffectInterface colorEffect = new NoColorEffect();
 
         Element colorElement = getSubElementByName(symbolInstance, "color");
@@ -825,6 +830,7 @@ public class PageGenerator extends AbstractGenerator {
 
         long centerPoint3DXLong = Math.round(centerPoint3DX * 20);
         long centerPoint3DYLong = Math.round(centerPoint3DY * 20);
+        long centerPoint3DZLong = Math.round(centerPoint3DZ * 20);
 
         instanceHeader(symbolInstance, fg, flaFormatVersion.getSymbolType());
 
@@ -896,13 +902,45 @@ public class PageGenerator extends AbstractGenerator {
                 0x00);
 
         if (flaFormatVersion == FlaFormatVersion.CS4) {
-            fg.write(0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-
+            float[] matrix3D = new float[] {
+                1,0,0,0,
+                0,1,0,0,
+                0,0,1,0,
+                0,0,0,1
+            };
+            if (symbolInstance.hasAttribute("matrix3D")) {
+                String matrix3DStr = symbolInstance.getAttribute("matrix3D");
+                String[] matrixParts = matrix3DStr.trim().split(" ", -1);
+                if (matrixParts.length != 16) {
+                    Logger.getLogger(PageGenerator.class.getName()).warning("matrix3D attribute has incorrect number of parts");
+                } else {
+                    for (int i = 0; i < 16; i++) {
+                        matrix3D[i] = Float.parseFloat(matrixParts[i]);                       
+                    }
+                }
+            }
+            
+            for (int i = 0; i < 16; i++) {
+                fg.writeFloat(matrix3D[i]);
+            }
+            
+            double rotationX = 0;
+            if (symbolInstance.hasAttribute("rotationX")) {
+                rotationX = Double.parseDouble(symbolInstance.getAttribute("rotationX"));
+            }
+            double rotationY = 0;
+            if (symbolInstance.hasAttribute("rotationY")) {
+                rotationY = Double.parseDouble(symbolInstance.getAttribute("rotationY"));
+            }
+            double rotationZ = 0;
+            if (symbolInstance.hasAttribute("rotationZ")) {
+                rotationZ = Double.parseDouble(symbolInstance.getAttribute("rotationZ"));
+            }
+            
+            fg.writeDouble(rotationX);
+            fg.writeDouble(rotationY);
+            fg.writeDouble(rotationZ);
+                        
             if (symbolType != FlaWriter.SYMBOLTYPE_MOVIE_CLIP) {
                 fg.write(
                         0x00, 0x00, 0x00, 0x80,
@@ -913,8 +951,12 @@ public class PageGenerator extends AbstractGenerator {
                         (int) (centerPoint3DYLong & 0xFF), (int) ((centerPoint3DYLong >> 8) & 0xFF), (int) ((centerPoint3DYLong >> 16) & 0xFF), (int) ((centerPoint3DYLong >> 24) & 0xFF)
                 );
             }
+            
+            fg.write(
+                        (int) (centerPoint3DZLong & 0xFF), (int) ((centerPoint3DZLong >> 8) & 0xFF), (int) ((centerPoint3DZLong >> 16) & 0xFF), (int) ((centerPoint3DZLong >> 24) & 0xFF)
+            );
 
-            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+            fg.write(0x00, 0x00);
         }
 
         if (symbolType == FlaWriter.SYMBOLTYPE_GRAPHIC) {

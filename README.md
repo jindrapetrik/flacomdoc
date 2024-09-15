@@ -41,7 +41,6 @@ For ComDoc extraction, all FLA formats CS4 and lower.
 
 
 ## What is known to be missing
- * 3D rotations
  * Compiled clips
  * Components
  * Inverse Kinematics
