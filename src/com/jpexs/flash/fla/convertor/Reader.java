@@ -28,8 +28,8 @@ import java.io.RandomAccessFile;
 public class Reader {
 
     public static void main(String[] args) throws Exception {
-        RandomAccessFile fis = new RandomAccessFile("c:\\Dropbox\\Programovani\\JavaSE\\FlaComDoc\\testdata\\fla\\cs3\\0001_empty_doc\\Contents", "r");
-        fis.seek(570); //TODO: enter valid position
+        RandomAccessFile fis = new RandomAccessFile("testdata\\fla\\f8\\0001_empty_doc\\Contents", "r");
+        fis.seek(541); //TODO: enter valid position
         int len = fis.read() + (fis.read() << 8);
         System.out.println("len = " + len);
         for (int i = 0; i < len; i++) {

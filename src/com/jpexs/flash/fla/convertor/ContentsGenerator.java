@@ -616,7 +616,7 @@ public class ContentsGenerator extends AbstractGenerator {
             }
 
             useClass("CDocumentPage", 0x01, fg, definedClasses, objectsCount);
-            fg.write(flaFormatVersion.getPageVersion());
+            fg.write(flaFormatVersion.getDocumentPageVersion());
             //fg.write(0x01, 0x80, 0x19);
             fg.writeLenUnicodeString(debugRandom ? "YYY" : symbolFile);
             fg.write(0xFF, 0xFE, 0xFF);
@@ -647,15 +647,26 @@ public class ContentsGenerator extends AbstractGenerator {
                     0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF,
                     0x00, 0xFF, 0xFE, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0xFF, 0xFE,
                     0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x07,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00,
+                    0xFF, 0xFE, 0xFF, 0x00,
+                    flaFormatVersion.getSpriteVersionC(),
                     0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x03, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x03, 0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF,
                     0xFE, 0xFF, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-                    0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00,
-                    0xFF, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00);
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+
+            if (flaFormatVersion.ordinal() >= flaFormatVersion.CS3.ordinal()) {
+                fg.write(0x01, 0x00, 0x00, 0x00,
+                        0xFF, 0xFE, 0xFF, 0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+            }
+
+            fg.write(0xFF, 0xFE, 0xFF, 0x00,
+                    0xFF, 0xFE, 0xFF, 0x00,
+                    0x00, 0x00, 0x00, 0x00,
+                    0xFF, 0xFE, 0xFF, 0x00);
 
             if (scaleGridLeft != 0f || scaleGridRight != 0f || scaleGridTop != 0f || scaleGridBottom != 0f) {
                 fg.write(0x01, 0x00, 0x00, 0x00);
@@ -670,8 +681,10 @@ public class ContentsGenerator extends AbstractGenerator {
                         0x00, 0x00, 0x00, 0x80,
                         0x00, 0x00, 0x00, 0x80);
             }
-            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-            );
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+                fg.write(0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+            }
 
             if (flaFormatVersion == FlaFormatVersion.CS4) {
                 fg.write(0x00, 0x00);
@@ -740,13 +753,16 @@ public class ContentsGenerator extends AbstractGenerator {
         Reference<Integer> objectsCount = new Reference<>(0);
 
         try (OutputStream os = outputDir.getOutputStream("Contents")) {
-            FlaWriter fg = new FlaWriter(os);
+            FlaWriter fg = new FlaWriter(os, flaFormatVersion);
             fg.write(flaFormatVersion.getContentsVersion());
             fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
             );
+
+            if (flaFormatVersion.ordinal() >= flaFormatVersion.CS3.ordinal()) {
+                fg.write(0x00, 0x00, 0x00, 0x00);
+            }
 
             if (flaFormatVersion == FlaFormatVersion.CS4) {
                 fg.write(0x00, 0x00, 0x00, 0x00);
@@ -766,7 +782,7 @@ public class ContentsGenerator extends AbstractGenerator {
                 String sceneName = domTimeline.getAttribute("name");
 
                 useClass("CDocumentPage", 1, fg, definedClasses, objectsCount);
-                fg.write(flaFormatVersion.getPageVersion());
+                fg.write(flaFormatVersion.getDocumentPageVersion());
 
                 pageCount++;
 
@@ -818,7 +834,7 @@ public class ContentsGenerator extends AbstractGenerator {
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF,
                         0xFF, 0xFF, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
-                        0x07,
+                        flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal() ? 0x07 : 0x06,
                         0x00, 0x00, 0x00, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -838,20 +854,32 @@ public class ContentsGenerator extends AbstractGenerator {
                         0x00, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                        0x00,
+                        0x00, 0x00, 0x00, 0x00, 0x00);
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+                    fg.write(
+                            0x01, 0x00, 0x00, 0x00,
+                            0xFF, 0xFE, 0xFF, 0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+                    );
+                }
+                fg.write(
                         0xFF, 0xFE, 0xFF, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00,
+                        0xFF, 0xFE, 0xFF, 0x00
+                );
+
+                fg.write(debugRandom ? 'U' : 0x00, 0x00, 0x00, 0x00,
                         0xFF, 0xFE, 0xFF, 0x00,
-                        0xFF, 0xFE, 0xFF, 0x00,
-                        debugRandom ? 'U' : 0x00, 0x00, 0x00, 0x00,
-                        0xFF, 0xFE, 0xFF, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x80, 0x00, 0x00, 0x00,
-                        0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
-                        0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00);
+                        0x00, 0x00, 0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x80,
+                        0x00, 0x00, 0x00, 0x80,
+                        0x00, 0x00, 0x00, 0x80,
+                        0x00, 0x00, 0x00, 0x80);
+
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+                    fg.write(0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00,
+                            0x00);
+                }
                 if (flaFormatVersion == FlaFormatVersion.CS4) {
                     fg.write(0x00, 0x00);
                 }
@@ -874,8 +902,14 @@ public class ContentsGenerator extends AbstractGenerator {
                 nextSceneIdentifier = Integer.parseInt(document.getAttribute("nextSceneIdentifier"));
             }
             fg.write(0x00, 0x00);
-            fg.write(debugRandom ? 'U' : 0x02, //???
-                    0x00,
+            if (debugRandom) {
+                fg.write('U');
+            } else if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+                fg.write(0x02);
+            } else {
+                fg.write(0x03);
+            }
+            fg.write(0x00,
                     0x01, 0x00,
                     1 + currentTimeline,
                     0x00);
@@ -1253,7 +1287,13 @@ public class ContentsGenerator extends AbstractGenerator {
             } else {
                 fg.writeUI16(buildNumber);
             }
-            fg.write(0x00, 0x00, 0x43, 0x00);
+            fg.write(0x00, 0x00);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+                fg.write('C');
+            } else {
+                fg.write('B');
+            }
+            fg.write(0x00);
 
             String versionInfo = "";
             if (document.hasAttribute("versionInfo")) {
@@ -1782,7 +1822,7 @@ public class ContentsGenerator extends AbstractGenerator {
             if (flaFormatVersion == FlaFormatVersion.CS4) {
                 dw.write(0xFF, 0xFE, 0xFF);
             }
-            dw.write(0x00);            
+            dw.write(0x00);
 
             dw.write(0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
             if (parentFolderItemID == null) {
@@ -1873,10 +1913,39 @@ public class ContentsGenerator extends AbstractGenerator {
         if (flaFormatVersion == FlaFormatVersion.CS4) {
             dw.write(0x01);
         }
-        dw.write(0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                0x00);
+
+        dw.write(0x00, 0x03, 0x00, 0x00, 0x00);
+        //if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+        
+        if (debugRandom) {
+            dw.write('U', 0x00, 0x00, 0x00,
+                    'U', 'U', 0x00, 0x00,
+                    'U', 'U', 0x00, 0x00,
+                    'U', 'U', 0x00, 0x00,
+                    'U', 'U', 0x00, 0x00,
+                    0x01,
+                    0x00, 0x00, 0x00, 'U');
+        } else {        
+            dw.write(0x00, 0x00, 0x00, 0x00, 
+                    0x00, 0x00, 0x00, 0x00, 
+                    0x00, 0x00, 0x00, 0x00, 
+                    0x00, 0x00, 0x00, 0x00, 
+                    0x00, 0x00, 0x00, 0x00, 
+                    0x01, 
+                    0x00, 0x00, 0x00, 0x01);
+        }
+        //In F8:
+        /*
+            dw.write(0x01, 0x00, 0x00, 0x00,
+                    0x97, 0x01, 0x00, 0x00, //wtf are these?
+                    0x11, 0x03, 0x00, 0x00,
+                    0xA6, 0x02, 0x00, 0x00,
+                    0xE1, 0x03, 0x00, 0x00,
+                    0x01,
+                    0x00, 0x00, 0x00, 0x00);
+        }*/
+        dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x01, 0x00, 0x00, 0x00);
     }
 
     protected void writeMap(FlaWriter dw, Map<String, String> map, boolean isUni) throws IOException {
@@ -1907,8 +1976,178 @@ public class ContentsGenerator extends AbstractGenerator {
                 return getPropertiesCs4(basePublishName, width, height);
             case CS3:
                 return getPropertiesCs3(basePublishName, width, height);
+            case F8:
+                return getPropertiesF8(basePublishName, width, height);
         }
         return null;
+    }
+
+    private Map<String, String> getPropertiesF8(String basePublishName, int width, int height) {
+        Map<String, String> propertiesMap = new LinkedHashMap<>();
+        propertiesMap.put("PublishGifProperties::PaletteName", "");
+        propertiesMap.put("PublishRNWKProperties::speed256K", "0");
+        propertiesMap.put("Vector::AS3 Package Paths", ".");
+        propertiesMap.put("PublishHtmlProperties::StartPaused", "0");
+        propertiesMap.put("PublishFormatProperties::htmlFileName", basePublishName + ".html");
+        propertiesMap.put("PublishQTProperties::LayerOption", "");
+        propertiesMap.put("PublishQTProperties::AlphaOption", "");
+        propertiesMap.put("PublishQTProperties::MatchMovieDim", "1");
+        propertiesMap.put("Vector::RSLPreloaderMethod", "0");
+        propertiesMap.put("Vector::UseNetwork", "0");
+        propertiesMap.put("Vector::Debugging Permitted", "0");
+        propertiesMap.put("PublishProfileProperties::name", "Default");
+        propertiesMap.put("PublishHtmlProperties::Loop", "1");
+        propertiesMap.put("PublishFormatProperties::jpeg", "0");
+        propertiesMap.put("PublishQTProperties::Width", "" + width);
+        propertiesMap.put("PublishPNGProperties::OptimizeColors", "1");
+        propertiesMap.put("PublishRNWKProperties::speedSingleISDN", "0");
+        propertiesMap.put("PublishRNWKProperties::singleRateAudio", "0");
+        propertiesMap.put("Vector::DocumentClass", "");
+        propertiesMap.put("Vector::External Player", "");
+        propertiesMap.put("PublishHtmlProperties::showTagWarnMsg", "1");
+        propertiesMap.put("PublishHtmlProperties::DeblockingFilter", "0");
+        propertiesMap.put("PublishHtmlProperties::Units", "0");
+        propertiesMap.put("PublishHtmlProperties::UsingDefaultAlternateFilename", "1");
+        propertiesMap.put("PublishGifProperties::Smooth", "1");
+        propertiesMap.put("PublishRNWKProperties::mediaCopyright", "(c) 2000");
+        propertiesMap.put("PublishRNWKProperties::flashBitRate", "1200");
+        propertiesMap.put("Vector::ScriptStuckDelay", "15");
+        propertiesMap.put("Vector::Compress Movie", "1");
+        propertiesMap.put("Vector::Package Paths", "");
+        propertiesMap.put("PublishFormatProperties::flashFileName", basePublishName + ".swf");
+        propertiesMap.put("PublishFormatProperties::gifDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::projectorMac", "0");
+        propertiesMap.put("PublishGifProperties::DitherOption", "");
+        propertiesMap.put("PublishRNWKProperties::exportSMIL", "1");
+        propertiesMap.put("PublishRNWKProperties::speed384K", "0");
+        propertiesMap.put("PublishRNWKProperties::exportAudio", "1");
+        propertiesMap.put("Vector::AS3ExportFrame", "1");
+        propertiesMap.put("Vector::Invisible Layer", "1");
+        propertiesMap.put("PublishHtmlProperties::Quality", "4");
+        propertiesMap.put("PublishHtmlProperties::VerticalAlignment", "1");
+        propertiesMap.put("PublishFormatProperties::pngFileName", basePublishName + ".png");
+        propertiesMap.put("PublishFormatProperties::html", "1");
+        propertiesMap.put("PublishPNGProperties::FilterOption", "");
+        propertiesMap.put("PublishRNWKProperties::mediaDescription", "");
+        propertiesMap.put("Vector::Override Sounds", "0");
+        propertiesMap.put("PublishHtmlProperties::DeviceFont", "0");
+        propertiesMap.put("PublishQTProperties::Flatten", "1");
+        propertiesMap.put("PublishPNGProperties::BitDepth", "24-bit with Alpha");
+        propertiesMap.put("PublishPNGProperties::Smooth", "1");
+        propertiesMap.put("PublishGifProperties::DitherSolids", "0");
+        propertiesMap.put("PublishGifProperties::Interlace", "0");
+        propertiesMap.put("PublishJpegProperties::DPI", "4718592");
+        propertiesMap.put("Vector::Quality", "80");
+        propertiesMap.put("Vector::Protect", "0");
+        propertiesMap.put("PublishHtmlProperties::DisplayMenu", "1");
+        propertiesMap.put("PublishHtmlProperties::HorizontalAlignment", "1");
+        propertiesMap.put("PublishHtmlProperties::VersionDetectionIfAvailable", "0");
+        propertiesMap.put("PublishFormatProperties::rnwkDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::jpegDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::gif", "0");
+        propertiesMap.put("PublishGifProperties::Loop", "1");
+        propertiesMap.put("PublishGifProperties::Width", "" + width);
+        propertiesMap.put("PublishRNWKProperties::mediaKeywords", "");
+        propertiesMap.put("PublishRNWKProperties::mediaTitle", "");
+        propertiesMap.put("PublishRNWKProperties::speed28K", "1");
+        propertiesMap.put("Vector::AS3Flags", "4102");
+        propertiesMap.put("PublishFormatProperties::qtFileName", basePublishName + ".mov");
+        propertiesMap.put("PublishPNGProperties::DitherOption", "");
+        propertiesMap.put("PublishGifProperties::PaletteOption", "");
+        propertiesMap.put("PublishGifProperties::MatchMovieDim", "1");
+        propertiesMap.put("PublishRNWKProperties::speedDualISDN", "0");
+        propertiesMap.put("PublishRNWKProperties::realVideoRate", "100000");
+        propertiesMap.put("PublishJpegProperties::Quality", "80");
+        propertiesMap.put("Vector::IncludeXMP", "1");
+        propertiesMap.put("PublishFormatProperties::flash", "1");
+        propertiesMap.put("PublishPNGProperties::PaletteOption", "");
+        propertiesMap.put("PublishPNGProperties::MatchMovieDim", "1");
+        propertiesMap.put("PublishJpegProperties::MatchMovieDim", "1");
+        propertiesMap.put("Vector::Package Export Frame", "1");
+        propertiesMap.put("PublishProfileProperties::version", "1");
+        propertiesMap.put("PublishHtmlProperties::Align", "0");
+        propertiesMap.put("PublishFormatProperties::projectorWinFileName", basePublishName + ".exe");
+        propertiesMap.put("PublishFormatProperties::pngDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::projectorMacDefaultName", "1");
+        propertiesMap.put("PublishQTProperties::PlayEveryFrame", "0");
+        propertiesMap.put("PublishPNGProperties::DitherSolids", "0");
+        propertiesMap.put("PublishJpegProperties::Progressive", "0");
+        propertiesMap.put("Vector::Export Swc", "0");
+        propertiesMap.put("Vector::Debugging Password", "");
+        propertiesMap.put("Vector::Omit Trace Actions", "0");
+        propertiesMap.put("PublishHtmlProperties::Height", "" + height);
+        propertiesMap.put("PublishHtmlProperties::Width", "" + width);
+        propertiesMap.put("PublishFormatProperties::jpegFileName", basePublishName + ".jpg");
+        propertiesMap.put("PublishFormatProperties::flashDefaultName", "1");
+        propertiesMap.put("PublishPNGProperties::Interlace", "0");
+        propertiesMap.put("PublishGifProperties::Height", "" + height);
+        propertiesMap.put("PublishJpegProperties::Size", "0");
+        propertiesMap.put("Vector::DefaultLibraryLinkage", "0");
+        propertiesMap.put("Vector::UseAS3Namespace", "1");
+        propertiesMap.put("Vector::AS3AutoDeclare", "4096");
+        propertiesMap.put("Vector::AS3Coach", "4");
+        propertiesMap.put("Vector::DeviceSound", "0");
+        propertiesMap.put("PublishHtmlProperties::TemplateFileName", "");
+        propertiesMap.put("PublishHtmlProperties::WindowMode", "0");
+        propertiesMap.put("PublishHtmlProperties::UsingDefaultContentFilename", "1");
+        propertiesMap.put("PublishFormatProperties::projectorMacFileName", basePublishName + ".app");
+        propertiesMap.put("PublishFormatProperties::htmlDefaultName", "1");
+        propertiesMap.put("PublishFormatProperties::rnwk", "0");
+        propertiesMap.put("PublishFormatProperties::png", "0");
+        propertiesMap.put("PublishQTProperties::Height", "" + height);
+        propertiesMap.put("PublishPNGProperties::RemoveGradients", "0");
+        propertiesMap.put("PublishGifProperties::MaxColors", "255");
+        propertiesMap.put("PublishGifProperties::TransparentOption", "");
+        propertiesMap.put("PublishGifProperties::LoopCount", "");
+        propertiesMap.put("PublishRNWKProperties::speed56K", "1");
+        propertiesMap.put("Vector::Report", "0");
+        propertiesMap.put("PublishHtmlProperties::OwnAlternateFilename", "");
+        propertiesMap.put("PublishHtmlProperties::AlternateFilename", basePublishName + "_alternate.html");
+        propertiesMap.put("PublishHtmlProperties::ContentFilename", basePublishName + "_content.html");
+        propertiesMap.put("PublishGifProperties::OptimizeColors", "1");
+        propertiesMap.put("PublishRNWKProperties::audioFormat", "0");
+        propertiesMap.put("Vector::RSLPreloaderSWF", "$(AppConfig)/ActionScript 3.0/rsls/loader_animation.swf");
+        propertiesMap.put("Vector::HardwareAcceleration", "0");
+        propertiesMap.put("Vector::AS3Strict", "2");
+        propertiesMap.put("Vector::Version", "8");
+        propertiesMap.put("Vector::Event Format", "0");
+        propertiesMap.put("Vector::Stream Compress", "7");
+        propertiesMap.put("PublishFormatProperties::qt", "0");
+        propertiesMap.put("PublishPNGProperties::Height", "" + height);
+        propertiesMap.put("PublishPNGProperties::Width", "" + width);
+        propertiesMap.put("PublishGifProperties::RemoveGradients", "0");
+        propertiesMap.put("PublishRNWKProperties::speed512K", "0");
+        propertiesMap.put("PublishJpegProperties::Height", "" + height);
+        propertiesMap.put("Vector::EventUse8kSampleRate", "0");
+        propertiesMap.put("Vector::StreamUse8kSampleRate", "0");
+        propertiesMap.put("Vector::ActionScriptVersion", "2");
+        propertiesMap.put("Vector::Event Compress", "7");
+        propertiesMap.put("PublishHtmlProperties::Scale", "0");
+        propertiesMap.put("PublishFormatProperties::projectorWinDefaultName", "1");
+        propertiesMap.put("PublishQTProperties::Looping", "0");
+        propertiesMap.put("PublishQTProperties::UseQTSoundCompression", "0");
+        propertiesMap.put("PublishPNGProperties::PaletteName", "");
+        propertiesMap.put("PublishPNGProperties::Transparent", "0");
+        propertiesMap.put("PublishGifProperties::TransparentAlpha", "128");
+        propertiesMap.put("PublishGifProperties::Animated", "0");
+        propertiesMap.put("PublishRNWKProperties::mediaAuthor", "");
+        propertiesMap.put("PublishRNWKProperties::speedCorporateLAN", "0");
+        propertiesMap.put("PublishRNWKProperties::showBitrateDlog", "1");
+        propertiesMap.put("PublishRNWKProperties::exportFlash", "1");
+        propertiesMap.put("PublishJpegProperties::Width", "" + width);
+        propertiesMap.put("Vector::Stream Format", "0");
+        propertiesMap.put("Vector::DeblockingFilter", "0");
+        propertiesMap.put("PublishHtmlProperties::VersionInfo", "10,1,52,0;9,0,124,0;8,0,24,0;7,0,14,0;6,0,79,0;5,0,58,0;4,0,32,0;3,0,8,0;2,0,1,12;1,0,0,1;");
+        propertiesMap.put("PublishFormatProperties::gifFileName", basePublishName + ".gif");
+        propertiesMap.put("PublishFormatProperties::qtDefaultName", "1");
+        propertiesMap.put("PublishQTProperties::PausedAtStart", "0");
+        propertiesMap.put("PublishQTProperties::ControllerOption", "0");
+        propertiesMap.put("PublishPNGProperties::MaxColors", "255");
+        propertiesMap.put("PublishHtmlProperties::UsingOwnAlternateFile", "0");
+        propertiesMap.put("PublishFormatProperties::rnwkFileName", basePublishName + ".smil");
+        propertiesMap.put("PublishFormatProperties::projectorWin", "0");
+        propertiesMap.put("PublishFormatProperties::defaultNames", "1");
+        return propertiesMap;
     }
 
     private Map<String, String> getPropertiesCs3(String basePublishName, int width, int height) {

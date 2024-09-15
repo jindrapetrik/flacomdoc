@@ -25,7 +25,7 @@ To convert CS5+ FLA/XFL to lower:
 java -jar flacomdoc.jar convert [--format <format>] inputfile.fla/xfl outputfile.fla
 ```
 
-For `--format` option you can choose `CS4` or `CS3`.
+For `--format` option you can choose: `CS4`, `CS3` or `F8`.
 
 
 To extract CS4 and lower FLA (ComDoc format):
@@ -35,7 +35,10 @@ java -jar flacomdoc.jar extract inputfile.fla outputdir
 ```
 
 ## Supported formats
-For conversion, target FLA format can be choosen between CS4 and CS3.
+For conversion, following target formats are available:
+ * CS4
+ * CS3
+ * Flash 8
 
 For ComDoc extraction, all FLA formats CS4 and lower.
 
@@ -44,7 +47,7 @@ For ComDoc extraction, all FLA formats CS4 and lower.
  * Compiled clips
  * Components
  * Inverse Kinematics
- * Support for FLA below CS3
+ * Support for FLA below Flash 8
 
 ## License
 This work is licensed under LGPL v2.1, see [LICENSE.md](LICENSE.md) for details.

@@ -249,9 +249,11 @@ public class PageGenerator extends AbstractGenerator {
 
     protected void handleVideoInstance(Element videoInstance,
             FlaWriter fg,
-            Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
+            Map<String, Integer> definedClasses,
+            Reference<Integer> totalObjectCount,
+            FlaFormatVersion flaFormatVersion) throws IOException {
         useClass("CPicVideoStream", fg, definedClasses, totalObjectCount);
-        fg.write(0x05);
+        fg.write(flaFormatVersion.getVideoStreamVersion());
         instanceHeader(videoInstance, fg, 0x04, true);
 
         long frameLeft = 0;
@@ -310,7 +312,9 @@ public class PageGenerator extends AbstractGenerator {
 
     protected void handleBitmapInstance(Element bitmapInstance,
             FlaWriter fg,
-            Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
+            Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
+            FlaFormatVersion flaFormatVersion
+    ) throws IOException {
         if (!bitmapInstance.hasAttribute("libraryItemName")) {
             return;
         }
@@ -338,7 +342,7 @@ public class PageGenerator extends AbstractGenerator {
         }
 
         useClass("CPicBitmap", fg, definedClasses, totalObjectCount);
-        fg.write(0x05);
+        fg.write(flaFormatVersion.getBitmapVersion());
         instanceHeader(bitmapInstance, fg, 0x02, true);
         fg.writeUI16(bitmapId);
         fg.write(0x00);
@@ -356,7 +360,7 @@ public class PageGenerator extends AbstractGenerator {
         if (membersElement != null) {
             List<Element> members = getAllSubElements(membersElement);
             useClass("CPicShape", fg, definedClasses, totalObjectCount);
-            fg.write(0x05);
+            fg.write(flaFormatVersion.getGroupVersion());
             boolean selected = false;
             if (element.hasAttribute("selected")) {
                 selected = "true".equals(element.getAttribute("selected"));
@@ -384,10 +388,10 @@ public class PageGenerator extends AbstractGenerator {
                     handleSymbolInstance(element, fg, definedClasses, totalObjectCount, copiedComponentPathRef, flaFormatVersion, motionTweenEnd);
                     break;
                 case "DOMBitmapInstance":
-                    handleBitmapInstance(element, fg, definedClasses, totalObjectCount);
+                    handleBitmapInstance(element, fg, definedClasses, totalObjectCount, flaFormatVersion);
                     break;
                 case "DOMVideoInstance":
-                    handleVideoInstance(element, fg, definedClasses, totalObjectCount);
+                    handleVideoInstance(element, fg, definedClasses, totalObjectCount, flaFormatVersion);
                     break;
                 case "DOMStaticText":
                 case "DOMDynamicText":
@@ -407,14 +411,14 @@ public class PageGenerator extends AbstractGenerator {
         for (int e = 0; e < elements.size(); e++) {
             Element element = elements.get(e);
             if ("DOMShape".equals(element.getNodeName())) {
-                handleShape(element, fg, false, definedClasses, totalObjectCount);
+                handleShape(element, fg, false, definedClasses, totalObjectCount, flaFormatVersion);
                 hasShape = true;
                 break;
             }
         }
 
         if (!hasShape) {
-            instanceHeader(null, fg, 0x06, false);
+            instanceHeader(null, fg, flaFormatVersion.getShapeType(), false);
             fg.write(0x05);
             fg.writeUI32(0); //totalEdgeCount
             fg.write(0x00, 0x00); //fillStyleCount
@@ -879,7 +883,7 @@ public class PageGenerator extends AbstractGenerator {
         long centerPoint3DYLong = Math.round(centerPoint3DY * 20);
         long centerPoint3DZLong = Math.round(centerPoint3DZ * 20);
 
-        fg.write(0x05);
+        fg.write(flaFormatVersion.getSpriteVersion());
         instanceHeader(symbolInstance, fg, flaFormatVersion.getSymbolType(), true);
 
         fg.write((firstFrame & 0xFF), ((firstFrame >> 8) & 0xFF));
@@ -1011,10 +1015,15 @@ public class PageGenerator extends AbstractGenerator {
             return;
         }
 
-        fg.write((symbolType == FlaWriter.SYMBOLTYPE_BUTTON ? 0x0B : 0x08), 0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+        fg.write((symbolType == FlaWriter.SYMBOLTYPE_BUTTON ? 0x0B : 0x08),
+                flaFormatVersion.getSpriteVersionB(),
+                0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
                 0x00,
-                (symbolInstanceId & 0xFF), ((symbolInstanceId >> 8) & 0xFF),
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                (symbolInstanceId & 0xFF), ((symbolInstanceId >> 8) & 0xFF));
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+            fg.write(0x00, 0x00, 0x00, 0x00);
+        }
+        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0xFF, 0xFE, 0xFF);
         fg.writeLenUnicodeString(actionScript);
         if (symbolType == FlaWriter.SYMBOLTYPE_BUTTON) {
@@ -1298,7 +1307,7 @@ public class PageGenerator extends AbstractGenerator {
 
             //orientation="vertical right to left", "vertical left to right"
             //fontRenderingMode="device" , "bitmap", "standard", "customThicknessSharpness"
-            fg.write(0x05);
+            fg.write(flaFormatVersion.getTextVersionC());
             instanceHeader(element, fg, flaFormatVersion.getTextVersion(), true);
             fg.writeUI32((int) Math.round(left * 20));
             fg.writeUI32((int) Math.round((left + width) * 20));
@@ -1379,8 +1388,15 @@ public class PageGenerator extends AbstractGenerator {
             if (!isStatic) {
                 fg.write(0);
             } else {
-                fg.write(((fontRenderingMode == FONTRENDERING_DEVICE ? 0x02 : 0)
-                        + (isSelectable ? 0x01 : 0)));
+                int flags = 0;
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()
+                        && fontRenderingMode == FONTRENDERING_DEVICE) {
+                    flags |= 0x02;
+                }
+                if (isSelectable) {
+                    flags |= 0x01;
+                }
+                fg.write(flags);
             }
             fg.write(0x00);
             fg.writeUI16(maxCharacters);
@@ -1787,8 +1803,8 @@ public class PageGenerator extends AbstractGenerator {
         }
     }
 
-    private void handleShape(Element element, FlaWriter fg, boolean inGroup, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
-        instanceHeader(element, fg, 0x06, false);
+    private void handleShape(Element element, FlaWriter fg, boolean inGroup, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount, FlaFormatVersion flaFormatVersion) throws IOException {
+        instanceHeader(element, fg, flaFormatVersion.getShapeType(), false);
         fg.write(0x05);
         Node fillsNode = getSubElementByName(element, "fills");
         List<Element> fillStyles = new ArrayList<>();
@@ -2088,45 +2104,47 @@ public class PageGenerator extends AbstractGenerator {
                 fg.writeUI32(y2);
                 fg.writeUI32(ex);
                 fg.writeUI32(ey);
-                fg.write(letterList.size());
-                for (int i = 0; i < letterList.size(); i++) {
-                    fg.writeUI32(xList.get(i));
-                    fg.writeUI32(yList.get(i));
-                    switch (letterList.get(i)) {
-                        case "Q":
-                            fg.write(0x01, 0x00);
-                            break;
-                        case "q":
-                            fg.write(0x00, 0x00);
-                            break;
-                        case "P":
-                            fg.write(0x01, 0x01);
-                            break;
-                        case "p":
-                            fg.write(0x00, 0x01);
-                            break;
-                    }
-                }
 
-                int pnFlags = 0;
-                if (pBCPx != null) {
-                    pnFlags |= 1;
-                }
-                if (nBCPx != null) {
-                    pnFlags |= 2;
-                }
-                fg.write(pnFlags);
-                if (pBCPx != null) {
-                    fg.writeUI32(pBCPx);
-                    fg.writeUI32(pBCPy);
-                }
-                if (nBCPx != null) {
-                    fg.writeUI32(nBCPx);
-                    fg.writeUI32(nBCPy);
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+                    fg.write(letterList.size());
+                    for (int i = 0; i < letterList.size(); i++) {
+                        fg.writeUI32(xList.get(i));
+                        fg.writeUI32(yList.get(i));
+                        switch (letterList.get(i)) {
+                            case "Q":
+                                fg.write(0x01, 0x00);
+                                break;
+                            case "q":
+                                fg.write(0x00, 0x00);
+                                break;
+                            case "P":
+                                fg.write(0x01, 0x01);
+                                break;
+                            case "p":
+                                fg.write(0x00, 0x01);
+                                break;
+                        }
+                    }
+
+                    int pnFlags = 0;
+                    if (pBCPx != null) {
+                        pnFlags |= 1;
+                    }
+                    if (nBCPx != null) {
+                        pnFlags |= 2;
+                    }
+                    fg.write(pnFlags);
+                    if (pBCPx != null) {
+                        fg.writeUI32(pBCPx);
+                        fg.writeUI32(pBCPy);
+                    }
+                    if (nBCPx != null) {
+                        fg.writeUI32(nBCPx);
+                        fg.writeUI32(nBCPy);
+                    }
                 }
             }
         }
-
     }
 
     private void writeLayerContents(
@@ -2138,7 +2156,7 @@ public class PageGenerator extends AbstractGenerator {
             FlaFormatVersion flaFormatVersion
     ) throws IOException {
         useClass("CPicLayer", fg, definedClasses, totalObjectCount);
-        fg.write(0x05);
+        fg.write(flaFormatVersion.getLayerVersion());
         fg.write(0x00);
 
         int layerType = FlaWriter.LAYERTYPE_LAYER;
@@ -2164,7 +2182,7 @@ public class PageGenerator extends AbstractGenerator {
             String prevTweenType = "";
             for (int f = 0; f < frames.size(); f++) {
                 useClass("CPicFrame", fg, definedClasses, totalObjectCount);
-                fg.write(0x05);
+                fg.write(flaFormatVersion.getFrameVersion());
                 fg.write(0x00);
                 totalFramesCountRef.setVal(totalFramesCountRef.getVal() + 1);
                 Element frame = frames.get(f);
@@ -2175,7 +2193,7 @@ public class PageGenerator extends AbstractGenerator {
                 List<Element> elements = new ArrayList<>();
                 if (elementsNode != null) {
                     elements = getAllSubElements(elementsNode);
-                }                
+                }
 
                 handleElements(elements, fg, definedClasses, totalObjectCount, copiedComponentPathRef, flaFormatVersion, prevTweenType.equals("motion"));
 
@@ -2184,6 +2202,10 @@ public class PageGenerator extends AbstractGenerator {
                 int keyMode = FlaWriter.KEYMODE_STANDARD;
                 if (frame.hasAttribute("keyMode")) {
                     keyMode = Integer.parseInt(frame.getAttribute("keyMode"));
+                }
+
+                if (flaFormatVersion.ordinal() <= FlaFormatVersion.F8.ordinal()) {
+                    keyMode = keyMode & ~0x2000;
                 }
 
                 int duration = 1;
@@ -2246,7 +2268,7 @@ public class PageGenerator extends AbstractGenerator {
                 //atributes are part of the keymode
                 int frameId = fg.generateRandomId();
 
-                fg.write(flaFormatVersion.getFrameVersion(), duration,
+                fg.write(flaFormatVersion.getFrameVersionB(), duration,
                         0x00);
 
                 /*
@@ -2377,9 +2399,12 @@ public class PageGenerator extends AbstractGenerator {
 
                 fg.write(0xFF, 0xFE, 0xFF);
                 fg.writeLenUnicodeString(name);
-                fg.write(0x05, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                        0x00, ((frameId >> 8) & 0xFF), (frameId & 0xFF),
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                fg.write(flaFormatVersion.getFrameVersionC(), 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+                        0x00, ((frameId >> 8) & 0xFF), (frameId & 0xFF));
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+                    fg.write(0x00, 0x00, 0x00, 0x00);
+                }
+                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0xFF, 0xFE, 0xFF);
                 fg.writeLenUnicodeString(actionScript);
                 fg.write(motionTweenRotate, 0x00, 0x00, 0x00);
@@ -2722,7 +2747,7 @@ public class PageGenerator extends AbstractGenerator {
 
             fg.write(
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00,
-                    0x00, flaFormatVersion.getLayerVersion(), 0xFF, 0xFE, 0xFF
+                    0x00, flaFormatVersion.getLayerVersionB(), 0xFF, 0xFE, 0xFF
             );
 
             fg.writeLenUnicodeString(layerName);
@@ -2923,14 +2948,14 @@ public class PageGenerator extends AbstractGenerator {
     }
 
     public void generatePageFile(Element domTimeLine, OutputStream os, FlaFormatVersion flaFormatVersion) throws SAXException, IOException, ParserConfigurationException {
-        FlaWriter fg = new FlaWriter(os);
+        FlaWriter fg = new FlaWriter(os, flaFormatVersion);
         fg.setDebugRandom(debugRandom);
         Map<String, Integer> definedClasses = new HashMap<>();
         Reference<Integer> totalObjectCount = new Reference<>(0);
 
         fg.write(0x01);
         useClass("CPicPage", fg, definedClasses, totalObjectCount);
-        fg.write(0x05);
+        fg.write(flaFormatVersion.getPageVersion());
         fg.write(0x00);
 
         int nextLayerId = 1;

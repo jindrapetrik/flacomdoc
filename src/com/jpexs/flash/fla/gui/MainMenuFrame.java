@@ -62,7 +62,7 @@ public class MainMenuFrame extends JFrame {
         });
         setTitle("FLA ComDoc tools");
         Container cnt = getContentPane();
-        cnt.setLayout(new GridLayout(2, 2));
+        cnt.setLayout(new GridLayout(5, 1));
         
         JButton convertCs4Button = new JButton("Convert to CS4...");
         convertCs4Button.addActionListener(new ActionListener() {
@@ -80,6 +80,15 @@ public class MainMenuFrame extends JFrame {
             }
         }
         );
+        
+        JButton convertF8Button = new JButton("Convert to Flash 8...");
+        convertF8Button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                convert(FlaFormatVersion.F8);
+            }
+        }
+        );
         JButton extractButton = new JButton("Extract FLA ComDoc...");
         extractButton.addActionListener(this::extractActionPerformed);
         JButton exitButton = new JButton("Exit");
@@ -87,6 +96,7 @@ public class MainMenuFrame extends JFrame {
         
         cnt.add(convertCs4Button);
         cnt.add(convertCs3Button);
+        cnt.add(convertF8Button);
         cnt.add(extractButton);
         cnt.add(exitButton);
         

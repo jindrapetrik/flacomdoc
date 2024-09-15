@@ -114,6 +114,7 @@ public class FlaWriter {
     private OutputStream os;
 
     private boolean debugRandom = false;
+    private final FlaFormatVersion flaFormatVersion;
 
     public void setDebugRandom(boolean debugRandom) {
         this.debugRandom = debugRandom;
@@ -123,8 +124,9 @@ public class FlaWriter {
         return debugRandom;
     }
 
-    public FlaWriter(OutputStream os) {
+    public FlaWriter(OutputStream os, FlaFormatVersion flaFormatVersion) {
         this.os = os;
+        this.flaFormatVersion = flaFormatVersion;
     }
 
     public void writeFloat(float val) throws IOException {
@@ -374,9 +376,11 @@ public class FlaWriter {
         if (toX != null && toY != null) {
             writeXY(toX, toY);
         }
-        if (controlX == null) {
-            logger.log(Level.FINE, "writing generalLineFlag {0}", generalLine ? 1 : 0);
-            write(generalLine ? 1 : 0);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+            if (controlX == null) {            
+                logger.log(Level.FINE, "writing generalLineFlag {0}", generalLine ? 1 : 0);
+                write(generalLine ? 1 : 0);
+            }
         }
         moved = false;
     }

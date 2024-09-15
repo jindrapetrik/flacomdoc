@@ -44,9 +44,12 @@ public class XlfToCs4ConverterTest {
     private static final String SOURCE_DIR = "testdata/fla/cs5";
     private static final String EXPECTED_DIR_CS4 = "testdata/fla/cs4";
     private static final String EXPECTED_DIR_CS3 = "testdata/fla/cs3";
+    private static final String EXPECTED_DIR_F8 = "testdata/fla/f8";
+
 
     private static final String OUTPUT_DIR_CS4 = "out/tests/fla/cs4";
     private static final String OUTPUT_DIR_CS3 = "out/tests/fla/cs3";
+    private static final String OUTPUT_DIR_F8 = "out/tests/fla/f8";
 
     private Comparator<File> getFileComparator() {
         return new Comparator<File>() {
@@ -65,6 +68,11 @@ public class XlfToCs4ConverterTest {
     @DataProvider(name = "folders-cs3")
     public Object[][] provideFoldersCs3() {
         return provideFolders(FlaFormatVersion.CS3);
+    }
+    
+    @DataProvider(name = "folders-f8")
+    public Object[][] provideFoldersF8() {
+        return provideFolders(FlaFormatVersion.F8);
     }
     
     private Object[][] provideFolders(FlaFormatVersion flaFormatVersion) {
@@ -114,6 +122,10 @@ public class XlfToCs4ConverterTest {
             case CS3:
                 outputDirParent = OUTPUT_DIR_CS3;
                 expectedDirParent = EXPECTED_DIR_CS3;
+                break;
+            case F8:
+                outputDirParent = OUTPUT_DIR_F8;
+                expectedDirParent = EXPECTED_DIR_F8;
                 break;
         }
 
@@ -232,10 +244,15 @@ public class XlfToCs4ConverterTest {
     public void testConvertCs3(String folder) throws Exception {
         convert(folder, FlaFormatVersion.CS3);
     }
+    
+    @Test(dataProvider = "folders-f8")
+    public void testConvertF8(String folder) throws Exception {
+        convert(folder, FlaFormatVersion.F8);
+    }
 
     //@Test
     public void mytest() throws Exception {
-        //testConvertCs4("0028_library_folders");
+        //testConvertF8("0012_texts");
     }
 
     private static void deleteDir(File f) throws IOException {
@@ -263,7 +280,7 @@ public class XlfToCs4ConverterTest {
     }
 
     public static void main(String[] args) throws Exception {
-        for (String expectedDirParent : Arrays.asList(EXPECTED_DIR_CS3, EXPECTED_DIR_CS4)) {
+        for (String expectedDirParent : Arrays.asList(EXPECTED_DIR_F8, EXPECTED_DIR_CS3, EXPECTED_DIR_CS4)) {
 
             File expectedDir = new File(expectedDirParent);
             for (File f : expectedDir.listFiles()) {
