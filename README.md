@@ -49,7 +49,7 @@ For ComDoc extraction, all FLA formats CS4 and lower.
  * Compiled clips
  * Components
  * Inverse Kinematics
- * Support for FLA below Flash 8
+ * Support for FLA below MX
 
 ## License
 This work is licensed under LGPL v2.1, see [LICENSE.md](LICENSE.md) for details.
