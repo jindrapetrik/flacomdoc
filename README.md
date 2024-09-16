@@ -25,7 +25,7 @@ To convert CS5+ FLA/XFL to lower:
 java -jar flacomdoc.jar convert [--format <format>] inputfile.fla/xfl outputfile.fla
 ```
 
-For `--format` option you can choose: `CS4`, `CS3`, `F8` or `MX2004`.
+For `--format` option you can choose: `CS4`, `CS3`, `F8`, `MX2004` or `MX`.
 
 
 To extract CS4 and lower FLA (ComDoc format):
@@ -40,6 +40,7 @@ For conversion, following target formats are available:
  * CS3
  * Flash 8
  * MX 2004
+ * MX
 
 For ComDoc extraction, all FLA formats CS4 and lower.
 

@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
@@ -40,15 +39,14 @@ import org.testng.annotations.DataProvider;
  *
  * @author JPEXS
  */
-public class XlfToCs4ConverterTest {
+public class ContentsGeneratorTest {
 
     private static final String SOURCE_DIR = "testdata/fla/cs5";
-    
-    
-    private static final String EXPECTED_BASE_DIR= "testdata/fla";
-    
+
+    private static final String EXPECTED_BASE_DIR = "testdata/fla";
+
     private static final String OUTPUT_BASE_DIR = "out/tests/fla";
-    
+
     private Comparator<File> getFileComparator() {
         return new Comparator<File>() {
             @Override
@@ -59,27 +57,32 @@ public class XlfToCs4ConverterTest {
     }
 
     @DataProvider(name = "folders-cs4")
-    public Object[][] provideFoldersCs4() {                
+    public Object[][] provideFoldersCs4() {
         return provideFolders(FlaFormatVersion.CS4);
     }
-    
+
     @DataProvider(name = "folders-cs3")
     public Object[][] provideFoldersCs3() {
         return provideFolders(FlaFormatVersion.CS3);
     }
-    
+
     @DataProvider(name = "folders-f8")
     public Object[][] provideFoldersF8() {
         return provideFolders(FlaFormatVersion.F8);
     }
-    
+
     @DataProvider(name = "folders-mx2004")
     public Object[][] provideFoldersMx2004() {
         return provideFolders(FlaFormatVersion.MX2004);
     }
     
+    @DataProvider(name = "folders-mx")
+    public Object[][] provideFoldersMx() {
+        return provideFolders(FlaFormatVersion.MX);
+    }
+
     private Object[][] provideFolders(FlaFormatVersion flaFormatVersion) {
-        File sourceDir = new File(SOURCE_DIR);
+        File sourceDir = new File(EXPECTED_BASE_DIR + "/" + flaFormatVersion.name().toLowerCase());
         File[] sourceFiles = sourceDir.listFiles(new FileFilter() {
             @Override
             public boolean accept(File pathname) {
@@ -89,9 +92,9 @@ public class XlfToCs4ConverterTest {
         Comparator<File> fileNameComparator = getFileComparator();
         List<File> sourceFilesList = new ArrayList<>(Arrays.asList(sourceFiles));
         sourceFilesList.sort(fileNameComparator);
-        
+
         for (int i = sourceFilesList.size() - 1; i >= 0; i--) {
-            String name  = sourceFilesList.get(i).getName();
+            String name = sourceFilesList.get(i).getName();
             if (name.endsWith("-todo")) {
                 sourceFilesList.remove(i);
                 continue;
@@ -115,7 +118,7 @@ public class XlfToCs4ConverterTest {
     private void convert(String folderName, FlaFormatVersion flaFormatVersion) throws Exception {
 
         String outputDirParent = OUTPUT_BASE_DIR + "/" + flaFormatVersion.name().toLowerCase();
-        String expectedDirParent = EXPECTED_BASE_DIR + "/" + flaFormatVersion.name().toLowerCase();       
+        String expectedDirParent = EXPECTED_BASE_DIR + "/" + flaFormatVersion.name().toLowerCase();
 
         File actualDir = new File(outputDirParent + "/" + folderName);
         deleteDir(actualDir);
@@ -125,7 +128,7 @@ public class XlfToCs4ConverterTest {
         ContentsGenerator contentsGenerator = new ContentsGenerator(flaFormatVersion);
         contentsGenerator.setDebugRandom(true);
         contentsGenerator.generate(new DirectoryInputStorage(new File(SOURCE_DIR + "/" + folderName)),
-                new DirectoryOutputStorage(actualDir)                
+                new DirectoryOutputStorage(actualDir)
         );
 
         File expectedDir = new File(expectedDirParent + "/" + folderName);
@@ -189,7 +192,7 @@ public class XlfToCs4ConverterTest {
                     }
                     apos += 3;
                 }
-                
+
                 if (apos + 2 < actualData.length
                         && actualData[apos] == 'V'
                         && actualData[apos + 1] == 'V'
@@ -200,37 +203,58 @@ public class XlfToCs4ConverterTest {
                     continue;
                 }
 
-                if (/*apos - 3 > 0 &&*/apos + 6 < actualData.length && actualData[apos] == 3
+                if (apos + 3 < actualData.length && actualData[apos] == 3
+                        && actualData[apos + 1] == 'Y'
+                        && actualData[apos + 2] == 'Y'
+                        && actualData[apos + 3] == 'Y') {
+                    apos += 3;
+                    int len = expectedData[epos] & 0xFF;
+                    if (len == 0xFF) {
+                        len = (expectedData[epos + 1] & 0xFF) + ((expectedData[epos + 2] & 0xFF) << 8);
+                        if (len == 0xFFFF) {
+                            len = (expectedData[epos + 3] & 0xFF)
+                                    + ((expectedData[epos + 4] & 0xFF) << 8)
+                                    + ((expectedData[epos + 5] & 0xFF) << 16)
+                                    + ((expectedData[epos + 6] & 0xFF) << 24);
+                            epos = epos + 7 + len - 1;
+                            continue;
+                        }
+                        epos = epos + 3 + len - 1;
+                        continue;
+                    }
+                    epos = epos + 1 + len - 1;
+                    continue;
+                }
+                if (apos + 6 < actualData.length && actualData[apos] == 3
                         && actualData[apos + 1] == 'Y'
                         && actualData[apos + 2] == 0
                         && actualData[apos + 3] == 'Y'
                         && actualData[apos + 4] == 0
                         && actualData[apos + 5] == 'Y'
                         && actualData[apos + 6] == 0) {
-                    //if ((actualData[apos - 3] & 0xFF) == 0xFF && (actualData[apos - 2] & 0xFF) == 0xFE && (actualData[apos - 1] & 0xFF) == 0xFF)
-                    {
-                        apos += 6;
-                        int len = expectedData[epos] & 0xFF;
-                        if (len == 0xFF) {
-                            len = (expectedData[epos + 1] & 0xFF) + ((expectedData[epos + 2] & 0xFF) << 8);
-                            if (len == 0xFFFF) {
-                                len = (expectedData[epos + 3] & 0xFF)
-                                        + ((expectedData[epos + 4] & 0xFF) << 8)
-                                        + ((expectedData[epos + 5] & 0xFF) << 16)
-                                        + ((expectedData[epos + 6] & 0xFF) << 24);
-                                epos = epos + 7 + len * 2 - 1;
-                                continue;
-                            }
-                            epos = epos + 3 + len * 2 - 1;
+                    apos += 6;
+                    int len = expectedData[epos] & 0xFF;
+                    if (len == 0xFF) {
+                        len = (expectedData[epos + 1] & 0xFF) + ((expectedData[epos + 2] & 0xFF) << 8);
+                        if (len == 0xFFFF) {
+                            len = (expectedData[epos + 3] & 0xFF)
+                                    + ((expectedData[epos + 4] & 0xFF) << 8)
+                                    + ((expectedData[epos + 5] & 0xFF) << 16)
+                                    + ((expectedData[epos + 6] & 0xFF) << 24);
+                            epos = epos + 7 + len * 2 - 1;
                             continue;
                         }
-                        epos = epos + 1 + len * 2 - 1;
+                        epos = epos + 3 + len * 2 - 1;
                         continue;
                     }
+                    epos = epos + 1 + len * 2 - 1;
+                    continue;
+
                 }
-                assertEquals(actualData[apos] & 0xFF, expectedData[epos] & 0xFF, "Byte in file " + actualFile + " on position apos=" + apos + ", epos=" + epos);
+                assertEquals(actualData[apos] & 0xFF, expectedData[epos] & 0xFF, "Byte in file " + actualFile + " on position apos=" + apos + ", epos=" + epos);                
             }
             assertEquals(apos, actualData.length, "The file " + actualFile + " is longer than expected file");
+            assertEquals(epos, expectedData.length, "The file " + actualFile + " is shorter than expected file");
         }
     }
 
@@ -243,20 +267,26 @@ public class XlfToCs4ConverterTest {
     public void testConvertCs3(String folder) throws Exception {
         convert(folder, FlaFormatVersion.CS3);
     }
-    
+
     @Test(dataProvider = "folders-f8")
     public void testConvertF8(String folder) throws Exception {
         convert(folder, FlaFormatVersion.F8);
     }
-    
+
     @Test(dataProvider = "folders-mx2004")
     public void testConvertMx2004(String folder) throws Exception {
         convert(folder, FlaFormatVersion.MX2004);
     }
+    
+    @Test(dataProvider = "folders-mx")
+    public void testConvertMx(String folder) throws Exception {
+        convert(folder, FlaFormatVersion.MX);
+    }
 
-    //@Test
+    @Test
     public void mytest() throws Exception {
-        //testConvertMx2004("0014_sounds");
+        //testConvertMx("0016_shapetween");
+        testConvertMx2004("0012_texts");
     }
 
     private static void deleteDir(File f) throws IOException {

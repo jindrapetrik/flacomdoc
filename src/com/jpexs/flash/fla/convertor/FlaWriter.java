@@ -806,8 +806,15 @@ public class FlaWriter {
         }
     }
 
-    public void writeLenUnicodeString(String s) throws IOException {
-        int len = s.length();
+    public void writeBomString(String s) throws IOException {
+        if (flaFormatVersion.isUnicode()) {
+            write(0xFF, 0xFE, 0xFF);
+        }
+        writeString(s);
+    }
+    public void writeString(String s) throws IOException {
+        byte[] b = s.getBytes();
+        int len = flaFormatVersion.isUnicode() ? s.length() : b.length;
         if (len < 0xFF) {
             write(len);
         } else if (len < 0xFFFF) {
@@ -819,14 +826,11 @@ public class FlaWriter {
             write(0xFF);
             writeUI32(len);
         }
-        write(s.getBytes("UTF-16LE"));
-    }
-
-    public void writeLenAsciiString(String s) throws IOException {
-        byte[] sbytes = s.getBytes("UTF-8");
-        write(sbytes.length);
-        write(0);
-        write(sbytes);
+        if (flaFormatVersion.isUnicode()) {
+            write(s.getBytes("UTF-16LE"));
+        } else {
+            write(b);
+        }
     }
 
     public void writeEndParentLayer(int parentLayerIndex) throws IOException {

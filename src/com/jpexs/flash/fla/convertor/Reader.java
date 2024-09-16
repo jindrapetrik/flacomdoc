@@ -28,25 +28,31 @@ import java.io.RandomAccessFile;
 public class Reader {
 
     public static void main(String[] args) throws Exception {
-        RandomAccessFile fis = new RandomAccessFile("testdata\\fla\\mx2004\\0001_empty_doc\\Contents", "r");
-        fis.seek(503); //TODO: enter valid position
+        
+        boolean uni = false;
+        RandomAccessFile fis = new RandomAccessFile("testdata\\fla\\mx\\0001_empty_doc\\Contents", "r");
+        fis.seek(312); //TODO: enter valid position
         int len = fis.read() + (fis.read() << 8);
         System.out.println("len = " + len);
         for (int i = 0; i < len; i++) {
-            fis.read();
-            fis.read();
-            fis.read(); //ff fe ff
+            if (uni) {
+                fis.read();
+                fis.read();
+                fis.read(); //ff fe ff
+            }
             int klen = fis.read();
-            byte[] b = new byte[klen * 2];
+            byte[] b = new byte[uni ? klen * 2 : klen];
             fis.read(b);
-            String key = new String(b, "UTF-16LE");
-            fis.read();
-            fis.read();
-            fis.read(); //ff fe ff
+            String key = uni ? new String(b, "UTF-16LE") : new String(b);
+            if (uni) {
+                fis.read();
+                fis.read();
+                fis.read(); //ff fe ff
+            }
             int vlen = fis.read();
-            b = new byte[vlen * 2];
+            b = new byte[uni ? vlen * 2 : vlen];
             fis.read(b);
-            String val = new String(b, "UTF-16LE");
+            String val = uni ? new String(b, "UTF-16LE") : new String(b);
             
             String vale = "\"" + val.replace("\"", "\\\"") + "\"";
             if (key.endsWith("::Width") && val.equals("550")) {

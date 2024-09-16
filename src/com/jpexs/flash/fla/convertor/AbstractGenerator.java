@@ -238,15 +238,11 @@ public abstract class AbstractGenerator {
         }
         fg.write(0x02, 0x00);
         fg.write(0x00, 0x00, silent ? 1 : 0, 0x00, 0x00, 0x00);
-        fg.write(0xFF, 0xFE, 0xFF);
-        fg.writeLenUnicodeString(accName);
-        fg.write(0xFF, 0xFE, 0xFF);
-        fg.writeLenUnicodeString(description);
-        fg.write(0xFF, 0xFE, 0xFF);
-        fg.writeLenUnicodeString(shortcut);
-        fg.write(0xFF, 0xFE, 0xFF);
-        fg.writeLenUnicodeString(tabIndex);
-        fg.write(0xFF, 0xFE, 0xFF, 0x00);
+        fg.writeBomString(accName);
+        fg.writeBomString(description);
+        fg.writeBomString(shortcut);
+        fg.writeBomString(tabIndex);
+        fg.writeBomString("");
         fg.write(forceSimple ? 1 : 0, 0x00, 0x00, 0x00);
         if (mainDocument) {
             fg.write(autoLabeling ? 0 : 1);
@@ -262,7 +258,10 @@ public abstract class AbstractGenerator {
             os.write(0x80);
         } else {
             os.write(0xFF, 0xFF, defineNum, 0x00);
-            os.writeLenAsciiString(className);
+            byte[] sbytes = className.getBytes();
+            os.write(sbytes.length);
+            os.write(0);
+            os.write(sbytes);
             definedClasses.put(className, 1 + definedClasses.size() + totalObjectCount.getVal());
         }
         totalObjectCount.setVal(totalObjectCount.getVal() + 1);

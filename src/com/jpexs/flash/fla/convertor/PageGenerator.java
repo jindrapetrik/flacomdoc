@@ -91,7 +91,7 @@ public class PageGenerator extends AbstractGenerator {
             os.write(0x80);
         } else {
             os.write(0xFF, 0xFF, 0x01, 0x00);
-            os.writeLenAsciiString(className);
+            os.writeAsciiOnlyString(className);
             definedClasses.add(className);
         }
     }*/
@@ -257,7 +257,7 @@ public class PageGenerator extends AbstractGenerator {
             Reference<Integer> totalObjectCount) throws IOException {
         useClass("CPicVideoStream", fg, definedClasses, totalObjectCount);
         fg.write(flaFormatVersion.getVideoStreamVersion());
-        instanceHeader(videoInstance, fg, 0x04, true);
+        instanceHeader(videoInstance, fg, flaFormatVersion.getVideoType(), true);
 
         long frameLeft = 0;
         if (videoInstance.hasAttribute("frameLeft")) {
@@ -304,11 +304,9 @@ public class PageGenerator extends AbstractGenerator {
         fg.writeUI32(frameRight);
         fg.writeUI32(frameTop);
         fg.writeUI32(frameBottom);
-        fg.write(
-                0x00,
-                0xFF, 0xFE, 0xFF, 0x00,
-                0xFF, 0xFE, 0xFF);
-        fg.writeLenUnicodeString(name);
+        fg.write(0x00);
+        fg.writeBomString("");
+        fg.writeBomString(name);
         fg.write(0x01, 0x00, 0x00, 0x00);
         fg.writeUI16(videoId);
     }
@@ -345,9 +343,12 @@ public class PageGenerator extends AbstractGenerator {
 
         useClass("CPicBitmap", fg, definedClasses, totalObjectCount);
         fg.write(flaFormatVersion.getBitmapVersion());
-        instanceHeader(bitmapInstance, fg, 0x02, true);
+        instanceHeader(bitmapInstance, fg, flaFormatVersion.getBitmapType(), true);
         fg.writeUI16(bitmapId);
-        fg.write(0x00);
+
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+            fg.write(0x00);
+        }
     }
 
     protected void handleGroup(Element element,
@@ -930,12 +931,13 @@ public class PageGenerator extends AbstractGenerator {
         fg.write(effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), effectColor.getAlpha()
         );
 
-        fg.write(
-                0xFF, 0xFE, 0xFF, 0x00, //some string
-                debugRandom ? 'X' : libraryItemIndex, 0x00, 0x00, 0x00, //FIXME? this is probably a long val
-                0x00, 0x00, 0x00
+        fg.writeBomString("");
+        fg.write(debugRandom ? 'X' : libraryItemIndex, 0x00, 0x00, 0x00 //FIXME? this is probably a long val                
         );
-        
+
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+            fg.write(0x00, 0x00, 0x00);
+        }
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
             if (!filters.isEmpty()) {
                 fg.write(0x01,
@@ -1016,7 +1018,7 @@ public class PageGenerator extends AbstractGenerator {
             return;
         }
 
-        fg.write((symbolType == FlaWriter.SYMBOLTYPE_BUTTON ? 0x0B : 0x08),
+        fg.write((symbolType == FlaWriter.SYMBOLTYPE_BUTTON ? flaFormatVersion.getButtonVersion() : flaFormatVersion.getSpriteVersionG()),
                 flaFormatVersion.getSpriteVersionB(),
                 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
                 0x00,
@@ -1024,15 +1026,12 @@ public class PageGenerator extends AbstractGenerator {
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
             fg.write(0x00, 0x00, 0x00, 0x00);
         }
-        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF);
-        fg.writeLenUnicodeString(actionScript);
+        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+        fg.writeBomString(actionScript);
         if (symbolType == FlaWriter.SYMBOLTYPE_BUTTON) {
             fg.write((int) (trackAsMenu ? 1 : 0));
         }
-        fg.write(0xFF, 0xFE, 0xFF);
-
-        fg.writeLenUnicodeString(instanceName);
+        fg.writeBomString(instanceName);
 
         if (symbolType == FlaWriter.SYMBOLTYPE_BUTTON) {
             fg.write(0x00, 0x00, 0x00, 0x00);
@@ -1046,13 +1045,14 @@ public class PageGenerator extends AbstractGenerator {
         writeAccessibleData(fg, symbolInstance, false);
         fg.write(0x00,
                 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00,
-                0x01, //?
-                0x00 /*something, but it resets after resaving FLA*/, 0x00, 0x00, 0x00,
-                0xFF, 0xFE, 0xFF
+                0x00, 0x00, 0x00
         );
-        String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + copiedComponentPathRef.getVal() + "'>\n</component>\n";
-        fg.writeLenUnicodeString(componentTxt);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+            fg.write(0x01, //?
+                    0x00 /*something, but it resets after resaving FLA*/, 0x00, 0x00, 0x00);
+            String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + copiedComponentPathRef.getVal() + "'>\n</component>\n";
+            fg.writeBomString(componentTxt);
+        }
     }
 
     private void instanceHeader(Element element, FlaWriter fg, int instanceType, boolean isInstance) throws IOException {
@@ -1324,13 +1324,7 @@ public class PageGenerator extends AbstractGenerator {
             }
 
             fg.write(
-                    autoExpand ? 0x01 : 0, 0x00,
-                    (!isStatic ? 0x01 : 0)
-                    + (isDynamic ? 0x02 : 0)
-                    + (password ? 0x04 : 0)
-                    + (border ? 0x40 : 0)
-                    + (wrap ? 0x08 : 0)
-                    + (multiline ? 0x10 : 0)
+                    autoExpand ? 0x01 : 0, 0x00
             );
 
             Element fontsElement = getSubElementByName(element.getOwnerDocument().getDocumentElement(), "fonts");
@@ -1345,6 +1339,46 @@ public class PageGenerator extends AbstractGenerator {
             if (textRunsElement != null) {
                 domTextRuns = getAllSubElementsByName(textRunsElement, "DOMTextRun");
             }
+
+            int textFlags = (!isStatic ? 0x01 : 0)
+                    + (isDynamic ? 0x02 : 0)
+                    + (password ? 0x04 : 0)
+                    + (border ? 0x40 : 0)
+                    + (wrap ? 0x08 : 0)
+                    + (multiline ? 0x10 : 0);
+
+            //Only single font per text (?)
+            if (flaFormatVersion.ordinal() < FlaFormatVersion.MX2004.ordinal()) {
+                for (Element textRun : domTextRuns) {
+                    Element textAttrsElement = getSubElementByName(textRun, "textAttrs");
+                    if (textAttrsElement == null) {
+                        continue;
+                    }
+                    Element domTextAttrs = getSubElementByName(textAttrsElement, "DOMTextAttrs");
+                    if (domTextAttrs == null) {
+                        continue;
+                    }
+                    if (domTextAttrs.hasAttribute("face")) {
+                        String face = domTextAttrs.getAttribute("face");
+
+                        for (Element domFontItem : domFontItems) {
+                            if (domFontItem.hasAttribute("font")) {
+                                String fontPsName = domFontItem.getAttribute("font");
+                                if (fontPsName.equals(face)) {
+                                    if (domFontItem.hasAttribute("embeddedCharacters")) {
+                                        textFlags |= 0x20;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+
+            }
+
+            fg.write(textFlags);
 
             List<String> allEmbedRanges = new ArrayList<>();
             int embedFlag = 0;
@@ -1365,7 +1399,15 @@ public class PageGenerator extends AbstractGenerator {
                         if (domFontItem.hasAttribute("font")) {
                             String fontPsName = domFontItem.getAttribute("font");
                             if (fontPsName.equals(face)) {
-                                embedFlag |= 1;
+
+                                if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                                    embedFlag |= 1;
+                                } else {
+                                    if (domFontItem.hasAttribute("linkageExportForAS") 
+                                            && "true".equals(domFontItem.getAttribute("linkageExportForAS"))) {
+                                        embedFlag |= 1;
+                                    }
+                                }
                                 if (domFontItem.hasAttribute("embeddedCharacters")) {
                                     embeddedCharacters = domFontItem.getAttribute("embeddedCharacters");
                                     embedFlag |= 0x20;
@@ -1404,11 +1446,9 @@ public class PageGenerator extends AbstractGenerator {
             }
             fg.write(0x00);
             fg.writeUI16(maxCharacters);
-            fg.write(0xFF, 0xFE, 0xFF);
-            fg.writeLenUnicodeString(variableName);
+            fg.writeBomString(variableName);
             if (!embeddedCharacters.isEmpty()) {
-                fg.write(0xFF, 0xFE, 0xFF);
-                fg.writeLenUnicodeString(embeddedCharacters);
+                fg.writeBomString(embeddedCharacters);
             }
             if (flaFormatVersion == FlaFormatVersion.CS4) {
                 fg.write(0x00);
@@ -1581,14 +1621,13 @@ public class PageGenerator extends AbstractGenerator {
                 fg.write(flaFormatVersion.getTextVersionB());
                 fg.writeUI16(bitmapSize);
                 if (flaFormatVersion == FlaFormatVersion.CS4) {
-                    fg.write(0xFF, 0xFE, 0xFF);
+                    fg.writeBomString(fontFamily);
+                } else {
+                    fg.writeString(fontFamily);
                 }
-                fg.writeLenUnicodeString(fontFamily);
 
                 if (flaFormatVersion == FlaFormatVersion.CS4) {
-                    fg.write(0xFF, 0xFE, 0xFF);
-                    fg.writeLenUnicodeString(face);
-
+                    fg.writeBomString(face);
                     fg.write(0x00, 0x00, 0x00, 0x40);
                 }
                 fg.write(fillColor.getRed(), fillColor.getGreen(), fillColor.getBlue(), fillColor.getAlpha());
@@ -1631,22 +1670,25 @@ public class PageGenerator extends AbstractGenerator {
                 fg.writeUI16((int) Math.round(rightMargin * 20));
                 fg.writeUI16((int) Math.round(letterSpacing * 20));
                 if (flaFormatVersion == FlaFormatVersion.CS4) {
-                    fg.write(0xFF, 0xFE, 0xFF);
+                    fg.writeBomString(url);
+                } else {
+                    fg.writeString(url);
                 }
-                fg.writeLenUnicodeString(url);
 
-                fg.write(vertical ? 1 : 0,
-                        rightToLeft ? 1 : 0,
-                        rotation ? 1 : 0
-                );
-                fg.write(
-                        fontRenderingMode == FONTRENDERING_BITMAP ? 1 : 0);
-                if (flaFormatVersion == FlaFormatVersion.CS4) {
-                    fg.write(0xFF, 0xFE, 0xFF);
+                fg.write(vertical ? 1 : 0);
+                fg.write(rightToLeft ? 1 : 0);
+                fg.write(rotation ? 1 : 0);
+
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                    fg.write(fontRenderingMode == FONTRENDERING_BITMAP ? 1 : 0);
                 }
-                fg.writeLenUnicodeString(target);
-                
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {               
+                if (flaFormatVersion == FlaFormatVersion.CS4) {
+                    fg.writeBomString(target);
+                } else {
+                    fg.writeString(target);
+                }
+
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
                     fg.write(0x02);
 
                     switch (fontRenderingMode) {
@@ -1669,24 +1711,30 @@ public class PageGenerator extends AbstractGenerator {
                         fg.write(0, 0, 0, 0);
                     }
                     if (flaFormatVersion == FlaFormatVersion.CS4) {
-                        fg.write(0xFF, 0xFE, 0xFF);
+                        fg.writeBomString(url);
+                    } else {
+                        fg.writeString(url);
                     }
-                    fg.writeLenUnicodeString(url);
                 }
-                fg.write(characters.getBytes("UTF-16LE"));
+                if (flaFormatVersion.isUnicode()) {
+                    fg.write(characters.getBytes("UTF-16LE"));
+                } else {
+                    fg.write(characters.getBytes());
+                }
             }
 
-            fg.write(0x00, 0x00,
-                    0xFF, 0xFE, 0xFF);
-            fg.writeLenUnicodeString(instanceName);
+            fg.write(0x00, 0x00);
+            fg.writeBomString(instanceName);
             writeAccessibleData(fg, element, false);
             fg.write(0x00, 0x00, 0x00, 0x00,
                     scrollable ? 1 : 0,
-                    0x00, 0x00, 0x00,
-                    0xFF, 0xFE, 0xFF, 0x00,
-                    0xFF, 0xFE, 0xFF);
-            fg.writeLenUnicodeString(String.join("|", allEmbedRanges));
-            
+                    0x00, 0x00, 0x00
+            );
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                fg.writeBomString("");
+                fg.writeBomString(String.join("|", allEmbedRanges));
+            }
+
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
                 if (!filters.isEmpty()) {
                     fg.write(0x01);
@@ -2231,6 +2279,12 @@ public class PageGenerator extends AbstractGenerator {
                     Element scriptElement = getSubElementByName(actionscriptElement, "script");
                     if (scriptElement != null) {
                         actionScript = scriptElement.getTextContent();
+                        if (!actionScript.isEmpty() 
+                                && flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()
+                                && ! actionScript.endsWith("\n")
+                                ) {
+                            actionScript += "\n";
+                        }
                     }
                 }
 
@@ -2408,16 +2462,14 @@ public class PageGenerator extends AbstractGenerator {
                 fg.writeUI32(outPoint44);
                 fg.writeUI16(soundZoomLevel);
 
-                fg.write(0xFF, 0xFE, 0xFF);
-                fg.writeLenUnicodeString(name);
+                fg.writeBomString(name);
                 fg.write(flaFormatVersion.getFrameVersionC(), 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
                         0x00, ((frameId >> 8) & 0xFF), (frameId & 0xFF));
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
                     fg.write(0x00, 0x00, 0x00, 0x00);
                 }
-                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0xFF, 0xFE, 0xFF);
-                fg.writeLenUnicodeString(actionScript);
+                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                fg.writeBomString(actionScript);
                 fg.write(motionTweenRotate, 0x00, 0x00, 0x00);
                 fg.writeUI16(motionTweenRotateTimes);
                 fg.write(0x00, 0x00,
@@ -2440,6 +2492,112 @@ public class PageGenerator extends AbstractGenerator {
                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                             0x00);
 
+                    
+                    List<Element> fillStyles1 = new ArrayList<>();
+                    List<Element> fillStyles2 = new ArrayList<>();
+                    List<Element> strokeStyles1 = new ArrayList<>();
+                    List<Element> strokeStyles2 = new ArrayList<>();
+                    if (f + 1 < frames.size()) {
+                        Element nextFrame = frames.get(f + 1);
+                        Element domShape1 = getSubElementByName(elementsNode, "DOMShape");
+                        Element nextFrameElementsNode = getSubElementByName(nextFrame, "elements");
+                        if (domShape1 != null && nextFrameElementsNode != null) {
+                            Element domShape2 = getSubElementByName(nextFrameElementsNode, "DOMShape");
+                            if (domShape2 != null) {
+                                Element fills1 = getSubElementByName(domShape1, "fills");
+                                Element fills2 = getSubElementByName(domShape2, "fills");
+                                Element strokes1 = getSubElementByName(domShape1, "strokes");
+                                Element strokes2 = getSubElementByName(domShape2, "strokes");
+
+                                if (fills1 != null) {
+                                    fillStyles1 = getAllSubElementsByName(fills1, "FillStyle");
+                                }
+                                if (fills2 != null) {
+                                    fillStyles2 = getAllSubElementsByName(fills2, "FillStyle");
+                                }
+
+                                if (strokes1 != null) {
+                                    strokeStyles1 = getAllSubElementsByName(strokes1, "StrokeStyle");
+                                }
+                                if (strokes2 != null) {
+                                    strokeStyles2 = getAllSubElementsByName(strokes2, "StrokeStyle");
+                                }
+                            }
+                        }
+                    }
+                    
+                    Map<Integer, Integer> fillIndex1Map = new HashMap<>();
+                    Map<Integer, Integer> fillIndex2Map = new HashMap<>();
+                    Map<Integer, Integer> strokeIndex1Map = new HashMap<>();
+                    Map<Integer, Integer> strokeIndex2Map = new HashMap<>();
+                    
+                    List<Element> fills = new ArrayList<>();
+                    List<Element> bothFills = new ArrayList<>();                    
+                    List<Element> strokes = new ArrayList<>();
+                    List<Element> bothStrokes = new ArrayList<>();
+
+                    
+                        
+                    if (!fillStyles1.isEmpty()) {
+                       
+                        int fillStyleIndex = 0;
+                        int maxNumFills = Math.max(fillStyles1.size(), fillStyles2.size());
+                        for (int i = 0; i < maxNumFills; i++) {
+                            Element fill1 = fillStyles1.size() > i ? fillStyles1.get(i) : null;
+                            Element fill2 = fillStyles2.size() > i ? fillStyles2.get(i) : null;                            
+                            bothFills.add(fill1);
+                            bothFills.add(fill2);
+                            fills.add(fill1);      
+                            fillIndex1Map.put(fills.indexOf(fill1), bothFills.indexOf(fill1));
+                            
+                            if (!areElementsEqual(fill1, fill2) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
+                                fills.add(fill2);   
+                                fillIndex2Map.put(fills.indexOf(fill2), bothFills.indexOf(fill2));  
+                            } else {
+                                fillIndex2Map.put(fills.indexOf(fill1), bothFills.indexOf(fill2));  
+                            }
+                            
+                            
+                                                     
+                        }
+                    }
+                    if (strokeStyles1.isEmpty() && strokeStyles2.isEmpty()) {
+                        strokeIndex1Map.put(0, 0);
+                        strokeIndex2Map.put(0, 1);
+                    } else {
+                        int maxNumStrokes = Math.max(strokeStyles1.size(), strokeStyles2.size());
+                        for (int i = 0; i < maxNumStrokes; i++) {
+                            Element stroke1 = strokeStyles1.size() > i ? strokeStyles1.get(i) : null;
+                            Element stroke2 = strokeStyles2.size() > i ? strokeStyles2.get(i) : null;
+                            strokes.add(stroke1);
+                            bothStrokes.add(stroke1);
+                            bothStrokes.add(stroke2);
+                            strokeIndex1Map.put(strokes.indexOf(stroke1), bothStrokes.indexOf(stroke1));
+                            
+                            if (!areElementsEqual(stroke1, stroke2) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
+                                strokes.add(stroke2);
+                                strokeIndex2Map.put(strokes.indexOf(stroke2), bothStrokes.indexOf(stroke2));  
+                            } else {
+                                strokeIndex2Map.put(strokes.indexOf(stroke1), bothStrokes.indexOf(stroke2));  
+                            }                            
+                        }                        
+                    }
+                    
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                        for (int key: fillIndex1Map.keySet()) {
+                            fillIndex1Map.put(key, key);
+                        }
+                        for (int key: fillIndex2Map.keySet()) {
+                            fillIndex2Map.put(key, key);
+                        }
+                        for (int key: strokeIndex1Map.keySet()) {
+                            strokeIndex1Map.put(key, key);
+                        }
+                        for (int key: strokeIndex2Map.keySet()) {
+                            strokeIndex2Map.put(key, key);
+                        }
+                    }
+                    
                     Element morphSegmentsElement = getSubElementByName(morphShape, "morphSegments");
                     List<Element> morphSegments = getAllSubElementsByName(morphSegmentsElement, "MorphSegment");
                     fg.writeUI16(morphSegments.size());
@@ -2465,6 +2623,20 @@ public class PageGenerator extends AbstractGenerator {
                             fillIndex2 = Integer.parseInt(morphSegment.getAttribute("fillIndex2"));
                         }
 
+                        
+                        /*if (strokeIndex1 != -1) {
+                            strokeIndex1 = strokeIndex1Map.get(strokeIndex1);
+                        }
+                        if (strokeIndex2 != -1) {
+                            strokeIndex2 = strokeIndex2Map.get(strokeIndex2);
+                        }
+                        if (fillIndex1 != -1) {
+                            fillIndex1 = fillIndex1Map.get(fillIndex1);
+                        }
+                        if (fillIndex2 != -1) {                            
+                            fillIndex2 = fillIndex2Map.get(fillIndex2);
+                        }*/
+                        
                         fg.writeUI32(strokeIndex1);
                         fg.writeUI32(strokeIndex2);
                         fg.writeUI32(fillIndex1);
@@ -2492,183 +2664,153 @@ public class PageGenerator extends AbstractGenerator {
                             fg.write(0x00, 0x00, 0x00);
                         }
                     }
+                
 
                     /*fg.write(0x04, 0x00, 0x00, 0x66, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x66,
                             0x66, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00);*/
                     fg.writeUI16(0);
-                    if (f + 1 < frames.size()) {
-                        Element nextFrame = frames.get(f + 1);
-                        Element domShape1 = getSubElementByName(elementsNode, "DOMShape");
-                        Element nextFrameElementsNode = getSubElementByName(nextFrame, "elements");
-                        if (domShape1 != null && nextFrameElementsNode != null) {
-                            Element domShape2 = getSubElementByName(nextFrameElementsNode, "DOMShape");
-                            if (domShape2 != null) {
-                                Element fills1 = getSubElementByName(domShape1, "fills");
-                                Element fills2 = getSubElementByName(domShape2, "fills");
-                                Element strokes1 = getSubElementByName(domShape1, "strokes");
-                                Element strokes2 = getSubElementByName(domShape2, "strokes");
+                    
 
-                                List<Element> fillStyles1 = new ArrayList<>();
-                                List<Element> fillStyles2 = new ArrayList<>();
-
-                                if (fills1 != null) {
-                                    fillStyles1 = getAllSubElementsByName(fills1, "FillStyle");
-                                }
-                                if (fills2 != null) {
-                                    fillStyles2 = getAllSubElementsByName(fills2, "FillStyle");
-                                }
-
-                                List<Element> strokeStyles1 = new ArrayList<>();
-                                List<Element> strokeStyles2 = new ArrayList<>();
-
-                                if (strokes1 != null) {
-                                    strokeStyles1 = getAllSubElementsByName(strokes1, "StrokeStyle");
-                                }
-                                if (strokes2 != null) {
-                                    strokeStyles2 = getAllSubElementsByName(strokes2, "StrokeStyle");
-                                }
-
-                                if (fillStyles1.size() == fillStyles2.size()
-                                        && (strokeStyles1.size() == strokeStyles2.size() || strokeStyles2.isEmpty() || strokeStyles1.isEmpty())) {
-                                    if (!fillStyles1.isEmpty()) {
-                                        int maxNumFills = Math.max(fillStyles1.size(), fillStyles2.size());
-                                        List<Element> fills = new ArrayList<>();
-                                        for (int i = 0; i < maxNumFills; i++) {
-                                            Element fill1 = fillStyles1.size() > i ? fillStyles1.get(i) : null;
-                                            Element fill2 = fillStyles2.size() > i ? fillStyles2.get(i) : null;
-                                            fills.add(fill1);
-                                            if (!areElementsEqual(fill1, fill2)) {
-                                                fills.add(fill2);
-                                            }
-                                        }
-
-                                        fg.writeUI16(fills.size());
-                                        for (Element fill : fills) {
-                                            writeMorphFillStylePart(fg, fill);
-                                        }
-                                    }
-                                    if (strokeStyles1.isEmpty() && strokeStyles2.isEmpty()) {
-                                        fg.writeUI16(1);
-                                        fg.writeUI32(0);
-                                        fg.writeUI32(0);
-                                        fg.writeUI16(0);
-                                    } else {
-                                        List<Element> strokes = new ArrayList<>();
-                                        int maxNumStrokes = Math.max(strokeStyles1.size(), strokeStyles2.size());
-                                        for (int i = 0; i < maxNumStrokes; i++) {
-                                            Element stroke1 = strokeStyles1.size() > i ? strokeStyles1.get(i) : null;
-                                            Element stroke2 = strokeStyles2.size() > i ? strokeStyles2.get(i) : null;
-                                            strokes.add(stroke1);
-                                            if (!areElementsEqual(stroke1, stroke2)) {
-                                                strokes.add(stroke2);
-                                            }
-                                        }
-                                        fg.writeUI16(strokes.size());
-                                        for (Element stroke : strokes) {
-                                            writeMorphStrokeStylePart(fg, stroke);
-                                        }
-                                    }
-                                }
+                    if (fillStyles1.size() == fillStyles2.size()
+                            && (strokeStyles1.size() == strokeStyles2.size() || strokeStyles2.isEmpty() || strokeStyles1.isEmpty())) {
+                        if (!fillStyles1.isEmpty()) {
+                            fg.writeUI16(fills.size());
+                            for (Element fill : fills) {
+                                writeMorphFillStylePart(fg, fill);
+                            }
+                        }
+                        if (strokeStyles1.isEmpty() && strokeStyles2.isEmpty()) {                            
+                            if (flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
+                                fg.writeUI16(2);                            
+                                
+                                fg.writeUI32(0);
+                                fg.writeUI32(0);
+                                fg.writeUI16(0);
+                                
+                                fg.writeUI32(0);
+                                fg.writeUI32(0);
+                                fg.writeUI16(0);
+                            } else {
+                                fg.writeUI16(1);
+                                fg.writeUI32(0);
+                                fg.writeUI32(0);
+                                fg.writeUI16(0);
+                            }
+                        } else {
+                            fg.writeUI16(strokes.size());
+                            for (Element stroke : strokes) {
+                                writeMorphStrokeStylePart(fg, stroke);
                             }
                         }
                     }
                 }
 
-                int shapeTweenBlend = 0;
-                if (frame.hasAttribute("shapeTweenBlend")) {
-                    switch (frame.getAttribute("shapeTweenBlend")) {
-                        /*case "distributive":
+                    int shapeTweenBlend = 0;
+                    if (frame.hasAttribute("shapeTweenBlend")) {
+                        switch (frame.getAttribute("shapeTweenBlend")) {
+                            /*case "distributive":
                             shapeTweenBlend = 0;
                             break;*/
-                        case "angular":
-                            shapeTweenBlend = 1;
-                            break;
+                            case "angular":
+                                shapeTweenBlend = 1;
+                                break;
+                        }
                     }
-                }
-                fg.write(shapeTweenBlend);
+                    fg.write(shapeTweenBlend);
 
-                boolean useSingleEaseCurve = true;
-                if (frame.hasAttribute("useSingleEaseCurve")) {
-                    useSingleEaseCurve = !"false".equals(frame.getAttribute("useSingleEaseCurve"));
-                }
-
-                int soundEffect = getAttributeAsInt(frame, "soundEffect",
-                        Arrays.asList(
-                                "none",
-                                "left channel",
-                                "right channel",
-                                "fade left to right",
-                                "fade right to left",
-                                "fade in",
-                                "fade out",
-                                "custom"
-                        ), "none");
-
-                fg.write(
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0xFF, 0x00, 0x01, 0x00, 0x00, 0x00,
-                        soundEffect,
-                        0x00, 0x00,
-                        0x00,
-                        anchor ? 1 : 0,
-                        0x00, 0x00, 0x00
-                );
-
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-                    fg.write(useSingleEaseCurve ? 1 : 0, 0x00, 0x00, 0x00);
-
-                    boolean hasCustomEase = false;
-                    if (frame.hasAttribute("hasCustomEase")) {
-                        hasCustomEase = "true".equals(frame.getAttribute("hasCustomEase"));
+                    boolean useSingleEaseCurve = true;
+                    if (frame.hasAttribute("useSingleEaseCurve")) {
+                        useSingleEaseCurve = !"false".equals(frame.getAttribute("useSingleEaseCurve"));
                     }
 
-                    fg.writeUI32(hasCustomEase ? 1 : 0);
-                    if (hasCustomEase) {
-                        Element tweensElement = getSubElementByName(frame, "tweens");
-                        List<String> properties = Arrays.asList("position", "rotation", "scale", "color", "filters", "all");
+                    int soundEffect = getAttributeAsInt(frame, "soundEffect",
+                            Arrays.asList(
+                                    "none",
+                                    "left channel",
+                                    "right channel",
+                                    "fade left to right",
+                                    "fade right to left",
+                                    "fade in",
+                                    "fade out",
+                                    "custom"
+                            ), "none");
 
-                        if (tweensElement == null) {
-                            for (int i = 0; i < properties.size(); i++) {
-                                fg.writeUI32(0);
-                            }
-                        } else {
-                            List<Element> customEaseElements = getAllSubElementsByName(tweensElement, "CustomEase");
-                            Map<String, Element> targetToCustomEase = new HashMap<>();
-                            for (Element el : customEaseElements) {
-                                if (!el.hasAttribute("target")) {
-                                    continue;
-                                }
-                                targetToCustomEase.put(el.getAttribute("target"), el);
-                            }
+                    fg.write(
+                            0x00, 0x00, 0x00, 0x00, 0x00);
+                    fg.writeBomString("");
+                    fg.write(0x01, 0x00, 0x00, 0x00,
+                            soundEffect,
+                            0x00, 0x00,
+                            0x00,
+                            anchor ? 1 : 0,
+                            0x00, 0x00, 0x00
+                    );
 
-                            for (String property : properties) {
-                                if (!targetToCustomEase.containsKey(property)) {
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                        fg.write(useSingleEaseCurve ? 1 : 0, 0x00, 0x00, 0x00);
+
+                        boolean hasCustomEase = false;
+                        if (frame.hasAttribute("hasCustomEase")) {
+                            hasCustomEase = "true".equals(frame.getAttribute("hasCustomEase"));
+                        }
+
+                        fg.writeUI32(hasCustomEase ? 1 : 0);
+                        if (hasCustomEase) {
+                            Element tweensElement = getSubElementByName(frame, "tweens");
+                            List<String> properties = Arrays.asList("position", "rotation", "scale", "color", "filters", "all");
+
+                            if (tweensElement == null) {
+                                for (int i = 0; i < properties.size(); i++) {
                                     fg.writeUI32(0);
-                                    continue;
+                                }
+                            } else {
+                                List<Element> customEaseElements = getAllSubElementsByName(tweensElement, "CustomEase");
+                                Map<String, Element> targetToCustomEase = new HashMap<>();
+                                for (Element el : customEaseElements) {
+                                    if (!el.hasAttribute("target")) {
+                                        continue;
+                                    }
+                                    targetToCustomEase.put(el.getAttribute("target"), el);
                                 }
 
-                                List<Element> points = getAllSubElementsByName(targetToCustomEase.get(property), "Point");
-
-                                int numPoints = 2 + (points.size() - 4) / 3;
-                                fg.writeUI32(numPoints);
-                                for (int p = 0; p < points.size(); p++) {
-                                    Element point = points.get(p);
-                                    double x = 0;
-                                    if (point.hasAttribute("x")) {
-                                        x = Double.parseDouble(point.getAttribute("x"));
-                                    }
-                                    double y = 0;
-                                    if (point.hasAttribute("y")) {
-                                        y = Double.parseDouble(point.getAttribute("y"));
-                                    }
-                                    if (x < 0) {
-                                        x = 0;
-                                    }
-                                    if (y < 0) {
-                                        y = 0;
+                                for (String property : properties) {
+                                    if (!targetToCustomEase.containsKey(property)) {
+                                        fg.writeUI32(0);
+                                        continue;
                                     }
 
-                                    if (p == 0 || p == points.size() - 1) {
+                                    List<Element> points = getAllSubElementsByName(targetToCustomEase.get(property), "Point");
+
+                                    int numPoints = 2 + (points.size() - 4) / 3;
+                                    fg.writeUI32(numPoints);
+                                    for (int p = 0; p < points.size(); p++) {
+                                        Element point = points.get(p);
+                                        double x = 0;
+                                        if (point.hasAttribute("x")) {
+                                            x = Double.parseDouble(point.getAttribute("x"));
+                                        }
+                                        double y = 0;
+                                        if (point.hasAttribute("y")) {
+                                            y = Double.parseDouble(point.getAttribute("y"));
+                                        }
+                                        if (x < 0) {
+                                            x = 0;
+                                        }
+                                        if (y < 0) {
+                                            y = 0;
+                                        }
+
+                                        if (p == 0 || p == points.size() - 1) {
+                                            if (debugRandom) {
+                                                //ignore rounding errors
+                                                fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
+                                                fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
+                                            } else {
+                                                fg.writeDouble(x);
+                                                fg.writeDouble(y);
+                                            }
+                                        }
                                         if (debugRandom) {
                                             //ignore rounding errors
                                             fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
@@ -2678,112 +2820,101 @@ public class PageGenerator extends AbstractGenerator {
                                             fg.writeDouble(y);
                                         }
                                     }
-                                    if (debugRandom) {
-                                        //ignore rounding errors
-                                        fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
-                                        fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
-                                    } else {
-                                        fg.writeDouble(x);
-                                        fg.writeDouble(y);
-                                    }
                                 }
                             }
                         }
                     }
-                }
-                Element motionObjectXML = getSubElementByName(frame, "motionObjectXML");
-                if (motionObjectXML != null) {
-                    if (flaFormatVersion == FlaFormatVersion.CS4) {
-                        fg.write(0xFF, 0xFE, 0xFF);
-                        fg.writeLenUnicodeString(getInnerXml(motionObjectXML));
-                        long visibleAnimationKeyframes = 0x1FFFFF;
-                        if (frame.hasAttribute("visibleAnimationKeyframes")) {
-                            visibleAnimationKeyframes = Long.parseLong(frame.getAttribute("visibleAnimationKeyframes"));
+                    Element motionObjectXML = getSubElementByName(frame, "motionObjectXML");
+                    if (motionObjectXML != null) {
+                        if (flaFormatVersion == FlaFormatVersion.CS4) {
+                            fg.writeBomString(getInnerXml(motionObjectXML));
+                            long visibleAnimationKeyframes = 0x1FFFFF;
+                            if (frame.hasAttribute("visibleAnimationKeyframes")) {
+                                visibleAnimationKeyframes = Long.parseLong(frame.getAttribute("visibleAnimationKeyframes"));
+                            }
+                            fg.writeUI32(visibleAnimationKeyframes);
+                            String tweenInstanceName = "";
+                            if (frame.hasAttribute("tweenInstanceName")) {
+                                tweenInstanceName = frame.getAttribute("tweenInstanceName");
+                            }
+                            fg.writeBomString(tweenInstanceName);
+                        } else {
+                            Logger.getLogger(PageGenerator.class.getName()).warning("Motion objects are not supported in Flash lower than CS4");
                         }
-                        fg.writeUI32(visibleAnimationKeyframes);
-                        String tweenInstanceName = "";
-                        if (frame.hasAttribute("tweenInstanceName")) {
-                            tweenInstanceName = frame.getAttribute("tweenInstanceName");
-                        }
-                        fg.write(0xFF, 0xFE, 0xFF);
-                        fg.writeLenUnicodeString(tweenInstanceName);
-                    } else {
-                        Logger.getLogger(PageGenerator.class.getName()).warning("Motion objects are not supported in Flash lower than CS4");
                     }
                 }
             }
+
+            {
+                String layerName = "Layer";
+                Node layerNameAttr = layer.getAttributes().getNamedItem("name");
+                if (layerNameAttr != null) {
+                    layerName = layerNameAttr.getTextContent();
+                }
+
+                Node outlineAttr = layer.getAttributes().getNamedItem("outline");
+                Node useOutlineViewAttr = layer.getAttributes().getNamedItem("useOutlineView");
+
+                boolean showOutlines = false;
+                if (outlineAttr != null && useOutlineViewAttr != null) {
+                    showOutlines = "true".equals(outlineAttr.getTextContent())
+                            && "true".equals(useOutlineViewAttr.getTextContent());
+                }
+
+                Color color = Color.BLACK;
+                Node colorAttr = layer.getAttributes().getNamedItem("color");
+                if (colorAttr != null) {
+                    color = parseColor(colorAttr.getTextContent());
+                }
+
+                boolean hiddenLayer = false;
+                Node visibleAttr = layer.getAttributes().getNamedItem("visible");
+                if (visibleAttr != null) {
+                    hiddenLayer = "false".equals(visibleAttr.getTextContent());
+                }
+
+                boolean lockedLayer = false;
+                Node lockedAttr = layer.getAttributes().getNamedItem("locked");
+                if (lockedAttr != null) {
+                    lockedLayer = "true".equals(lockedAttr.getTextContent());
+                }
+
+                boolean isSelected = false; //Note: how is this different from "current" attribute
+                Node isSelectedAttr = layer.getAttributes().getNamedItem("isSelected");
+                if (isSelectedAttr != null) {
+                    isSelected = "true".equals(isSelectedAttr.getTextContent());
+                }
+
+                int heightMultiplier = 1;
+                if (layer.hasAttribute("heightMultiplier")) {
+                    heightMultiplier = Integer.parseInt(layer.getAttribute("heightMultiplier"));
+                }
+
+                fg.write(0x00, 0x00,
+                        0x00, 0x00, 0x00, 0x80,
+                        0x00, 0x00, 0x00, 0x80);
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                    fg.write(0x00, 0x00);
+                }
+
+                fg.write(flaFormatVersion.getLayerVersionB());
+
+                fg.writeBomString(layerName);
+                fg.write(isSelected ? 1 : 0);
+                fg.write(hiddenLayer ? 1 : 0);
+                fg.write(lockedLayer ? 1 : 0);
+                fg.write(0xFF, 0xFF, 0xFF, 0xFF);
+                fg.write(color.getRed());
+                fg.write(color.getGreen());
+                fg.write(color.getBlue());
+                fg.write(0xFF);
+                fg.write(showOutlines ? 1 : 0);
+                fg.write(0x00, 0x00, 0x00, heightMultiplier, 0x00, 0x00, 0x00);
+                fg.write(layerType);
+            }
         }
 
-        {
-            String layerName = "Layer";
-            Node layerNameAttr = layer.getAttributes().getNamedItem("name");
-            if (layerNameAttr != null) {
-                layerName = layerNameAttr.getTextContent();
-            }
-
-            Node outlineAttr = layer.getAttributes().getNamedItem("outline");
-            Node useOutlineViewAttr = layer.getAttributes().getNamedItem("useOutlineView");
-
-            boolean showOutlines = false;
-            if (outlineAttr != null && useOutlineViewAttr != null) {
-                showOutlines = "true".equals(outlineAttr.getTextContent())
-                        && "true".equals(useOutlineViewAttr.getTextContent());
-            }
-
-            Color color = Color.BLACK;
-            Node colorAttr = layer.getAttributes().getNamedItem("color");
-            if (colorAttr != null) {
-                color = parseColor(colorAttr.getTextContent());
-            }
-
-            boolean hiddenLayer = false;
-            Node visibleAttr = layer.getAttributes().getNamedItem("visible");
-            if (visibleAttr != null) {
-                hiddenLayer = "false".equals(visibleAttr.getTextContent());
-            }
-
-            boolean lockedLayer = false;
-            Node lockedAttr = layer.getAttributes().getNamedItem("locked");
-            if (lockedAttr != null) {
-                lockedLayer = "true".equals(lockedAttr.getTextContent());
-            }
-
-            boolean isSelected = false; //Note: how is this different from "current" attribute
-            Node isSelectedAttr = layer.getAttributes().getNamedItem("isSelected");
-            if (isSelectedAttr != null) {
-                isSelected = "true".equals(isSelectedAttr.getTextContent());
-            }
-
-            int heightMultiplier = 1;
-            if (layer.hasAttribute("heightMultiplier")) {
-                heightMultiplier = Integer.parseInt(layer.getAttribute("heightMultiplier"));
-            }
-
-            fg.write(0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x80,
-                    0x00, 0x00, 0x00, 0x80);
-            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-                fg.write(0x00, 0x00);
-            }
-
-            fg.write(flaFormatVersion.getLayerVersionB(),
-                    0xFF, 0xFE, 0xFF
-            );
-
-            fg.writeLenUnicodeString(layerName);
-            fg.write(isSelected ? 1 : 0);
-            fg.write(hiddenLayer ? 1 : 0);
-            fg.write(lockedLayer ? 1 : 0);
-            fg.write(0xFF, 0xFF, 0xFF, 0xFF);
-            fg.write(color.getRed());
-            fg.write(color.getGreen());
-            fg.write(color.getBlue());
-            fg.write(0xFF);
-            fg.write(showOutlines ? 1 : 0);
-            fg.write(0x00, 0x00, 0x00, heightMultiplier, 0x00, 0x00, 0x00);
-            fg.write(layerType);
-        }
-    }
+    
 
     private static boolean areElementsEqual(Element elem1, Element elem2) {
         if (elem1 == elem2) {
@@ -3008,14 +3139,27 @@ public class PageGenerator extends AbstractGenerator {
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
                 0x80);
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-            fg.write(0x00, 0x00, 0x07, nextLayerId, 0x00, nextFolderId, 0x00, currentFrame, 0x00, 0x00, 0x00);        
+            fg.write(0x00, 0x00, 0x07, nextLayerId, 0x00, nextFolderId, 0x00, currentFrame, 0x00, 0x00, 0x00);
         } else {
-            fg.write(0x05);
-            if (debugRandom) {
-                fg.write('U', 'U', 'U', 'U');
-            } else {
-                fg.write(0x02, 0x00, 0x01, 0x00);
+            switch (flaFormatVersion) {
+                case MX2004:
+                    fg.write(0x05);
+                    if (debugRandom) {
+                        fg.write('U', 'U', 'U', 'U');
+                    } else {
+                        fg.write(0x02, 0x00, 0x01, 0x00);
+                    }
+                    break;
+                case MX:
+                    fg.write(0x03);
+                    if (debugRandom) {
+                        fg.write('U', 'U');
+                    } else {
+                        fg.write(0x02, 0x00);
+                    }
+                    break;
             }
+
         }
         if (domTimeLine.hasAttribute("guides")) {
             String guidesXml = domTimeLine.getAttribute("guides");
