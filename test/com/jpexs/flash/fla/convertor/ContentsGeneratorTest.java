@@ -283,10 +283,9 @@ public class ContentsGeneratorTest {
         convert(folder, FlaFormatVersion.MX);
     }
 
-    @Test
+    //@Test
     public void mytest() throws Exception {
-        //testConvertMx("0016_shapetween");
-        testConvertMx2004("0012_texts");
+        //testConvertMx("0029_accessibility");
     }
 
     private static void deleteDir(File f) throws IOException {

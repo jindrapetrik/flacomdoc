@@ -500,14 +500,14 @@ public class ContentsGenerator extends AbstractGenerator {
         int linkageFlags = 0;
         if (linkageExportInFirstFrame) {
             linkageFlags |= 4;
-        }
+        }       
         if (linkageExportForAS) {
             linkageFlags |= 1;
         }
         if (linkageExportForRS) {
             linkageFlags |= 2;
         }
-        dw.write(linkageFlags,
+        dw.write(debugRandom ? 'X' : linkageFlags, //:-( sometimes, there's just no 4 flag, randomly
                 flaFormatVersion.getAsLinkageVersionB(), 0x00, 0x00, 0x00);
         dw.writeBomString("");
         dw.writeBomString(sourceLibraryItemHRef);

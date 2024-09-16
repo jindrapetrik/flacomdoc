@@ -23,11 +23,11 @@ package com.jpexs.flash.fla.convertor;
  * @author JPEXS
  */
 public enum FlaFormatVersion {
-    MX(0x29, 0x11, 3, 3, 5, 5, 3, 1, 1, 0x16, 1, 1, 0x0A, 1, 1, 3, 2, 5, 1, 6, 8, 0x0A, 2, 1, 3, 1, 7, 5, 9, 7, 1, 1, 1, 1, 5, 3, 5, 5, 8, 5, 5, 3, 5, 1, 3, 1, 3, 3, 5,1, 9, 494, false),
-    MX2004(0x38, 0x16, 5, 5, 5, 6, 3, 2, 2, 0x17, 4, 2, 0x0B, 2, 4, 5, 5, 6, 2, 8, 0xB, 0x0E, 2, 2, 4, 2, 0xA, 6, 0xC, 0xA, 2, 2, 2, 2, 6, 3, 6, 6, 9, 6, 6, 5, 6, 2, 5, 2, 5, 4, 6,2, 9, 494, true),
-    F8(0x3F, 0x17, 7, 7, 6, 6, 4, 4, 4, 0x18, 4, 4, 0x0B, 4, 4, 7, 6, 6, 2, 8, 0xB, 0x13, 3, 2, 4, 2, 0xC, 6, 0xD, 0xC, 4, 4, 4, 4, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6,2, 9, 494, true),
-    CS3(0x43, 0x18, 7, 7, 7, 6, 4, 5, 5, 0x1A, 5, 5, 0x0B, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x13, 6, 2, 4, 2, 0xC, 6, 0xD, 0xC, 5, 5, 5, 5, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6,2, 10, 544, true),
-    CS4(0x47, 0x19, 7, 7, 7, 6, 4, 5, 5, 0x1D, 5, 5, 0x0D, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x16, 6, 2, 4, 3, 0xF, 6, 0xE, 0xF, 5, 5, 5, 5, 7, 4, 6, 7, 0xA, 6, 7, 7, 6, 2, 7, 2, 7, 4, 6,2, 11, 485, true);
+    MX(0x29, 0x11, 3, 3, 5, 5, 3, 1, 1, 0x16, 1, 1, 0x0A, 1, 1, 3, 2, 5, 1, 6, 8, 0x0A, 2, 1, 3, 1, 7, 5, 9, 7, 1, 1, 1, 1, 5, 3, 5, 5, 8, 5, 5, 3, 5, 1, 3, 1, 3, 3, 5,1, 1,9, 494, false),
+    MX2004(0x38, 0x16, 5, 5, 5, 6, 3, 2, 2, 0x17, 4, 2, 0x0B, 2, 4, 5, 5, 6, 2, 8, 0xB, 0x0E, 2, 2, 4, 2, 0xA, 6, 0xC, 0xA, 2, 2, 2, 2, 6, 3, 6, 6, 9, 6, 6, 5, 6, 2, 5, 2, 5, 4, 6,2, 2,9, 494, true),
+    F8(0x3F, 0x17, 7, 7, 6, 6, 4, 4, 4, 0x18, 4, 4, 0x0B, 4, 4, 7, 6, 6, 2, 8, 0xB, 0x13, 3, 2, 4, 2, 0xC, 6, 0xD, 0xC, 4, 4, 4, 4, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6,2, 2,9, 494, true),
+    CS3(0x43, 0x18, 7, 7, 7, 6, 4, 5, 5, 0x1A, 5, 5, 0x0B, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x13, 6, 2, 4, 2, 0xC, 6, 0xD, 0xC, 5, 5, 5, 5, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6,2, 2,10, 544, true),
+    CS4(0x47, 0x19, 7, 7, 7, 6, 4, 5, 5, 0x1D, 5, 5, 0x0D, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x16, 6, 2, 4, 3, 0xF, 6, 0xE, 0xF, 5, 5, 5, 5, 7, 4, 6, 7, 0xA, 6, 7, 7, 6, 2, 7, 2, 7, 4, 6,2, 2,11, 485, true);
 
     private final int contentsVersion;
     private final int documentPageVersion;
@@ -78,6 +78,7 @@ public enum FlaFormatVersion {
     private final int libraryFolderVersion;
     private final int libraryFolderVersionC;
     private final int libraryFolderVersionD;
+    private final int accessibilityVersion;
     //this is actually one version up since we exported the FLA from newer version to older
     private final int generatorVersion;
     private final int generatorBuild;
@@ -135,6 +136,7 @@ public enum FlaFormatVersion {
             int libraryFolderVersionB,
             int libraryFolderVersionC,
             int libraryFolderVersionD,
+            int accessibilityVersion,
             int generatorVersion,
             int generatorBuild,
             boolean unicode
@@ -188,6 +190,7 @@ public enum FlaFormatVersion {
         this.libraryFolderVersionB = libraryFolderVersionB;
         this.libraryFolderVersionC = libraryFolderVersionC;
         this.libraryFolderVersionD = libraryFolderVersionD;
+        this.accessibilityVersion = accessibilityVersion;
         this.generatorVersion = generatorVersion;
         this.generatorBuild = generatorBuild;
         this.textVersionC = textVersionC;
@@ -392,6 +395,10 @@ public enum FlaFormatVersion {
 
     public int getLibraryFolderVersionD() {
         return libraryFolderVersionD;
+    }        
+
+    public int getAccessibilityVersion() {
+        return accessibilityVersion;
     }        
 
     public int getGeneratorVersion() {

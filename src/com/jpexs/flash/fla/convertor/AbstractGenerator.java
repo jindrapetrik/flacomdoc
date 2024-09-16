@@ -236,13 +236,15 @@ public abstract class AbstractGenerator {
         if (element.hasAttribute("autoLabeling")) {
             autoLabeling = !"false".equals(element.getAttribute("autoLabeling"));
         }
-        fg.write(0x02, 0x00);
+        fg.write(flaFormatVersion.getAccessibilityVersion(), 0x00);
         fg.write(0x00, 0x00, silent ? 1 : 0, 0x00, 0x00, 0x00);
         fg.writeBomString(accName);
         fg.writeBomString(description);
         fg.writeBomString(shortcut);
-        fg.writeBomString(tabIndex);
-        fg.writeBomString("");
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+            fg.writeBomString(tabIndex);
+            fg.writeBomString("");
+        }
         fg.write(forceSimple ? 1 : 0, 0x00, 0x00, 0x00);
         if (mainDocument) {
             fg.write(autoLabeling ? 0 : 1);

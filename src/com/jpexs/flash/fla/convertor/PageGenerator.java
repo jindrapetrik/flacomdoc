@@ -1034,9 +1034,10 @@ public class PageGenerator extends AbstractGenerator {
         fg.writeBomString(instanceName);
 
         if (symbolType == FlaWriter.SYMBOLTYPE_BUTTON) {
+            writeAccessibleData(fg, symbolInstance, false);
             fg.write(0x00, 0x00, 0x00, 0x00);
             return;
-        }
+        }                               
         fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
                 flaFormatVersion == FlaFormatVersion.CS4 ? 0x01 : (motionTweenEnd || !actionScript.isEmpty() ? 1 : 0), //?? magic
                 0x00,
@@ -1049,8 +1050,11 @@ public class PageGenerator extends AbstractGenerator {
         );
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
             fg.write(0x01, //?
-                    0x00 /*something, but it resets after resaving FLA*/, 0x00, 0x00, 0x00);
+                    debugRandom ? 'U' : 0x00 /*something, but it resets after resaving FLA*/, 0x00, 0x00, 0x00);
             String componentTxt = "<component metaDataFetched='true' schemaUrl='' schemaOperation='' sceneRootLabel='Scene 1' oldCopiedComponentPath='" + copiedComponentPathRef.getVal() + "'>\n</component>\n";
+            if (debugRandom) {
+                componentTxt = "YYY";
+            }
             fg.writeBomString(componentTxt);
         }
     }
