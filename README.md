@@ -1,10 +1,14 @@
 # FLA Compound Document Tools
+![build status](https://github.com/jindrapetrik/flacomdoc/actions/workflows/main.yml/badge.svg)
 
 ## Goals
 This project has following goals:
  * Provide tool for extracting Flash binary FLA format CS4 and lower
  * Allow conversion of XFL FLA format CS5+ to binary FLA format CS4 or lower
  * Use this as a library in [JPEXS Free Flash Decompiler] to export to FLA CS4 or lower
+
+## Requirements
+The app requires Java 8 or newer to run.
 
 ## How to compile
 The directory contains Netbeans project which you can open and then build here.
