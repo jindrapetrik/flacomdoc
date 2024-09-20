@@ -29,6 +29,7 @@ jobs:
         targets: 'JDK_8;JAVA_HOME'
     - name: Set up ant
       run: |
+        apt update -y -qq
         apt install -y -qq ant 
     - name: Build
       run: "ant build"
