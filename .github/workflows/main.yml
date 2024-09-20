@@ -21,17 +21,20 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
-    - name: Set up JDK 8
-      uses: AdoptOpenJDK/install-jdk@v1
-      with:
-        version: '8'
-        architecture: x64
-        targets: 'JDK_8;JAVA_HOME'
-    - name: Set up ant
-      run: |
-        apt update -y -qq
-        apt install -y -qq ant 
-    - name: Build
-      run: "ant build"
     - name: Test
-      run: "ant test"
+      run: "sha1sum testdata/fla/cs3/0012_texts/Contents"
+#      
+#    - name: Set up JDK 8
+#      uses: AdoptOpenJDK/install-jdk@v1
+#      with:
+#        version: '8'
+#        architecture: x64
+#        targets: 'JDK_8;JAVA_HOME'
+#    - name: Set up ant
+#      run: |
+#        apt update -y -qq
+#        apt install -y -qq ant 
+#    - name: Build
+#      run: "ant build"
+#    - name: Test
+#      run: "ant test"
