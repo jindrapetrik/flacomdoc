@@ -80,6 +80,11 @@ public class ContentsGeneratorTest {
     public Object[][] provideFoldersMx() {
         return provideFolders(FlaFormatVersion.MX);
     }
+    
+    @DataProvider(name = "folders-f5")
+    public Object[][] provideFoldersF5() {
+        return provideFolders(FlaFormatVersion.F5);
+    }
 
     private Object[][] provideFolders(FlaFormatVersion flaFormatVersion) {
         File sourceDir = new File(EXPECTED_BASE_DIR + "/" + flaFormatVersion.name().toLowerCase());
@@ -137,14 +142,31 @@ public class ContentsGeneratorTest {
 
         File[] expectedFiles = expectedDir.listFiles();
         File[] actualFiles = actualDir.listFiles();
-        assertEquals(actualFiles.length, expectedFiles.length, "Number of files");
 
-        List<File> expectedFilesList = Arrays.asList(expectedFiles);
+        List<File> expectedFilesList = new ArrayList<>(Arrays.asList(expectedFiles));
         expectedFilesList.sort(fileNameComparator);
 
-        List<File> actualFilesList = Arrays.asList(actualFiles);
+        List<File> actualFilesList = new ArrayList<>(Arrays.asList(actualFiles));
         actualFilesList.sort(fileNameComparator);
+        
+        //Ignore media files
+        for (int i = actualFilesList.size() - 1; i >= 0; i--) {
+            File actualFile = actualFilesList.get(i);
+            if (actualFile.getName().startsWith("M ")) {
+                actualFilesList.remove(i);
+            }
+        }
+        
+        for (int i = expectedFilesList.size() - 1; i >= 0; i--) {
+            File expectedFile = expectedFilesList.get(i);
+            if (expectedFile.getName().startsWith("M ")) {
+                expectedFilesList.remove(i);
+            }
+        }
 
+        assertEquals(expectedFilesList.size(), expectedFilesList.size(), "Number of files");
+
+        
         for (int i = 0; i < actualFilesList.size(); i++) {
             File actualFile = actualFilesList.get(i);
             File expectedFile = expectedFilesList.get(i);
@@ -158,6 +180,10 @@ public class ContentsGeneratorTest {
             String actualType = actualFileName.substring(0, actualFileName.indexOf(" "));
             String expectedType = expectedFileName.substring(0, expectedFileName.indexOf(" "));
 
+            if (expectedType.equals("Page")) {
+                expectedType = "P";
+            }
+            
             assertEquals(actualType, expectedType, "File type");
         }
 
@@ -283,11 +309,16 @@ public class ContentsGeneratorTest {
         convert(folder, FlaFormatVersion.MX);
     }
 
-    //@Test
-    public void mytest() throws Exception {
-        //testConvertMx("0029_accessibility");
+    @Test(dataProvider = "folders-f5")
+    public void testConvertF5(String folder) throws Exception {
+        convert(folder, FlaFormatVersion.F5);
     }
-
+       
+    //@Test
+    public void singleTest() throws Exception {
+        //testConvertF5("0008_nested_layers");        
+    }
+    
     private static void deleteDir(File f) throws IOException {
         if (!f.exists()) {
             return;

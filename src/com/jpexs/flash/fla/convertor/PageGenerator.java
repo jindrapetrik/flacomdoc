@@ -158,44 +158,41 @@ public class PageGenerator extends AbstractGenerator {
                 Node bitmapPathAttr = fillStyleVal.getAttributes().getNamedItem("bitmapPath");
                 if (bitmapPathAttr != null) {
                     String bitmapPath = bitmapPathAttr.getTextContent(); //assuming attribute set
-                    Node mediaNode = getSubElementByName(fillStyleVal.getOwnerDocument().getDocumentElement(), "media");
-                    if (mediaNode != null) {
-                        List<Element> mediaElements = getAllSubElements(mediaNode);
-                        int mediaId = 0;
-                        for (Element e : mediaElements) {
-                            mediaId++;
-                            if ("DOMBitmapItem".equals(e.getNodeName())) {
-                                String name = e.getAttribute("name");
-                                if (name != null) {
-                                    if (bitmapPath.equals(name)) {
-                                        Matrix bitmapMatrix = parseMatrix(getSubElementByName(fillStyleVal, "matrix"));
+                    List<Element> mediaElements = getMedia(fillStyleVal.getOwnerDocument().getDocumentElement());
+                    int mediaId = 0;
+                    for (Element e : mediaElements) {
+                        mediaId++;
+                        if ("DOMBitmapItem".equals(e.getNodeName())) {
+                            String name = e.getAttribute("name");
+                            if (name != null) {
+                                if (bitmapPath.equals(name)) {
+                                    Matrix bitmapMatrix = parseMatrix(getSubElementByName(fillStyleVal, "matrix"));
 
-                                        boolean bitmapIsClipped = false;
-                                        Node bitmapIsClippedAttr = fillStyleVal.getAttributes().getNamedItem("bitmapIsClipped");
-                                        if (bitmapIsClippedAttr != null) {
-                                            bitmapIsClipped = "true".equals(bitmapIsClippedAttr.getTextContent());
-                                        }
-
-                                        boolean allowSmoothing = "true".equals(e.getAttribute("allowSmoothing"));
-
-                                        int type;
-                                        if (allowSmoothing) {
-                                            if (bitmapIsClipped) {
-                                                type = FlaWriter.FILLTYPE_CLIPPED_BITMAP;
-                                            } else {
-                                                type = FlaWriter.FILLTYPE_BITMAP;
-                                            }
-                                        } else {
-                                            if (bitmapIsClipped) {
-                                                type = FlaWriter.FILLTYPE_NON_SMOOTHED_CLIPPED_BITMAP;
-                                            } else {
-                                                type = FlaWriter.FILLTYPE_NON_SMOOTHED_BITMAP;
-                                            }
-                                        }
-
-                                        fg.writeBitmapFill(type, bitmapMatrix, mediaId);
-                                        break;
+                                    boolean bitmapIsClipped = false;
+                                    Node bitmapIsClippedAttr = fillStyleVal.getAttributes().getNamedItem("bitmapIsClipped");
+                                    if (bitmapIsClippedAttr != null) {
+                                        bitmapIsClipped = "true".equals(bitmapIsClippedAttr.getTextContent());
                                     }
+
+                                    boolean allowSmoothing = "true".equals(e.getAttribute("allowSmoothing"));
+
+                                    int type;
+                                    if (allowSmoothing) {
+                                        if (bitmapIsClipped) {
+                                            type = FlaWriter.FILLTYPE_CLIPPED_BITMAP;
+                                        } else {
+                                            type = FlaWriter.FILLTYPE_BITMAP;
+                                        }
+                                    } else {
+                                        if (bitmapIsClipped) {
+                                            type = FlaWriter.FILLTYPE_NON_SMOOTHED_CLIPPED_BITMAP;
+                                        } else {
+                                            type = FlaWriter.FILLTYPE_NON_SMOOTHED_BITMAP;
+                                        }
+                                    }
+
+                                    fg.writeBitmapFill(type, bitmapMatrix, mediaId);
+                                    break;
                                 }
                             }
                         }
@@ -283,12 +280,7 @@ public class PageGenerator extends AbstractGenerator {
 
         String libraryItemName = videoInstance.getAttribute("libraryItemName");
 
-        Element mediaElement = getSubElementByName(videoInstance.getOwnerDocument().getDocumentElement(), "media");
-        if (mediaElement == null) {
-            return;
-        }
-
-        List<Element> mediaItems = getAllSubElements(mediaElement);
+        List<Element> mediaItems = getMedia(videoInstance.getOwnerDocument().getDocumentElement());
         int videoId = 0;
         for (int i = 0; i < mediaItems.size(); i++) {
             Element mediaItem = mediaItems.get(i);
@@ -321,11 +313,7 @@ public class PageGenerator extends AbstractGenerator {
 
         String libraryItemName = bitmapInstance.getAttribute("libraryItemName");
 
-        Element mediaElement = getSubElementByName(bitmapInstance.getOwnerDocument().getDocumentElement(), "media");
-        if (mediaElement == null) {
-            return;
-        }
-        List<Element> mediaItems = getAllSubElements(mediaElement);
+        List<Element> mediaItems = getMedia(bitmapInstance.getOwnerDocument().getDocumentElement());
         int bitmapId = 0;
         for (int i = 0; i < mediaItems.size(); i++) {
             Element mediaItem = mediaItems.get(i);
@@ -1014,22 +1002,32 @@ public class PageGenerator extends AbstractGenerator {
             fg.write(0x00, 0x00);
         }
 
+        if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
+            fg.write(0x00, 0x00);
+            fg.write(0x01, 0x00, 0x00, 0x00, 0x00);
+            fg.write(0x01, 0x00, 0x00, 0x00);
+        }
         if (symbolType == FlaWriter.SYMBOLTYPE_GRAPHIC) {
             return;
         }
 
         fg.write((symbolType == FlaWriter.SYMBOLTYPE_BUTTON ? flaFormatVersion.getButtonVersion() : flaFormatVersion.getSpriteVersionG()),
                 flaFormatVersion.getSpriteVersionB(),
-                0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                0x00,
-                (symbolInstanceId & 0xFF), ((symbolInstanceId >> 8) & 0xFF));
-        if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
-            fg.write(0x00, 0x00, 0x00, 0x00);
+                0x00, 0x00, 0x00,
+                0x01, 0x00, 0x00, 0x00);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
+            fg.write((symbolInstanceId & 0xFF), ((symbolInstanceId >> 8) & 0xFF));
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+                fg.write(0x00, 0x00, 0x00, 0x00);
+            }
+            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
         }
-        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
         fg.writeBomString(actionScript);
         if (symbolType == FlaWriter.SYMBOLTYPE_BUTTON) {
             fg.write((int) (trackAsMenu ? 1 : 0));
+            if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
+                return;
+            }
         }
         fg.writeBomString(instanceName);
 
@@ -1037,17 +1035,21 @@ public class PageGenerator extends AbstractGenerator {
             writeAccessibleData(fg, symbolInstance, false);
             fg.write(0x00, 0x00, 0x00, 0x00);
             return;
-        }                               
-        fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
-                flaFormatVersion == FlaFormatVersion.CS4 ? 0x01 : (motionTweenEnd || !actionScript.isEmpty() ? 1 : 0), //?? magic
-                0x00,
-                0x00,
-                0x00);
-        writeAccessibleData(fg, symbolInstance, false);
-        fg.write(0x00,
-                0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00
-        );
+        }
+        if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
+            fg.write(0x01, 0x00, 0x00, 0x00, 0x00);
+        } else {
+            fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
+                    flaFormatVersion == FlaFormatVersion.CS4 ? 0x01 : (motionTweenEnd || !actionScript.isEmpty() ? 1 : 0), //?? magic
+                    0x00,
+                    0x00,
+                    0x00);
+            writeAccessibleData(fg, symbolInstance, false);
+            fg.write(0x00,
+                    0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00
+            );
+        }
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
             fg.write(0x01, //?
                     debugRandom ? 'U' : 0x00 /*something, but it resets after resaving FLA*/, 0x00, 0x00, 0x00);
@@ -1318,10 +1320,14 @@ public class PageGenerator extends AbstractGenerator {
             fg.write(flaFormatVersion.getTextVersionC());
             instanceHeader(element, fg, flaFormatVersion.getTextVersion(), true);
             fg.writeUI32((int) Math.round(left * 20));
-            fg.writeUI32((int) Math.round((left + width) * 20));
+            if (debugRandom && flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
+                //width can change with stripping rotation parameter
+                fg.write('X', 'X', 'X', 'X');
+            } else {
+                fg.writeUI32((int) Math.round((left + width) * 20));
+            }
             fg.writeUI32((int) Math.round(top * 20));
             fg.writeUI32((int) Math.round((top + height) * 20));
-
             boolean autoExpand = false;
             if (element.hasAttribute("autoExpand")) {
                 autoExpand = "true".equals(element.getAttribute("autoExpand"));
@@ -1407,7 +1413,7 @@ public class PageGenerator extends AbstractGenerator {
                                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
                                     embedFlag |= 1;
                                 } else {
-                                    if (domFontItem.hasAttribute("linkageExportForAS") 
+                                    if (domFontItem.hasAttribute("linkageExportForAS")
                                             && "true".equals(domFontItem.getAttribute("linkageExportForAS"))) {
                                         embedFlag |= 1;
                                     }
@@ -1673,23 +1679,24 @@ public class PageGenerator extends AbstractGenerator {
                 fg.writeUI16((int) Math.round(leftMargin * 20));
                 fg.writeUI16((int) Math.round(rightMargin * 20));
                 fg.writeUI16((int) Math.round(letterSpacing * 20));
+
                 if (flaFormatVersion == FlaFormatVersion.CS4) {
                     fg.writeBomString(url);
                 } else {
                     fg.writeString(url);
                 }
-
-                fg.write(vertical ? 1 : 0);
-                fg.write(rightToLeft ? 1 : 0);
-                fg.write(rotation ? 1 : 0);
-
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                    fg.write(fontRenderingMode == FONTRENDERING_BITMAP ? 1 : 0);
-                }
-                if (flaFormatVersion == FlaFormatVersion.CS4) {
-                    fg.writeBomString(target);
-                } else {
-                    fg.writeString(target);
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
+                    fg.write(vertical ? 1 : 0);
+                    fg.write(rightToLeft ? 1 : 0);
+                    fg.write(rotation ? 1 : 0);
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                        fg.write(fontRenderingMode == FONTRENDERING_BITMAP ? 1 : 0);
+                    }
+                    if (flaFormatVersion == FlaFormatVersion.CS4) {
+                        fg.writeBomString(target);
+                    } else {
+                        fg.writeString(target);
+                    }
                 }
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
@@ -1728,12 +1735,15 @@ public class PageGenerator extends AbstractGenerator {
             }
 
             fg.write(0x00, 0x00);
-            fg.writeBomString(instanceName);
-            writeAccessibleData(fg, element, false);
-            fg.write(0x00, 0x00, 0x00, 0x00,
-                    scrollable ? 1 : 0,
-                    0x00, 0x00, 0x00
-            );
+
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
+                fg.writeBomString(instanceName);
+                writeAccessibleData(fg, element, false);
+                fg.write(0x00, 0x00, 0x00, 0x00,
+                        scrollable ? 1 : 0,
+                        0x00, 0x00, 0x00
+                );
+            }
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
                 fg.writeBomString("");
                 fg.writeBomString(String.join("|", allEmbedRanges));
@@ -1814,51 +1824,49 @@ public class PageGenerator extends AbstractGenerator {
                 Node bitmapPathAttr = element.getAttributes().getNamedItem("bitmapPath");
                 if (bitmapPathAttr != null) {
                     String bitmapPath = bitmapPathAttr.getTextContent(); //assuming attribute set
-                    Node mediaNode = getSubElementByName(element.getOwnerDocument().getDocumentElement(), "media");
-                    if (mediaNode != null) {
-                        List<Element> mediaElements = getAllSubElements(mediaNode);
-                        int mediaId = 0;
-                        for (Element e : mediaElements) {
-                            mediaId++;
-                            if ("DOMBitmapItem".equals(e.getNodeName())) {
-                                String name = e.getAttribute("name");
-                                if (name != null) {
-                                    if (bitmapPath.equals(name)) {
-                                        Matrix bitmapMatrix = parseMatrix(getSubElementByName(element, "matrix"));
+                    List<Element> mediaElements = getMedia(element.getOwnerDocument().getDocumentElement());
+                    int mediaId = 0;
+                    for (Element e : mediaElements) {
+                        mediaId++;
+                        if ("DOMBitmapItem".equals(e.getNodeName())) {
+                            String name = e.getAttribute("name");
+                            if (name != null) {
+                                if (bitmapPath.equals(name)) {
+                                    Matrix bitmapMatrix = parseMatrix(getSubElementByName(element, "matrix"));
 
-                                        boolean bitmapIsClipped = false;
-                                        Node bitmapIsClippedAttr = element.getAttributes().getNamedItem("bitmapIsClipped");
-                                        if (bitmapIsClippedAttr != null) {
-                                            bitmapIsClipped = "true".equals(bitmapIsClippedAttr.getTextContent());
-                                        }
-
-                                        boolean allowSmoothing = "true".equals(e.getAttribute("allowSmoothing"));
-
-                                        int type;
-                                        if (allowSmoothing) {
-                                            if (bitmapIsClipped) {
-                                                type = FlaWriter.FILLTYPE_CLIPPED_BITMAP;
-                                            } else {
-                                                type = FlaWriter.FILLTYPE_BITMAP;
-                                            }
-                                        } else {
-                                            if (bitmapIsClipped) {
-                                                type = FlaWriter.FILLTYPE_NON_SMOOTHED_CLIPPED_BITMAP;
-                                            } else {
-                                                type = FlaWriter.FILLTYPE_NON_SMOOTHED_BITMAP;
-                                            }
-                                        }
-
-                                        fg.write(0xFF, 0x00, 0x00, 0xFF);
-                                        fg.write(type, 0x00);
-                                        fg.writeMatrix(bitmapMatrix);
-                                        fg.writeUI16(mediaId);
-                                        break;
+                                    boolean bitmapIsClipped = false;
+                                    Node bitmapIsClippedAttr = element.getAttributes().getNamedItem("bitmapIsClipped");
+                                    if (bitmapIsClippedAttr != null) {
+                                        bitmapIsClipped = "true".equals(bitmapIsClippedAttr.getTextContent());
                                     }
+
+                                    boolean allowSmoothing = "true".equals(e.getAttribute("allowSmoothing"));
+
+                                    int type;
+                                    if (allowSmoothing) {
+                                        if (bitmapIsClipped) {
+                                            type = FlaWriter.FILLTYPE_CLIPPED_BITMAP;
+                                        } else {
+                                            type = FlaWriter.FILLTYPE_BITMAP;
+                                        }
+                                    } else {
+                                        if (bitmapIsClipped) {
+                                            type = FlaWriter.FILLTYPE_NON_SMOOTHED_CLIPPED_BITMAP;
+                                        } else {
+                                            type = FlaWriter.FILLTYPE_NON_SMOOTHED_BITMAP;
+                                        }
+                                    }
+
+                                    fg.write(0xFF, 0x00, 0x00, 0xFF);
+                                    fg.write(type, 0x00);
+                                    fg.writeMatrix(bitmapMatrix);
+                                    fg.writeUI16(mediaId);
+                                    break;
                                 }
                             }
                         }
                     }
+
                 }
             }
             break;
@@ -2054,7 +2062,9 @@ public class PageGenerator extends AbstractGenerator {
             Node sharpCornersAttr = strokeStyleVal.getAttributes().getNamedItem("sharpCorners");
             if (sharpCornersAttr != null) {
                 if ("true".equals(sharpCornersAttr.getTextContent())) {
-                    styleParam2 += 0x8000;
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
+                        styleParam2 += 0x8000;
+                    }
                 }
             }
 
@@ -2216,7 +2226,8 @@ public class PageGenerator extends AbstractGenerator {
             FlaWriter fg,
             Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
-            Reference<Integer> totalFramesCountRef
+            Reference<Integer> totalFramesCountRef,
+            Integer overrideLayerType
     ) throws IOException {
         useClass("CPicLayer", fg, definedClasses, totalObjectCount);
         fg.write(flaFormatVersion.getLayerVersion());
@@ -2227,7 +2238,11 @@ public class PageGenerator extends AbstractGenerator {
             String layerTypeStr = layer.getAttribute("layerType");
             switch (layerTypeStr) {
                 case "folder":
-                    layerType = FlaWriter.LAYERTYPE_FOLDER;
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
+                        layerType = FlaWriter.LAYERTYPE_FOLDER;
+                    } else {
+                        layerType = FlaWriter.LAYERTYPE_GUIDE;
+                    }
                     break;
                 case "mask":
                     layerType = FlaWriter.LAYERTYPE_MASK;
@@ -2236,6 +2251,10 @@ public class PageGenerator extends AbstractGenerator {
                     layerType = FlaWriter.LAYERTYPE_GUIDE;
                     break;
             }
+        }
+
+        if (overrideLayerType != null) {
+            layerType = overrideLayerType;
         }
 
         Node framesNode = getSubElementByName(layer, "frames");
@@ -2283,10 +2302,9 @@ public class PageGenerator extends AbstractGenerator {
                     Element scriptElement = getSubElementByName(actionscriptElement, "script");
                     if (scriptElement != null) {
                         actionScript = scriptElement.getTextContent();
-                        if (!actionScript.isEmpty() 
+                        if (!actionScript.isEmpty()
                                 && flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()
-                                && ! actionScript.endsWith("\n")
-                                ) {
+                                && !actionScript.endsWith("\n")) {
                             actionScript += "\n";
                         }
                     }
@@ -2370,17 +2388,14 @@ public class PageGenerator extends AbstractGenerator {
                 if (frame.hasAttribute("soundName")) {
                     String soundName = frame.getAttribute("soundName");
 
-                    Element mediaEl = getSubElementByName(frame.getOwnerDocument().getDocumentElement(), "media");
-                    if (mediaEl != null) {
-                        List<Element> media = getAllSubElements(mediaEl);
-                        for (int i = 0; i < media.size(); i++) {
-                            Element mediaItem = media.get(i);
-                            if (mediaItem.hasAttribute("name")) {
-                                String mediaName = mediaItem.getAttribute("name");
-                                if (soundName.equals(mediaName)) {
-                                    soundId = i + 1;
-                                    break;
-                                }
+                    List<Element> media = getMedia(frame.getOwnerDocument().getDocumentElement());
+                    for (int i = 0; i < media.size(); i++) {
+                        Element mediaItem = media.get(i);
+                        if (mediaItem.hasAttribute("name")) {
+                            String mediaName = mediaItem.getAttribute("name");
+                            if (soundName.equals(mediaName)) {
+                                soundId = i + 1;
+                                break;
                             }
                         }
                     }
@@ -2467,19 +2482,25 @@ public class PageGenerator extends AbstractGenerator {
                 fg.writeUI16(soundZoomLevel);
 
                 fg.writeBomString(name);
+                if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
+
+                } else {
+
+                }
                 fg.write(flaFormatVersion.getFrameVersionC(), 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                        0x00, ((frameId >> 8) & 0xFF), (frameId & 0xFF));
+                        0x00);
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
+                    fg.write(((frameId >> 8) & 0xFF), (frameId & 0xFF));
+                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                }
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
                     fg.write(0x00, 0x00, 0x00, 0x00);
                 }
-                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
                 fg.writeBomString(actionScript);
                 fg.write(motionTweenRotate, 0x00, 0x00, 0x00);
                 fg.writeUI16(motionTweenRotateTimes);
-                fg.write(0x00, 0x00,
-                        comment ? 1 : 0, 0x00, 0x00, 0x00
-                );
-
+                fg.write(0x00, 0x00);
+                fg.write(comment ? 1 : 0, 0x00, 0x00, 0x00);
                 Element morphShape = getSubElementByName(frame, "MorphShape");
                 if (morphShape == null) {
                     fg.write(0x00, 0x00);
@@ -2496,7 +2517,6 @@ public class PageGenerator extends AbstractGenerator {
                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                             0x00);
 
-                    
                     List<Element> fillStyles1 = new ArrayList<>();
                     List<Element> fillStyles2 = new ArrayList<>();
                     List<Element> strokeStyles1 = new ArrayList<>();
@@ -2529,40 +2549,36 @@ public class PageGenerator extends AbstractGenerator {
                             }
                         }
                     }
-                    
+
                     Map<Integer, Integer> fillIndex1Map = new HashMap<>();
                     Map<Integer, Integer> fillIndex2Map = new HashMap<>();
                     Map<Integer, Integer> strokeIndex1Map = new HashMap<>();
                     Map<Integer, Integer> strokeIndex2Map = new HashMap<>();
-                    
+
                     List<Element> fills = new ArrayList<>();
-                    List<Element> bothFills = new ArrayList<>();                    
+                    List<Element> bothFills = new ArrayList<>();
                     List<Element> strokes = new ArrayList<>();
                     List<Element> bothStrokes = new ArrayList<>();
 
-                    
-                        
                     if (!fillStyles1.isEmpty()) {
-                       
+
                         int fillStyleIndex = 0;
                         int maxNumFills = Math.max(fillStyles1.size(), fillStyles2.size());
                         for (int i = 0; i < maxNumFills; i++) {
                             Element fill1 = fillStyles1.size() > i ? fillStyles1.get(i) : null;
-                            Element fill2 = fillStyles2.size() > i ? fillStyles2.get(i) : null;                            
+                            Element fill2 = fillStyles2.size() > i ? fillStyles2.get(i) : null;
                             bothFills.add(fill1);
                             bothFills.add(fill2);
-                            fills.add(fill1);      
+                            fills.add(fill1);
                             fillIndex1Map.put(fills.indexOf(fill1), bothFills.indexOf(fill1));
-                            
+
                             if (!areElementsEqual(fill1, fill2) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
-                                fills.add(fill2);   
-                                fillIndex2Map.put(fills.indexOf(fill2), bothFills.indexOf(fill2));  
+                                fills.add(fill2);
+                                fillIndex2Map.put(fills.indexOf(fill2), bothFills.indexOf(fill2));
                             } else {
-                                fillIndex2Map.put(fills.indexOf(fill1), bothFills.indexOf(fill2));  
+                                fillIndex2Map.put(fills.indexOf(fill1), bothFills.indexOf(fill2));
                             }
-                            
-                            
-                                                     
+
                         }
                     }
                     if (strokeStyles1.isEmpty() && strokeStyles2.isEmpty()) {
@@ -2577,31 +2593,31 @@ public class PageGenerator extends AbstractGenerator {
                             bothStrokes.add(stroke1);
                             bothStrokes.add(stroke2);
                             strokeIndex1Map.put(strokes.indexOf(stroke1), bothStrokes.indexOf(stroke1));
-                            
+
                             if (!areElementsEqual(stroke1, stroke2) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
                                 strokes.add(stroke2);
-                                strokeIndex2Map.put(strokes.indexOf(stroke2), bothStrokes.indexOf(stroke2));  
+                                strokeIndex2Map.put(strokes.indexOf(stroke2), bothStrokes.indexOf(stroke2));
                             } else {
-                                strokeIndex2Map.put(strokes.indexOf(stroke1), bothStrokes.indexOf(stroke2));  
-                            }                            
-                        }                        
+                                strokeIndex2Map.put(strokes.indexOf(stroke1), bothStrokes.indexOf(stroke2));
+                            }
+                        }
                     }
-                    
+
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                        for (int key: fillIndex1Map.keySet()) {
+                        for (int key : fillIndex1Map.keySet()) {
                             fillIndex1Map.put(key, key);
                         }
-                        for (int key: fillIndex2Map.keySet()) {
+                        for (int key : fillIndex2Map.keySet()) {
                             fillIndex2Map.put(key, key);
                         }
-                        for (int key: strokeIndex1Map.keySet()) {
+                        for (int key : strokeIndex1Map.keySet()) {
                             strokeIndex1Map.put(key, key);
                         }
-                        for (int key: strokeIndex2Map.keySet()) {
+                        for (int key : strokeIndex2Map.keySet()) {
                             strokeIndex2Map.put(key, key);
                         }
                     }
-                    
+
                     Element morphSegmentsElement = getSubElementByName(morphShape, "morphSegments");
                     List<Element> morphSegments = getAllSubElementsByName(morphSegmentsElement, "MorphSegment");
                     fg.writeUI16(morphSegments.size());
@@ -2627,7 +2643,6 @@ public class PageGenerator extends AbstractGenerator {
                             fillIndex2 = Integer.parseInt(morphSegment.getAttribute("fillIndex2"));
                         }
 
-                        
                         /*if (strokeIndex1 != -1) {
                             strokeIndex1 = strokeIndex1Map.get(strokeIndex1);
                         }
@@ -2640,7 +2655,6 @@ public class PageGenerator extends AbstractGenerator {
                         if (fillIndex2 != -1) {                            
                             fillIndex2 = fillIndex2Map.get(fillIndex2);
                         }*/
-                        
                         fg.writeUI32(strokeIndex1);
                         fg.writeUI32(strokeIndex2);
                         fg.writeUI32(fillIndex1);
@@ -2668,13 +2682,8 @@ public class PageGenerator extends AbstractGenerator {
                             fg.write(0x00, 0x00, 0x00);
                         }
                     }
-                
 
-                    /*fg.write(0x04, 0x00, 0x00, 0x66, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x66,
-                            0x66, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00);*/
                     fg.writeUI16(0);
-                    
 
                     if (fillStyles1.size() == fillStyles2.size()
                             && (strokeStyles1.size() == strokeStyles2.size() || strokeStyles2.isEmpty() || strokeStyles1.isEmpty())) {
@@ -2684,14 +2693,14 @@ public class PageGenerator extends AbstractGenerator {
                                 writeMorphFillStylePart(fg, fill);
                             }
                         }
-                        if (strokeStyles1.isEmpty() && strokeStyles2.isEmpty()) {                            
+                        if (strokeStyles1.isEmpty() && strokeStyles2.isEmpty()) {
                             if (flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
-                                fg.writeUI16(2);                            
-                                
+                                fg.writeUI16(2);
+
                                 fg.writeUI32(0);
                                 fg.writeUI32(0);
                                 fg.writeUI16(0);
-                                
+
                                 fg.writeUI32(0);
                                 fg.writeUI32(0);
                                 fg.writeUI16(0);
@@ -2710,111 +2719,105 @@ public class PageGenerator extends AbstractGenerator {
                     }
                 }
 
-                    int shapeTweenBlend = 0;
-                    if (frame.hasAttribute("shapeTweenBlend")) {
-                        switch (frame.getAttribute("shapeTweenBlend")) {
-                            /*case "distributive":
+                int shapeTweenBlend = 0;
+                if (frame.hasAttribute("shapeTweenBlend")) {
+                    switch (frame.getAttribute("shapeTweenBlend")) {
+                        /*case "distributive":
                             shapeTweenBlend = 0;
                             break;*/
-                            case "angular":
-                                shapeTweenBlend = 1;
-                                break;
-                        }
+                        case "angular":
+                            shapeTweenBlend = 1;
+                            break;
                     }
-                    fg.write(shapeTweenBlend);
+                }
+                fg.write(shapeTweenBlend);
 
-                    boolean useSingleEaseCurve = true;
-                    if (frame.hasAttribute("useSingleEaseCurve")) {
-                        useSingleEaseCurve = !"false".equals(frame.getAttribute("useSingleEaseCurve"));
+                boolean useSingleEaseCurve = true;
+                if (frame.hasAttribute("useSingleEaseCurve")) {
+                    useSingleEaseCurve = !"false".equals(frame.getAttribute("useSingleEaseCurve"));
+                }
+
+                int soundEffect = getAttributeAsInt(frame, "soundEffect",
+                        Arrays.asList(
+                                "none",
+                                "left channel",
+                                "right channel",
+                                "fade left to right",
+                                "fade right to left",
+                                "fade in",
+                                "fade out",
+                                "custom"
+                        ), "none");
+
+                fg.write(
+                        0x00, 0x00, 0x00, 0x00, 0x00);
+                fg.writeBomString("");
+                fg.write(0x01, 0x00, 0x00, 0x00,
+                        soundEffect,
+                        0x00, 0x00,
+                        0x00
+                );
+
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
+                    fg.write(anchor ? 1 : 0,
+                            0x00, 0x00, 0x00);
+                }
+
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                    fg.write(useSingleEaseCurve ? 1 : 0, 0x00, 0x00, 0x00);
+
+                    boolean hasCustomEase = false;
+                    if (frame.hasAttribute("hasCustomEase")) {
+                        hasCustomEase = "true".equals(frame.getAttribute("hasCustomEase"));
                     }
 
-                    int soundEffect = getAttributeAsInt(frame, "soundEffect",
-                            Arrays.asList(
-                                    "none",
-                                    "left channel",
-                                    "right channel",
-                                    "fade left to right",
-                                    "fade right to left",
-                                    "fade in",
-                                    "fade out",
-                                    "custom"
-                            ), "none");
+                    fg.writeUI32(hasCustomEase ? 1 : 0);
+                    if (hasCustomEase) {
+                        Element tweensElement = getSubElementByName(frame, "tweens");
+                        List<String> properties = Arrays.asList("position", "rotation", "scale", "color", "filters", "all");
 
-                    fg.write(
-                            0x00, 0x00, 0x00, 0x00, 0x00);
-                    fg.writeBomString("");
-                    fg.write(0x01, 0x00, 0x00, 0x00,
-                            soundEffect,
-                            0x00, 0x00,
-                            0x00,
-                            anchor ? 1 : 0,
-                            0x00, 0x00, 0x00
-                    );
+                        if (tweensElement == null) {
+                            for (int i = 0; i < properties.size(); i++) {
+                                fg.writeUI32(0);
+                            }
+                        } else {
+                            List<Element> customEaseElements = getAllSubElementsByName(tweensElement, "CustomEase");
+                            Map<String, Element> targetToCustomEase = new HashMap<>();
+                            for (Element el : customEaseElements) {
+                                if (!el.hasAttribute("target")) {
+                                    continue;
+                                }
+                                targetToCustomEase.put(el.getAttribute("target"), el);
+                            }
 
-                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-                        fg.write(useSingleEaseCurve ? 1 : 0, 0x00, 0x00, 0x00);
-
-                        boolean hasCustomEase = false;
-                        if (frame.hasAttribute("hasCustomEase")) {
-                            hasCustomEase = "true".equals(frame.getAttribute("hasCustomEase"));
-                        }
-
-                        fg.writeUI32(hasCustomEase ? 1 : 0);
-                        if (hasCustomEase) {
-                            Element tweensElement = getSubElementByName(frame, "tweens");
-                            List<String> properties = Arrays.asList("position", "rotation", "scale", "color", "filters", "all");
-
-                            if (tweensElement == null) {
-                                for (int i = 0; i < properties.size(); i++) {
+                            for (String property : properties) {
+                                if (!targetToCustomEase.containsKey(property)) {
                                     fg.writeUI32(0);
-                                }
-                            } else {
-                                List<Element> customEaseElements = getAllSubElementsByName(tweensElement, "CustomEase");
-                                Map<String, Element> targetToCustomEase = new HashMap<>();
-                                for (Element el : customEaseElements) {
-                                    if (!el.hasAttribute("target")) {
-                                        continue;
-                                    }
-                                    targetToCustomEase.put(el.getAttribute("target"), el);
+                                    continue;
                                 }
 
-                                for (String property : properties) {
-                                    if (!targetToCustomEase.containsKey(property)) {
-                                        fg.writeUI32(0);
-                                        continue;
+                                List<Element> points = getAllSubElementsByName(targetToCustomEase.get(property), "Point");
+
+                                int numPoints = 2 + (points.size() - 4) / 3;
+                                fg.writeUI32(numPoints);
+                                for (int p = 0; p < points.size(); p++) {
+                                    Element point = points.get(p);
+                                    double x = 0;
+                                    if (point.hasAttribute("x")) {
+                                        x = Double.parseDouble(point.getAttribute("x"));
+                                    }
+                                    double y = 0;
+                                    if (point.hasAttribute("y")) {
+                                        y = Double.parseDouble(point.getAttribute("y"));
+                                    }
+                                    if (x < 0) {
+                                        x = 0;
+                                    }
+                                    if (y < 0) {
+                                        y = 0;
                                     }
 
-                                    List<Element> points = getAllSubElementsByName(targetToCustomEase.get(property), "Point");
-
-                                    int numPoints = 2 + (points.size() - 4) / 3;
-                                    fg.writeUI32(numPoints);
-                                    for (int p = 0; p < points.size(); p++) {
-                                        Element point = points.get(p);
-                                        double x = 0;
-                                        if (point.hasAttribute("x")) {
-                                            x = Double.parseDouble(point.getAttribute("x"));
-                                        }
-                                        double y = 0;
-                                        if (point.hasAttribute("y")) {
-                                            y = Double.parseDouble(point.getAttribute("y"));
-                                        }
-                                        if (x < 0) {
-                                            x = 0;
-                                        }
-                                        if (y < 0) {
-                                            y = 0;
-                                        }
-
-                                        if (p == 0 || p == points.size() - 1) {
-                                            if (debugRandom) {
-                                                //ignore rounding errors
-                                                fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
-                                                fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
-                                            } else {
-                                                fg.writeDouble(x);
-                                                fg.writeDouble(y);
-                                            }
-                                        }
+                                    if (p == 0 || p == points.size() - 1) {
                                         if (debugRandom) {
                                             //ignore rounding errors
                                             fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
@@ -2824,101 +2827,108 @@ public class PageGenerator extends AbstractGenerator {
                                             fg.writeDouble(y);
                                         }
                                     }
+                                    if (debugRandom) {
+                                        //ignore rounding errors
+                                        fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
+                                        fg.write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
+                                    } else {
+                                        fg.writeDouble(x);
+                                        fg.writeDouble(y);
+                                    }
                                 }
                             }
                         }
                     }
-                    Element motionObjectXML = getSubElementByName(frame, "motionObjectXML");
-                    if (motionObjectXML != null) {
-                        if (flaFormatVersion == FlaFormatVersion.CS4) {
-                            fg.writeBomString(getInnerXml(motionObjectXML));
-                            long visibleAnimationKeyframes = 0x1FFFFF;
-                            if (frame.hasAttribute("visibleAnimationKeyframes")) {
-                                visibleAnimationKeyframes = Long.parseLong(frame.getAttribute("visibleAnimationKeyframes"));
-                            }
-                            fg.writeUI32(visibleAnimationKeyframes);
-                            String tweenInstanceName = "";
-                            if (frame.hasAttribute("tweenInstanceName")) {
-                                tweenInstanceName = frame.getAttribute("tweenInstanceName");
-                            }
-                            fg.writeBomString(tweenInstanceName);
-                        } else {
-                            Logger.getLogger(PageGenerator.class.getName()).warning("Motion objects are not supported in Flash lower than CS4");
+                }
+                Element motionObjectXML = getSubElementByName(frame, "motionObjectXML");
+                if (motionObjectXML != null) {
+                    if (flaFormatVersion == FlaFormatVersion.CS4) {
+                        fg.writeBomString(getInnerXml(motionObjectXML));
+                        long visibleAnimationKeyframes = 0x1FFFFF;
+                        if (frame.hasAttribute("visibleAnimationKeyframes")) {
+                            visibleAnimationKeyframes = Long.parseLong(frame.getAttribute("visibleAnimationKeyframes"));
                         }
+                        fg.writeUI32(visibleAnimationKeyframes);
+                        String tweenInstanceName = "";
+                        if (frame.hasAttribute("tweenInstanceName")) {
+                            tweenInstanceName = frame.getAttribute("tweenInstanceName");
+                        }
+                        fg.writeBomString(tweenInstanceName);
+                    } else {
+                        Logger.getLogger(PageGenerator.class.getName()).warning("Motion objects are not supported in Flash lower than CS4");
                     }
                 }
             }
-
-            {
-                String layerName = "Layer";
-                Node layerNameAttr = layer.getAttributes().getNamedItem("name");
-                if (layerNameAttr != null) {
-                    layerName = layerNameAttr.getTextContent();
-                }
-
-                Node outlineAttr = layer.getAttributes().getNamedItem("outline");
-                Node useOutlineViewAttr = layer.getAttributes().getNamedItem("useOutlineView");
-
-                boolean showOutlines = false;
-                if (outlineAttr != null && useOutlineViewAttr != null) {
-                    showOutlines = "true".equals(outlineAttr.getTextContent())
-                            && "true".equals(useOutlineViewAttr.getTextContent());
-                }
-
-                Color color = Color.BLACK;
-                Node colorAttr = layer.getAttributes().getNamedItem("color");
-                if (colorAttr != null) {
-                    color = parseColor(colorAttr.getTextContent());
-                }
-
-                boolean hiddenLayer = false;
-                Node visibleAttr = layer.getAttributes().getNamedItem("visible");
-                if (visibleAttr != null) {
-                    hiddenLayer = "false".equals(visibleAttr.getTextContent());
-                }
-
-                boolean lockedLayer = false;
-                Node lockedAttr = layer.getAttributes().getNamedItem("locked");
-                if (lockedAttr != null) {
-                    lockedLayer = "true".equals(lockedAttr.getTextContent());
-                }
-
-                boolean isSelected = false; //Note: how is this different from "current" attribute
-                Node isSelectedAttr = layer.getAttributes().getNamedItem("isSelected");
-                if (isSelectedAttr != null) {
-                    isSelected = "true".equals(isSelectedAttr.getTextContent());
-                }
-
-                int heightMultiplier = 1;
-                if (layer.hasAttribute("heightMultiplier")) {
-                    heightMultiplier = Integer.parseInt(layer.getAttribute("heightMultiplier"));
-                }
-
-                fg.write(0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x80,
-                        0x00, 0x00, 0x00, 0x80);
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-                    fg.write(0x00, 0x00);
-                }
-
-                fg.write(flaFormatVersion.getLayerVersionB());
-
-                fg.writeBomString(layerName);
-                fg.write(isSelected ? 1 : 0);
-                fg.write(hiddenLayer ? 1 : 0);
-                fg.write(lockedLayer ? 1 : 0);
-                fg.write(0xFF, 0xFF, 0xFF, 0xFF);
-                fg.write(color.getRed());
-                fg.write(color.getGreen());
-                fg.write(color.getBlue());
-                fg.write(0xFF);
-                fg.write(showOutlines ? 1 : 0);
-                fg.write(0x00, 0x00, 0x00, heightMultiplier, 0x00, 0x00, 0x00);
-                fg.write(layerType);
-            }
         }
 
-    
+        {
+            String layerName = "Layer";
+            Node layerNameAttr = layer.getAttributes().getNamedItem("name");
+            if (layerNameAttr != null) {
+                layerName = layerNameAttr.getTextContent();
+            }
+
+            Node outlineAttr = layer.getAttributes().getNamedItem("outline");
+            Node useOutlineViewAttr = layer.getAttributes().getNamedItem("useOutlineView");
+
+            boolean showOutlines = false;
+            if (outlineAttr != null && useOutlineViewAttr != null) {
+                showOutlines = "true".equals(outlineAttr.getTextContent())
+                        && "true".equals(useOutlineViewAttr.getTextContent());
+            }
+
+            Color color = Color.BLACK;
+            Node colorAttr = layer.getAttributes().getNamedItem("color");
+            if (colorAttr != null) {
+                color = parseColor(colorAttr.getTextContent());
+            }
+
+            boolean hiddenLayer = false;
+            Node visibleAttr = layer.getAttributes().getNamedItem("visible");
+            if (visibleAttr != null) {
+                hiddenLayer = "false".equals(visibleAttr.getTextContent());
+            }
+
+            boolean lockedLayer = false;
+            Node lockedAttr = layer.getAttributes().getNamedItem("locked");
+            if (lockedAttr != null) {
+                lockedLayer = "true".equals(lockedAttr.getTextContent());
+            }
+
+            boolean isSelected = false; //Note: how is this different from "current" attribute
+            Node isSelectedAttr = layer.getAttributes().getNamedItem("isSelected");
+            if (isSelectedAttr != null) {
+                isSelected = "true".equals(isSelectedAttr.getTextContent());
+            }
+
+            int heightMultiplier = 1;
+            if (layer.hasAttribute("heightMultiplier")) {
+                heightMultiplier = Integer.parseInt(layer.getAttribute("heightMultiplier"));
+            }
+
+            fg.write(0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x80,
+                    0x00, 0x00, 0x00, 0x80);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                fg.write(0x00, 0x00);
+            }
+
+            fg.write(flaFormatVersion.getLayerVersionB());
+
+            fg.writeBomString(layerName);
+            fg.write(isSelected ? 1 : 0);
+            fg.write(hiddenLayer ? 1 : 0);
+            fg.write(lockedLayer ? 1 : 0);
+            fg.write(0xFF, 0xFF, 0xFF, 0xFF);
+            fg.write(color.getRed());
+            fg.write(color.getGreen());
+            fg.write(color.getBlue());
+            fg.write(0xFF);
+            fg.write(showOutlines ? 1 : 0);
+            fg.write(0x00, 0x00, 0x00, heightMultiplier, 0x00, 0x00, 0x00);
+            fg.write(layerType);
+        }
+    }
 
     private static boolean areElementsEqual(Element elem1, Element elem2) {
         if (elem1 == elem2) {
@@ -3014,7 +3024,8 @@ public class PageGenerator extends AbstractGenerator {
             Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
             Reference<Integer> totalFramesCountRef,
-            Map<Integer, Integer> layerIndexToNValue
+            Map<Integer, Integer> layerIndexToNValue,
+            boolean hasChildren
     ) throws IOException {
         if (writtenLayers.contains(layerIndex)) {
             return;
@@ -3028,15 +3039,24 @@ public class PageGenerator extends AbstractGenerator {
         }
 
         boolean canHaveSubLayers = false;
-        if (layer.hasAttribute("layerType")) {
-            String layerTypeStr = layer.getAttribute("layerType");
-            switch (layerTypeStr) {
-                case "folder":
-                case "mask":
-                case "guide":
-                    canHaveSubLayers = true;
-                    break;
-            }
+        boolean isNormalLayer = false;
+        String layerTypeStr = layer.getAttribute("layerType");
+        switch (layerTypeStr) {
+            case "folder":
+                canHaveSubLayers = true;
+                if (flaFormatVersion.ordinal() < FlaFormatVersion.MX.ordinal()) {
+                    layerTypeStr = "";
+                    canHaveSubLayers = false;
+                }
+                break;
+            case "mask":
+            case "guide":
+                canHaveSubLayers = true;
+                break;
+            default:
+                layerTypeStr = "";
+                isNormalLayer = true;
+                break;
         }
 
         boolean open = true;
@@ -3047,6 +3067,22 @@ public class PageGenerator extends AbstractGenerator {
         int parentLayerIndex = -1;
         if (layer.hasAttribute("parentLayerIndex")) {
             parentLayerIndex = Integer.parseInt(layer.getAttribute("parentLayerIndex"));
+        }
+
+        Integer overrideLayerType = null;
+        String parentLayerType = "-";
+        if (parentLayerIndex > -1
+                && flaFormatVersion.ordinal() < FlaFormatVersion.MX.ordinal()) {
+            parentLayerType = layers.get(parentLayerIndex).getAttribute("layerType");
+            if (parentLayerType.equals("folder")) {
+                parentLayerType = "";
+                parentLayerIndex = -1;
+            }
+            if (parentLayerType.equals("guide")) {
+                if (isNormalLayer) {
+                    overrideLayerType = FlaWriter.LAYERTYPE_GUIDED;
+                }
+            }
         }
 
         int animationType = 0;
@@ -3064,24 +3100,53 @@ public class PageGenerator extends AbstractGenerator {
         int nValue = 1 + definedClasses.size() + totalObjectCount.getVal();
         layerIndexToNValue.put(layerIndex, nValue);
 
-        writeLayerContents(layer, fg, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef);
+        writeLayerContents(layer, fg, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, overrideLayerType);
+
+        if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
+            if (parentLayerType.equals("mask")) {
+                fg.write(0x00, 0x00);
+            }
+        }
         if (parentLayerIndex > -1 && !writtenLayers.contains(parentLayerIndex)) {
-            writeLayer(fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue);
+            writeLayer(fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, true);
         } else {
             if (parentLayerIndex > -1) {
                 fg.writeUI16(layerIndexToNValue.get(parentLayerIndex));
             } else {
                 fg.writeUI16(0);
             }
+            if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
+                if (parentLayerType.equals("mask")) {
+                    fg.write(0x00);
+                } else if (parentLayerType.equals("guide")) {
+                    fg.write(0x00, 0x00, 0x00);
+                } else if (layerTypeStr.equals("")) {
+                    fg.write(0x00, 0x00, 0x00);
+                }
+            }
         }
 
-        fg.write(open ? 1 : 0);
-        fg.write(autoNamed ? 1 : 0);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
+            fg.write(open ? 1 : 0);
+            fg.write(autoNamed ? 1 : 0);
+        } else {
+            if (layerTypeStr.equals("mask")) {
+                fg.write(0x00, 0x00, 0x01);
+                if (hasChildren) {
+                    fg.write(0x00);
+                }
+            } else if (layerTypeStr.equals("guide")) {
+                fg.write(0x00, 0x00, 0x00);
+                if (hasChildren) {
+                    fg.write(0x00, 0x00, 0x00);
+                }
+            }
+        }
         if (flaFormatVersion == FlaFormatVersion.CS4) {
             fg.write(animationType);
         }
 
-        if (!canHaveSubLayers) {
+        if (isNormalLayer) {
             int pi = parentLayerIndex;
             int li = layerIndex;
             while (pi > -1) {
@@ -3098,6 +3163,9 @@ public class PageGenerator extends AbstractGenerator {
                     pi = -1;
                 }
             }
+        }
+        if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
+            //fg.write(0);
         }
     }
 
@@ -3126,7 +3194,7 @@ public class PageGenerator extends AbstractGenerator {
             Set<Integer> writtenLayers = new HashSet<>();
 
             for (int layerIndex = layers.size() - 1; layerIndex >= 0; layerIndex--) {
-                writeLayer(fg, layers, layerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue);
+                writeLayer(fg, layers, layerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, false);
             }
         }
         int currentFrame = 0;
@@ -3140,30 +3208,27 @@ public class PageGenerator extends AbstractGenerator {
         }
 
         fg.write(
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
+                0x00, 0x00,
+                0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
                 0x80);
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
             fg.write(0x00, 0x00, 0x07, nextLayerId, 0x00, nextFolderId, 0x00, currentFrame, 0x00, 0x00, 0x00);
         } else {
-            switch (flaFormatVersion) {
-                case MX2004:
-                    fg.write(0x05);
-                    if (debugRandom) {
-                        fg.write('U', 'U', 'U', 'U');
-                    } else {
-                        fg.write(0x02, 0x00, 0x01, 0x00);
-                    }
-                    break;
-                case MX:
-                    fg.write(0x03);
-                    if (debugRandom) {
-                        fg.write('U', 'U');
-                    } else {
-                        fg.write(0x02, 0x00);
-                    }
-                    break;
+            if (flaFormatVersion == FlaFormatVersion.MX2004) {
+                fg.write(0x05);
+                if (debugRandom) {
+                    fg.write('U', 'U', 'U', 'U');
+                } else {
+                    fg.write(0x02, 0x00, 0x01, 0x00);
+                }
+            } else {
+                fg.write(0x03);
+                if (debugRandom) {
+                    fg.write('U', 'U');
+                } else {
+                    fg.write(0x02, 0x00);
+                }
             }
-
         }
         if (domTimeLine.hasAttribute("guides")) {
             String guidesXml = domTimeLine.getAttribute("guides");

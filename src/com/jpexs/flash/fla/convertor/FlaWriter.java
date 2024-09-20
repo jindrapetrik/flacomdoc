@@ -95,6 +95,7 @@ public class FlaWriter {
 
     public static final int LAYERTYPE_LAYER = 0;
     public static final int LAYERTYPE_GUIDE = 1;
+    public static final int LAYERTYPE_GUIDED = 2;
     public static final int LAYERTYPE_FOLDER = 3;
     public static final int LAYERTYPE_MASK = 4;
 
@@ -812,6 +813,7 @@ public class FlaWriter {
         }
         writeString(s);
     }
+
     public void writeString(String s) throws IOException {
         byte[] b = s.getBytes();
         int len = flaFormatVersion.isUnicode() ? s.length() : b.length;

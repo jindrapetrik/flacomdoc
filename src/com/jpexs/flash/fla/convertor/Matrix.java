@@ -37,12 +37,12 @@ public final class Matrix implements Cloneable {
     public double tx;
 
     public double ty;
-    
+
     public Matrix() {
         a = 1;
         d = 1;
     }
-    
+
     public Matrix(
             double a,
             double b,
@@ -68,5 +68,5 @@ public final class Matrix implements Cloneable {
 
     public Point2D transform(Point2D point) {
         return transform(point.getX(), point.getY());
-    }        
+    }
 }

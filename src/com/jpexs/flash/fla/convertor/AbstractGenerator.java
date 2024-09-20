@@ -55,8 +55,6 @@ public abstract class AbstractGenerator {
     public AbstractGenerator(FlaFormatVersion flaFormatVersion) {
         this.flaFormatVersion = flaFormatVersion;
     }
-    
-    
 
     public void setDebugRandom(boolean debugRandom) {
         this.debugRandom = debugRandom;
@@ -210,7 +208,7 @@ public abstract class AbstractGenerator {
 
         boolean silent = false; //"Make object accessible" checkbox (inverted)
         String description = "";
-        String tabIndex = "";
+        String tabIndex = "0";
         String accName = "";
         String shortcut = "";
         boolean autoLabeling = true;
@@ -283,5 +281,21 @@ public abstract class AbstractGenerator {
         }
         List<Element> includes = getAllSubElementsByName(symbolsElement, "Include");
         return includes;
+    }
+
+    protected List<Element> getMedia(Element document) {
+        Element mediaElement = getSubElementByName(document, "media");
+        if (mediaElement == null) {
+            return new ArrayList<>();
+        }
+        List<Element> media = getAllSubElements(mediaElement);
+        if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
+            for (int i = media.size() - 1; i >= 0; i--) {
+                if (media.get(i).getTagName().equals("DOMVideoItem")) {
+                    media.remove(i);
+                }
+            }
+        }
+        return media;
     }
 }

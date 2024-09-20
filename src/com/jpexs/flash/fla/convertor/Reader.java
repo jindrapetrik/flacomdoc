@@ -28,10 +28,10 @@ import java.io.RandomAccessFile;
 public class Reader {
 
     public static void main(String[] args) throws Exception {
-        
+
         boolean uni = false;
-        RandomAccessFile fis = new RandomAccessFile("testdata\\fla\\mx\\0001_empty_doc\\Contents", "r");
-        fis.seek(312); //TODO: enter valid position
+        RandomAccessFile fis = new RandomAccessFile("testdata\\fla\\f5\\0001_empty_doc\\Contents", "r");
+        fis.seek(216); //TODO: enter valid position
         int len = fis.read() + (fis.read() << 8);
         System.out.println("len = " + len);
         for (int i = 0; i < len; i++) {
@@ -53,7 +53,7 @@ public class Reader {
             b = new byte[uni ? vlen * 2 : vlen];
             fis.read(b);
             String val = uni ? new String(b, "UTF-16LE") : new String(b);
-            
+
             String vale = "\"" + val.replace("\"", "\\\"") + "\"";
             if (key.endsWith("::Width") && val.equals("550")) {
                 vale = "\"\" + width";
@@ -64,8 +64,8 @@ public class Reader {
             if (val.startsWith("Untitled-1")) {
                 val = val.substring("Untitled-1".length());
                 vale = "basePublishName + \"" + val.replace("\"", "\\\"") + "\"";
-            }             
-            System.out.println("propertiesMap.put(\"" + key + "\", "+vale+");");
+            }
+            System.out.println("propertiesMap.put(\"" + key + "\", " + vale + ");");
         }
         fis.close();
     }
