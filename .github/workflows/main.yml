@@ -35,4 +35,8 @@ jobs:
     - name: Build
       run: "ant build"
     - name: Test
-      run: "ant testhalt"
+      run: "ant test"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: 0012_texts_Contents.bin
+        path: out/tests/fla/cs3/0012_texts/Contents
