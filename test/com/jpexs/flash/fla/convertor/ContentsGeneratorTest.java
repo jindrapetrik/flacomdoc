@@ -120,36 +120,7 @@ public class ContentsGeneratorTest {
             ret[i] = new Object[]{sourceFilesList.get(i).getName()};
         }
         return ret;
-    }
-    
-    public static String calculateSHA1(File file) {
-        try {
-            MessageDigest shaDigest = MessageDigest.getInstance("SHA-1");
-
-            FileInputStream fis = new FileInputStream(file);
-            byte[] dataBuffer = new byte[1024];
-            int bytesRead;
-
-            while ((bytesRead = fis.read(dataBuffer)) != -1) {
-                shaDigest.update(dataBuffer, 0, bytesRead);
-            }
-
-            fis.close();
-
-            byte[] shaBytes = shaDigest.digest();
-            StringBuilder sb = new StringBuilder();
-            for (byte b : shaBytes) {
-                sb.append(String.format("%02x", b));
-            }
-
-            return sb.toString();
-
-        } catch (NoSuchAlgorithmException | IOException e) {
-            e.printStackTrace();
-        }
-
-        return null;
-    }
+    }     
 
     private void convert(String folderName, FlaFormatVersion flaFormatVersion) throws Exception {
 
@@ -166,9 +137,7 @@ public class ContentsGeneratorTest {
         contentsGenerator.generate(new DirectoryInputStorage(new File(SOURCE_DIR + "/" + folderName)),
                 new DirectoryOutputStorage(actualDir)
         );
-        System.out.println("outfile: " + actualDir);
-        System.out.println("sha1: " + calculateSHA1(new File(actualDir, "Contents")));
-
+        
         File expectedDir = new File(expectedDirParent + "/" + folderName);
 
         Comparator<File> fileNameComparator = getFileComparator();

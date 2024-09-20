@@ -1954,6 +1954,10 @@ public class ContentsGenerator extends AbstractGenerator {
                 String fontNameLowercase = font.getFontName(Locale.US).toLowerCase();
                 bold = fontNameLowercase.contains("bold");
                 italic = fontNameLowercase.contains("italic") || fontNameLowercase.contains("oblique");
+            } else {
+                if (debugRandom) {
+                    fontFamily = "YYY";
+                }
             }
 
             dw.write(flaFormatVersion.getFontVersion());
@@ -1984,8 +1988,8 @@ public class ContentsGenerator extends AbstractGenerator {
             }
             dw.write(debugRandom ? 'U' : 0x12); //something magic, see PageGenerator for details
             dw.write(0x00);
-            dw.write(bold ? 1 : 0);
-            dw.write(italic ? 1 : 0);
+            dw.write(debugRandom ? 'X': (bold ? 1 : 0));
+            dw.write(debugRandom ? 'X': (italic ? 1 : 0));
             dw.write(0x00,
                     debugRandom ? 'U' : 0x00, //maybe unused = not used in any text???
                     0x00,

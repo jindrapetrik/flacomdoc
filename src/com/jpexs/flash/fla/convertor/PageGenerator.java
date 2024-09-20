@@ -1524,6 +1524,10 @@ public class PageGenerator extends AbstractGenerator {
                     String fontNameLowercase = font.getFontName(Locale.US).toLowerCase();
                     bold = fontNameLowercase.contains("bold");
                     italic = fontNameLowercase.contains("italic") || fontNameLowercase.contains("oblique");
+                } else {
+                    if (debugRandom) {
+                        fontFamily = "YYY";
+                    }
                 }
 
                 Color fillColor = parseColorWithAlpha(domTextAttrs, Color.black, "fillColor", "alpha");
@@ -1667,8 +1671,8 @@ public class PageGenerator extends AbstractGenerator {
                         0x00);
 
                 fg.write(
-                        bold ? 1 : 0,
-                        italic ? 1 : 0,
+                        debugRandom ? 'X': (bold ? 1 : 0),
+                        debugRandom ? 'X': (italic ? 1 : 0),
                         0x00,
                         autoKern ? 1 : 0,
                         characterPosition,
