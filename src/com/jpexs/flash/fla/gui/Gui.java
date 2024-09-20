@@ -27,8 +27,10 @@ import java.awt.Window;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -74,14 +76,14 @@ public class Gui {
             return OSId.UNIX;
         }
     }
-    
+
     public static void setWindowIcon(Window w) {
         List<Image> images = new ArrayList<>();
         images.add(loadImage("fla16"));
         images.add(loadImage("fla32"));
         w.setIconImages(images);
     }
-    
+
     public static BufferedImage loadImage(String name) {
         URL imageURL = Gui.class.getResource("/com/jpexs/flash/fla/gui/graphics/" + name + ".png");
         try {
@@ -104,25 +106,27 @@ public class Gui {
             //ignore
         }
     }
-    
+
     public static void loadConfig() {
         configuration.clear();
         try {
             String configFilePath = getConfigFile();
             File configFile = new File(configFilePath);
             if (configFile.exists()) {
-                BufferedReader br = new BufferedReader(new FileReader(configFile, Charset.forName("UTF-8")));
-                String s;
-                while ((s = br.readLine()) != null) {
-                    if (s.startsWith(";")) {
-                        continue;
+                try (FileInputStream fis = new FileInputStream(configFile)) {
+                    BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
+                    String s;
+                    while ((s = br.readLine()) != null) {
+                        if (s.startsWith(";")) {
+                            continue;
+                        }
+                        if (!s.contains("=")) {
+                            continue;
+                        }
+                        String key = s.substring(0, s.indexOf("="));
+                        String value = s.substring(s.indexOf("=") + 1);
+                        configuration.put(key, value);
                     }
-                    if (!s.contains("=")) {
-                        continue;
-                    }
-                    String key = s.substring(0, s.indexOf("="));
-                    String value = s.substring(s.indexOf("=") + 1);
-                    configuration.put(key, value);
                 }
             }
         } catch (IOException ex) {
