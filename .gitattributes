@@ -8,9 +8,9 @@
 
 # Flash binary files
 Contents binary
-P\ * binary
-S\ * binary
-M\ * binary
+"P *" binary
+"S *" binary
+"M *" binary
 
 *.fla binary
 
