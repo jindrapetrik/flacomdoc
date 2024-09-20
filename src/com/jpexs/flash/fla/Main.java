@@ -19,13 +19,13 @@
 package com.jpexs.flash.fla;
 
 import com.jpexs.cfb.CompoundFileBinary;
-import com.jpexs.flash.fla.convertor.ContentsGenerator;
-import com.jpexs.flash.fla.convertor.FlaFormatVersion;
-import com.jpexs.flash.fla.convertor.streams.CfbOutputStorage;
-import com.jpexs.flash.fla.convertor.streams.DirectoryInputStorage;
-import com.jpexs.flash.fla.convertor.streams.InputStorageInterface;
-import com.jpexs.flash.fla.convertor.streams.OutputStorageInterface;
-import com.jpexs.flash.fla.convertor.streams.ZippedInputStorage;
+import com.jpexs.flash.fla.converter.FlaConverter;
+import com.jpexs.flash.fla.converter.FlaFormatVersion;
+import com.jpexs.flash.fla.converter.streams.CfbOutputStorage;
+import com.jpexs.flash.fla.converter.streams.DirectoryInputStorage;
+import com.jpexs.flash.fla.converter.streams.InputStorageInterface;
+import com.jpexs.flash.fla.converter.streams.OutputStorageInterface;
+import com.jpexs.flash.fla.converter.streams.ZippedInputStorage;
 import com.jpexs.flash.fla.gui.Gui;
 import java.io.File;
 import java.io.IOException;
@@ -180,8 +180,8 @@ public class Main {
                     }
                     OutputStorageInterface outputStorage = new CfbOutputStorage(outputFile);
 
-                    ContentsGenerator contentsGenerator = new ContentsGenerator(flaFormatVersion);
-                    contentsGenerator.generate(inputStorage, outputStorage);
+                    FlaConverter contentsGenerator = new FlaConverter(flaFormatVersion);
+                    contentsGenerator.convert(inputStorage, outputStorage);
                     inputStorage.close();
                     outputStorage.close();
                     System.out.println("OK");
