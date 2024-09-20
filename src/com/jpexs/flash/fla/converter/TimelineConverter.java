@@ -1422,6 +1422,9 @@ public class TimelineConverter extends AbstractConverter {
                                     String embedRanges = domFontItem.getAttribute("embedRanges");
                                     String[] rangesParts = embedRanges.split("\\|", -1);
                                     for (String part : rangesParts) {
+                                        if (part.isEmpty()) {
+                                            continue;
+                                        }
                                         int rangeId = Integer.parseInt(part);
                                         if (rangeId >= 1 && rangeId <= 4) {
                                             embedFlag |= (1 << rangeId);
