@@ -116,6 +116,8 @@ public class FlaWriter {
 
     private boolean debugRandom = false;
     private final FlaFormatVersion flaFormatVersion;
+    
+    private long pos = 0;
 
     public void setDebugRandom(boolean debugRandom) {
         this.debugRandom = debugRandom;
@@ -651,7 +653,7 @@ public class FlaWriter {
                 0x00);
         writeMatrix(bitmapMatrix);
         write(
-                bitmapId, 0x00
+                debugRandom ? 'X' : bitmapId, 0x00
         );
     }
 
@@ -670,7 +672,7 @@ public class FlaWriter {
         writeMatrix(gradientMatrix);
         write(colors.length);
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-            write((int) Math.round(focalRatio * 256), 0x00,
+            write((int) Math.round(focalRatio * 255), 0x00,
                     0x00, 0x00, (flow + (linearRgb ? 1 : 0)), 0x00, 0x00, 0x00
             );
         }
@@ -755,10 +757,12 @@ public class FlaWriter {
          */
 
         int strokeWidthTwips = (int) Math.round(strokeWidth * 20);
-        write(
-                lineColor.getRed(), lineColor.getGreen(), lineColor.getBlue(), lineColor.getAlpha(),
-                (strokeWidthTwips & 0xFF), ((strokeWidthTwips >> 8) & 0xFF),
-                (styleParam1 & 0xFF), ((styleParam1 >> 8) & 0xFF),
+        /*if (strokeWidthTwips == 2 && lineColor.getAlpha() == 0) {
+            strokeWidthTwips = 0; //??
+        }*/
+        write(lineColor.getRed(), lineColor.getGreen(), lineColor.getBlue(), lineColor.getAlpha());
+        write((strokeWidthTwips & 0xFF), ((strokeWidthTwips >> 8) & 0xFF));
+        write((styleParam1 & 0xFF), ((styleParam1 >> 8) & 0xFF),
                 (styleParam2 & 0xFF), ((styleParam2 >> 8) & 0xFF));
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
             write((pixelHinting ? 1 : 0), scaleMode, capStyle,
@@ -842,11 +846,16 @@ public class FlaWriter {
 
     public void write(byte[] bytes) throws IOException {
         os.write(bytes);
+        pos += bytes.length;
     }
 
     public void write(int... values) throws IOException {
-        for (int i : values) {
+        for (int i : values) {      
+            /*if (pos == 28766) {
+                System.out.println("xxx");
+            }*/
             os.write(i);
+            pos++;
         }
     }
 
@@ -856,7 +865,7 @@ public class FlaWriter {
     }
 
     public void writeItemID(String itemID) throws IOException {
-        if ("XXXXXXXX-XXXXXXXX".equals(itemID)) {
+        if (debugRandom) { // || ("XXXXXXXX-XXXXXXXX".equals(itemID))) {
             write('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X');
             return;
         }

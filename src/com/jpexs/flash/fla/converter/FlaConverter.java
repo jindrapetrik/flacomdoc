@@ -37,6 +37,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -714,7 +715,7 @@ public class FlaConverter extends AbstractConverter {
                 fg.write(0x00, 0x00, 0x00, 0x00);
             }
 
-            if (flaFormatVersion.ordinal() >= flaFormatVersion.CS3.ordinal()) {
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
                 fg.write(0x01, 0x00, 0x00, 0x00);
                 fg.writeBomString("");
                 fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
@@ -751,7 +752,7 @@ public class FlaConverter extends AbstractConverter {
             TimelineConverter symbolPageGenerator = new TimelineConverter(flaFormatVersion);
             symbolPageGenerator.setDebugRandom(debugRandom);
             try (OutputStream sos = outputDir.getOutputStream(symbolFile)) {
-                symbolPageGenerator.convert(domTimelineElement, sos);
+                symbolPageGenerator.convert(domTimelineElement, document, sos);
             }
         }
 
@@ -812,6 +813,9 @@ public class FlaConverter extends AbstractConverter {
 
         try (OutputStream os = outputDir.getOutputStream("Contents")) {
             FlaWriter fg = new FlaWriter(os, flaFormatVersion);
+            if (debugRandom) {
+                fg.setDebugRandom(true);
+            }
             fg.write(flaFormatVersion.getContentsVersion());
             fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     0x00, 0x00, 0x00
@@ -1020,7 +1024,7 @@ public class FlaConverter extends AbstractConverter {
                 TimelineConverter pageGenerator = new TimelineConverter(flaFormatVersion);
                 pageGenerator.setDebugRandom(debugRandom);
                 try (OutputStream pos = outputDir.getOutputStream(pageName)) {
-                    pageGenerator.convert(domTimeline, pos);
+                    pageGenerator.convert(domTimeline, document, pos);
                 }
             }
 
@@ -1445,13 +1449,19 @@ public class FlaConverter extends AbstractConverter {
                     fg.write(0x00, 0x00, 0x00, 0x00, 0x00);
                     int majorVersion = 0;
                     if (document.hasAttribute("majorVersion")) {
-                        majorVersion = Integer.parseInt(document.getAttribute("majorVersion"));
+                        String majorStr = document.getAttribute("majorVersion");
+                        if (majorStr.matches("^[0-9]+$")) {
+                            majorVersion = Integer.parseInt(majorStr);
+                        }
                     }
                     fg.write(debugRandom ? 'X' : majorVersion);
                     fg.write(0x00, 0x00, 0x00);
                     int buildNumber = 0;
                     if (document.hasAttribute("buildNumber")) {
-                        buildNumber = Integer.parseInt(document.getAttribute("buildNumber"));
+                        String buildStr = document.getAttribute("buildNumber");
+                        if (buildStr.matches("^[0-9]+$")) {
+                            buildNumber = Integer.parseInt(buildStr);
+                        }
                     }
 
                     if (debugRandom) {
@@ -1924,6 +1934,10 @@ public class FlaConverter extends AbstractConverter {
         }
         dw.writeUI32(domFontItems.size());
 
+        if (flaFormatVersion.ordinal() <= FlaFormatVersion.CS3.ordinal()) {
+            Collections.reverse(domFontItems);
+        }
+        
         int fontCount = 0;
         for (Element domFontItem : domFontItems) {
             fontCount++;

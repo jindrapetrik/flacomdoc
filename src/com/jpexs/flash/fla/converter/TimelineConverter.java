@@ -91,7 +91,7 @@ public class TimelineConverter extends AbstractConverter {
             definedClasses.add(className);
         }
     }*/
-    private void handleFill(Node fillStyleVal, FlaWriter fg) throws IOException {
+    private void handleFill(Element fillStyleVal, Element document, FlaWriter fg) throws IOException {
         switch (fillStyleVal.getNodeName()) {
             case "SolidColor":
                 Color color = parseColorWithAlpha(fillStyleVal);
@@ -114,12 +114,11 @@ public class TimelineConverter extends AbstractConverter {
                 Color colors[] = new Color[gradientEntries.size()];
                 double ratios[] = new double[gradientEntries.size()];
                 for (int en = 0; en < gradientEntries.size(); en++) {
-                    Node gradientEntry = gradientEntries.get(en);
+                    Element gradientEntry = gradientEntries.get(en);
                     colors[en] = parseColorWithAlpha(gradientEntry);
-                    Node ratioAttr = gradientEntry.getAttributes().getNamedItem("ratio");
                     double ratio = 0;
-                    if (ratioAttr != null) {
-                        ratio = Double.parseDouble(ratioAttr.getTextContent());
+                    if (gradientEntry.hasAttribute("ratio")) {
+                        ratio = Double.parseDouble(gradientEntry.getAttribute("ratio"));
                     }
                     ratios[en] = ratio;
                 }
@@ -154,7 +153,7 @@ public class TimelineConverter extends AbstractConverter {
                 Node bitmapPathAttr = fillStyleVal.getAttributes().getNamedItem("bitmapPath");
                 if (bitmapPathAttr != null) {
                     String bitmapPath = bitmapPathAttr.getTextContent(); //assuming attribute set
-                    List<Element> mediaElements = getMedia(fillStyleVal.getOwnerDocument().getDocumentElement());
+                    List<Element> mediaElements = getMedia(document);
                     int mediaId = 0;
                     for (Element e : mediaElements) {
                         mediaId++;
@@ -245,6 +244,7 @@ public class TimelineConverter extends AbstractConverter {
     }
 
     protected void handleVideoInstance(Element videoInstance,
+            Element document,
             FlaWriter fg,
             Map<String, Integer> definedClasses,
             Reference<Integer> totalObjectCount) throws IOException {
@@ -276,7 +276,7 @@ public class TimelineConverter extends AbstractConverter {
 
         String libraryItemName = videoInstance.getAttribute("libraryItemName");
 
-        List<Element> mediaItems = getMedia(videoInstance.getOwnerDocument().getDocumentElement());
+        List<Element> mediaItems = getMedia(document);
         int videoId = 0;
         for (int i = 0; i < mediaItems.size(); i++) {
             Element mediaItem = mediaItems.get(i);
@@ -300,6 +300,7 @@ public class TimelineConverter extends AbstractConverter {
     }
 
     protected void handleBitmapInstance(Element bitmapInstance,
+            Element document,
             FlaWriter fg,
             Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount
     ) throws IOException {
@@ -309,7 +310,7 @@ public class TimelineConverter extends AbstractConverter {
 
         String libraryItemName = bitmapInstance.getAttribute("libraryItemName");
 
-        List<Element> mediaItems = getMedia(bitmapInstance.getOwnerDocument().getDocumentElement());
+        List<Element> mediaItems = getMedia(document);
         int bitmapId = 0;
         for (int i = 0; i < mediaItems.size(); i++) {
             Element mediaItem = mediaItems.get(i);
@@ -336,6 +337,7 @@ public class TimelineConverter extends AbstractConverter {
     }
 
     protected void handleGroup(Element element,
+            Element document,
             FlaWriter fg,
             Map<String, Integer> definedClasses,
             Reference<Integer> totalObjectCount,
@@ -356,54 +358,72 @@ public class TimelineConverter extends AbstractConverter {
                 locked = "true".equals(element.getAttribute("locked"));
             }
             fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00));
-            handleElements(members, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd);
+            handleElements(members, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd, false);
         }
     }
 
-    protected void handleElements(List<Element> elements,
+    protected void handleElements(List<Element> elements, Element document, 
             FlaWriter fg,
             Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
-            boolean motionTweenEnd
+            boolean motionTweenEnd,
+            boolean allowWritingShapeHeader
     ) throws IOException {
         for (int instanceIndex = 0; instanceIndex < elements.size(); instanceIndex++) {
             Element element = elements.get(instanceIndex);
             switch (element.getTagName()) {
                 case "DOMSymbolInstance":
-                    handleSymbolInstance(element, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd);
+                    handleSymbolInstance(element, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd);
                     break;
                 case "DOMBitmapInstance":
-                    handleBitmapInstance(element, fg, definedClasses, totalObjectCount);
+                    handleBitmapInstance(element, document, fg, definedClasses, totalObjectCount);
                     break;
                 case "DOMVideoInstance":
-                    handleVideoInstance(element, fg, definedClasses, totalObjectCount);
+                    handleVideoInstance(element, document, fg, definedClasses, totalObjectCount);
                     break;
                 case "DOMStaticText":
                 case "DOMDynamicText":
                 case "DOMInputText":
-                    handleText(element, fg, definedClasses, totalObjectCount);
+                    handleText(element, document, fg, definedClasses, totalObjectCount);
                     break;
                 case "DOMTLFText":
                     Logger.getLogger(TimelineConverter.class.getName()).warning("DOMTLFText element is not supported");
                     break;
                 case "DOMGroup":
-                    handleGroup(element, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd);
+                    handleGroup(element, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd);
                     break;
             }
         }
 
         boolean hasShape = false;
+        boolean isFloating = false;
+        Element shapeElement = null;
         for (int e = 0; e < elements.size(); e++) {
             Element element = elements.get(e);
             if ("DOMShape".equals(element.getNodeName())) {
-                handleShape(element, fg, false, definedClasses, totalObjectCount);
+                if (element.getAttribute("isFloating").equals("true")) {
+                    useClass("CPicShape", fg, definedClasses, totalObjectCount);
+                    fg.write(flaFormatVersion.getGroupVersion());
+                    boolean selected = false;
+                    if (element.hasAttribute("selected")) {
+                        selected = "true".equals(element.getAttribute("selected"));
+                    }
+                    boolean locked = false;
+                    if (element.hasAttribute("locked")) {
+                        locked = "true".equals(element.getAttribute("locked"));
+                    }
+                    isFloating = true;
+                    fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00) + (isFloating /*???*/ ? 0x01 : 0x00));            
+                    shapeElement = element;
+                }
+                handleShape(element, document, fg, false, definedClasses, totalObjectCount);
                 hasShape = true;
                 break;
             }
         }
 
-        if (!hasShape) {
-            instanceHeader(null, fg, flaFormatVersion.getShapeType(), false);
+        if (!hasShape || isFloating) {
+            instanceHeader(shapeElement, fg, flaFormatVersion.getShapeType(), false);
             fg.write(0x05);
             fg.writeUI32(0); //totalEdgeCount
             fg.write(0x00, 0x00); //fillStyleCount
@@ -652,6 +672,7 @@ public class TimelineConverter extends AbstractConverter {
 
     protected void handleSymbolInstance(
             Element symbolInstance,
+            Element document,
             FlaWriter fg,
             Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
@@ -664,7 +685,7 @@ public class TimelineConverter extends AbstractConverter {
         }
 
         String libraryItemName = symbolInstance.getAttribute("libraryItemName");
-        List<Element> includes = getSymbols(symbolInstance.getOwnerDocument().getDocumentElement());
+        List<Element> includes = getSymbols(document);
 
         //Find index in library
         int libraryItemIndex = -1;
@@ -1036,7 +1057,7 @@ public class TimelineConverter extends AbstractConverter {
             fg.write(0x01, 0x00, 0x00, 0x00, 0x00);
         } else {
             fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
-                    flaFormatVersion == FlaFormatVersion.CS4 ? 0x01 : (motionTweenEnd || !actionScript.isEmpty() ? 1 : 0), //?? magic
+                    debugRandom ? 'U' : 0x01, //flaFormatVersion == FlaFormatVersion.CS4 ? 0x01 : (motionTweenEnd || !actionScript.isEmpty() ? 1 : 0), //?? magic
                     0x00,
                     0x00,
                     0x00);
@@ -1081,9 +1102,11 @@ public class TimelineConverter extends AbstractConverter {
         Element transformationPointElement = getSubElementByName(element, "transformationPoint");
         if (transformationPointElement != null) {
             Element pointElement = getSubElementByName(transformationPointElement, "Point");
+            transformationPointX = 0.0;
             if (pointElement.hasAttribute("x")) {
                 transformationPointX = Double.valueOf(pointElement.getAttribute("x"));
             }
+            transformationPointY = 0.0;
             if (pointElement.hasAttribute("y")) {
                 transformationPointY = Double.valueOf(pointElement.getAttribute("y"));
             }
@@ -1124,7 +1147,7 @@ public class TimelineConverter extends AbstractConverter {
 
     static int textCount = 0;
 
-    private void handleText(Element element, FlaWriter fg, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
+    private void handleText(Element element, Element document, FlaWriter fg, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
         if ("DOMStaticText".equals(element.getTagName())
                 || "DOMDynamicText".equals(element.getTagName())
                 || "DOMInputText".equals(element.getTagName())) {
@@ -1316,14 +1339,19 @@ public class TimelineConverter extends AbstractConverter {
             fg.write(flaFormatVersion.getTextVersionC());
             instanceHeader(element, fg, flaFormatVersion.getTextVersion(), true);
             fg.writeUI32((int) Math.round(left * 20));
-            if (debugRandom && flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
-                //width can change with stripping rotation parameter
+            if (debugRandom) {
+                //width can change
                 fg.write('X', 'X', 'X', 'X');
             } else {
                 fg.writeUI32((int) Math.round((left + width) * 20));
             }
             fg.writeUI32((int) Math.round(top * 20));
-            fg.writeUI32((int) Math.round((top + height) * 20));
+            if (debugRandom) {
+                //height can change
+                fg.write('X', 'X', 'X', 'X');
+            } else {
+                fg.writeUI32((int) Math.round((top + height) * 20));
+            }
             boolean autoExpand = false;
             if (element.hasAttribute("autoExpand")) {
                 autoExpand = "true".equals(element.getAttribute("autoExpand"));
@@ -1333,7 +1361,7 @@ public class TimelineConverter extends AbstractConverter {
                     autoExpand ? 0x01 : 0, 0x00
             );
 
-            Element fontsElement = getSubElementByName(element.getOwnerDocument().getDocumentElement(), "fonts");
+            Element fontsElement = getSubElementByName(document, "fonts");
             List<Element> domFontItems = new ArrayList<>();
 
             if (fontsElement != null) {
@@ -1345,13 +1373,14 @@ public class TimelineConverter extends AbstractConverter {
             if (textRunsElement != null) {
                 domTextRuns = getAllSubElementsByName(textRunsElement, "DOMTextRun");
             }
-
+                        
             int textFlags = (!isStatic ? 0x01 : 0)
                     + (isDynamic ? 0x02 : 0)
                     + (password ? 0x04 : 0)
                     + (border ? 0x40 : 0)
                     + (wrap ? 0x08 : 0)
-                    + (multiline ? 0x10 : 0);
+                    + (multiline ? 0x10 : 0)
+                    + (isDynamic && renderAsHTML && !isSelectable ? 0x80 : 0);
 
             //Only single font per text (?)
             if (flaFormatVersion.ordinal() < FlaFormatVersion.MX2004.ordinal()) {
@@ -1414,6 +1443,7 @@ public class TimelineConverter extends AbstractConverter {
                                         embedFlag |= 1;
                                     }
                                 }
+                                
                                 if (domFontItem.hasAttribute("embeddedCharacters")) {
                                     embeddedCharacters = domFontItem.getAttribute("embeddedCharacters");
                                     embedFlag |= 0x20;
@@ -1438,8 +1468,32 @@ public class TimelineConverter extends AbstractConverter {
                         }
                     }
                 }
+            }                    
+                 
+            boolean isEmpty = true;
+            
+            for (Element textRun : domTextRuns) {
+                String characters = "";
+
+                Element charactersElement = getSubElementByName(textRun, "characters");
+                if (charactersElement != null) {
+                    characters = charactersElement.getTextContent();
+                }
+                if (!characters.isEmpty()) {
+                    isEmpty = false;
+                    break;
+                }
             }
-            fg.write((renderAsHTML ? 0x80 : 0) + embedFlag);
+            
+            if (isEmpty) {
+                embedFlag |= 0x40;
+            }
+            
+            if (renderAsHTML) {
+                embedFlag |= 0x80;
+            }
+            
+            fg.write(embedFlag);
             if (!isStatic) {
                 fg.write(0);
             } else {
@@ -1491,12 +1545,17 @@ public class TimelineConverter extends AbstractConverter {
              */
             List<FilterInterface> filters = parseFilters(getSubElementByName(element, "filters"));
 
-            for (Element textRun : domTextRuns) {
+            for (int r = 0; r < domTextRuns.size(); r++) {
+                Element textRun = domTextRuns.get(r);
                 String characters = "";
 
                 Element charactersElement = getSubElementByName(textRun, "characters");
                 if (charactersElement != null) {
                     characters = charactersElement.getTextContent();
+                }
+                
+                if (characters.isEmpty() && domTextRuns.size() != 1) {
+                    continue;
                 }
 
                 Element textAttrsElement = getSubElementByName(textRun, "textAttrs");
@@ -1506,6 +1565,31 @@ public class TimelineConverter extends AbstractConverter {
                 Element domTextAttrs = getSubElementByName(textAttrsElement, "DOMTextAttrs");
                 if (domTextAttrs == null) {
                     continue;
+                }
+                
+                //Merge textRuns with same attributes into single run
+                for (int r2 = r + 1; r2 < domTextRuns.size(); r2++) {
+                    Element textRun2 = domTextRuns.get(r2);
+                    Element textAttrsElement2 = getSubElementByName(textRun2, "textAttrs");
+                    if (textAttrsElement2 == null) {
+                        break;
+                    }
+                    Element domTextAttrs2 = getSubElementByName(textAttrsElement2, "DOMTextAttrs");
+                    if (domTextAttrs2 == null) {
+                        break;
+                    }
+                    if (areAttributesEqual(domTextAttrs, domTextAttrs2)) {                      
+                        String characters2 = "";
+
+                        Element charactersElement2 = getSubElementByName(textRun2, "characters");
+                        if (charactersElement2 != null) {
+                            characters2 = charactersElement2.getTextContent();
+                        }
+                        characters += characters2;
+                        r++;
+                    } else {
+                        break;
+                    }
                 }
 
                 String face = "TimesNewRomanPSMT"; //?
@@ -1630,7 +1714,9 @@ public class TimelineConverter extends AbstractConverter {
                     }
                 }
 
-                fg.writeUI16(characters.length());
+                if (!characters.isEmpty()) { //??
+                    fg.writeUI16(characters.length());                
+                }
                 fg.write(flaFormatVersion.getTextVersionB());
                 fg.writeUI16(bitmapSize);
                 if (flaFormatVersion == FlaFormatVersion.CS4) {
@@ -1738,7 +1824,7 @@ public class TimelineConverter extends AbstractConverter {
             }
 
             fg.write(0x00, 0x00);
-
+            
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
                 fg.writeBomString(instanceName);
                 writeAccessibleData(fg, element, false);
@@ -1777,9 +1863,11 @@ public class TimelineConverter extends AbstractConverter {
         Element element = getFirstSubElement(strokeStyleElement);
         Element fill = getSubElementByName(element, "fill");
         Element fillElement = getFirstSubElement(fill);
+        boolean isTransparent = false;
         if ("SolidColor".equals(fillElement.getTagName())) {
             Color color = parseColorWithAlpha(fillElement);
-            fg.write(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+            fg.write(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());            
+            isTransparent = color.equals(new Color(0,0,0,0));
         } else {
             fg.write(0x00, 0x00, 0x00, debugRandom ? 'U' : 0x00);
         }
@@ -1787,11 +1875,14 @@ public class TimelineConverter extends AbstractConverter {
         if (element.hasAttribute("weight")) {
             weight = Float.parseFloat(element.getAttribute("weight"));
         }
+        if (weight == 0.1f && isTransparent) {
+            weight = 0f;
+        }
         fg.writeUI32(Math.round(weight * 20));
         fg.writeUI16(0);
     }
 
-    private void writeMorphFillStylePart(FlaWriter fg, Element fillStyleElement) throws IOException {
+    private void writeMorphFillStylePart(Element document, FlaWriter fg, Element fillStyleElement) throws IOException {
         Element element = getFirstSubElement(fillStyleElement);
         switch (element.getTagName()) {
             case "SolidColor": {
@@ -1827,7 +1918,7 @@ public class TimelineConverter extends AbstractConverter {
                 Node bitmapPathAttr = element.getAttributes().getNamedItem("bitmapPath");
                 if (bitmapPathAttr != null) {
                     String bitmapPath = bitmapPathAttr.getTextContent(); //assuming attribute set
-                    List<Element> mediaElements = getMedia(element.getOwnerDocument().getDocumentElement());
+                    List<Element> mediaElements = getMedia(document);
                     int mediaId = 0;
                     for (Element e : mediaElements) {
                         mediaId++;
@@ -1863,7 +1954,11 @@ public class TimelineConverter extends AbstractConverter {
                                     fg.write(0xFF, 0x00, 0x00, 0xFF);
                                     fg.write(type, 0x00);
                                     fg.writeMatrix(bitmapMatrix);
-                                    fg.writeUI16(mediaId);
+                                    if (debugRandom) {
+                                        fg.write('X', 'X');
+                                    } else {
+                                        fg.writeUI16(mediaId);
+                                    }
                                     break;
                                 }
                             }
@@ -1876,7 +1971,7 @@ public class TimelineConverter extends AbstractConverter {
         }
     }
 
-    private void handleShape(Element element, FlaWriter fg, boolean inGroup, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
+    private void handleShape(Element element, Element document, FlaWriter fg, boolean inGroup, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
         instanceHeader(element, fg, flaFormatVersion.getShapeType(), false);
         fg.write(0x05);
         Node fillsNode = getSubElementByName(element, "fills");
@@ -1927,8 +2022,8 @@ public class TimelineConverter extends AbstractConverter {
         fg.writeUI32(totalEdgeCount);
         fg.write(fillStyles.size(), 0x00);
         for (Node fillStyle : fillStyles) {
-            Node fillStyleVal = getFirstSubElement(fillStyle);
-            handleFill(fillStyleVal, fg);
+            Element fillStyleVal = getFirstSubElement(fillStyle);
+            handleFill(fillStyleVal, document, fg);
         }
         fg.write(strokeStyles.size(), 0x00);
         for (Node strokeStyle : strokeStyles) {
@@ -2073,7 +2168,7 @@ public class TimelineConverter extends AbstractConverter {
 
             Node fill = getSubElementByName(strokeStyleVal, "fill");
             if (fill != null) {
-                Node fillStyleVal = getFirstSubElement(fill);
+                Element fillStyleVal = getFirstSubElement(fill);
                 Color baseColor = new Color(0x00, 0x00, 0x00, debugRandom ? 'U' : 0x00);
                 if ("SolidColor".equals(fillStyleVal.getNodeName())) {
                     baseColor = parseColorWithAlpha(fillStyleVal);
@@ -2083,7 +2178,7 @@ public class TimelineConverter extends AbstractConverter {
 
                 fg.writeStrokeBegin(baseColor, weight, pixelHinting, scaleMode, caps, joints, miterLimit, styleParam1, styleParam2);
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-                    handleFill(fillStyleVal, fg);
+                    handleFill(fillStyleVal, document, fg);
                 }
             }
         }
@@ -2223,9 +2318,39 @@ public class TimelineConverter extends AbstractConverter {
             }
         }
     }
+    
+    private boolean isZeroAlphaStroke(Element element) {
+        if (element == null) {
+            return false;
+        }
+        element = getFirstSubElement(element);
+        if (element == null) {
+            return false;
+        }
+        if (!element.getTagName().equals("SolidStroke")) {
+            return false;
+        }
+        element = getSubElementByName(element, "fill");
+        if (element == null) {
+            return false;
+        }
+        element = getFirstSubElement(element);
+        if (element == null) {
+            return false;
+        }
+        if (!element.getTagName().equals("SolidColor")) {
+            return false;
+        }
+        String color = element.getAttribute("color");
+        if (!color.equals("") && !color.equals("#000000")) {
+            return false;
+        }
+        return element.getAttribute("alpha").equals("0");
+    }
 
     private void writeLayerContents(
             Element layer,
+            Element document,
             FlaWriter fg,
             Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
@@ -2280,7 +2405,7 @@ public class TimelineConverter extends AbstractConverter {
                     elements = getAllSubElements(elementsNode);
                 }
 
-                handleElements(elements, fg, definedClasses, totalObjectCount, copiedComponentPathRef, prevTweenType.equals("motion"));
+                handleElements(elements, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, prevTweenType.equals("motion"), true);
 
                 prevTweenType = tweenType;
 
@@ -2391,7 +2516,7 @@ public class TimelineConverter extends AbstractConverter {
                 if (frame.hasAttribute("soundName")) {
                     String soundName = frame.getAttribute("soundName");
 
-                    List<Element> media = getMedia(frame.getOwnerDocument().getDocumentElement());
+                    List<Element> media = getMedia(document);
                     for (int i = 0; i < media.size(); i++) {
                         Element mediaItem = media.get(i);
                         if (mediaItem.hasAttribute("name")) {
@@ -2553,74 +2678,39 @@ public class TimelineConverter extends AbstractConverter {
                         }
                     }
 
-                    Map<Integer, Integer> fillIndex1Map = new HashMap<>();
-                    Map<Integer, Integer> fillIndex2Map = new HashMap<>();
-                    Map<Integer, Integer> strokeIndex1Map = new HashMap<>();
-                    Map<Integer, Integer> strokeIndex2Map = new HashMap<>();
-
+                    
                     List<Element> fills = new ArrayList<>();
-                    List<Element> bothFills = new ArrayList<>();
                     List<Element> strokes = new ArrayList<>();
-                    List<Element> bothStrokes = new ArrayList<>();
-
+                    
                     if (!fillStyles1.isEmpty()) {
 
-                        int fillStyleIndex = 0;
                         int maxNumFills = Math.max(fillStyles1.size(), fillStyles2.size());
                         for (int i = 0; i < maxNumFills; i++) {
                             Element fill1 = fillStyles1.size() > i ? fillStyles1.get(i) : null;
                             Element fill2 = fillStyles2.size() > i ? fillStyles2.get(i) : null;
-                            bothFills.add(fill1);
-                            bothFills.add(fill2);
                             fills.add(fill1);
-                            fillIndex1Map.put(fills.indexOf(fill1), bothFills.indexOf(fill1));
-
-                            if (!areElementsEqual(fill1, fill2) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
+                            
+                            if (!areElementsEqual(fill1, fill2, false) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
                                 fills.add(fill2);
-                                fillIndex2Map.put(fills.indexOf(fill2), bothFills.indexOf(fill2));
-                            } else {
-                                fillIndex2Map.put(fills.indexOf(fill1), bothFills.indexOf(fill2));
                             }
-
                         }
                     }
                     if (strokeStyles1.isEmpty() && strokeStyles2.isEmpty()) {
-                        strokeIndex1Map.put(0, 0);
-                        strokeIndex2Map.put(0, 1);
+                        //ignore
                     } else {
                         int maxNumStrokes = Math.max(strokeStyles1.size(), strokeStyles2.size());
                         for (int i = 0; i < maxNumStrokes; i++) {
                             Element stroke1 = strokeStyles1.size() > i ? strokeStyles1.get(i) : null;
-                            Element stroke2 = strokeStyles2.size() > i ? strokeStyles2.get(i) : null;
+                            Element stroke2 = strokeStyles2.size() > i ? strokeStyles2.get(i) : null;                                                                                    
+                            
                             strokes.add(stroke1);
-                            bothStrokes.add(stroke1);
-                            bothStrokes.add(stroke2);
-                            strokeIndex1Map.put(strokes.indexOf(stroke1), bothStrokes.indexOf(stroke1));
-
-                            if (!areElementsEqual(stroke1, stroke2) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
+                            
+                            if (!areElementsEqual(stroke1, stroke2, false) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
                                 strokes.add(stroke2);
-                                strokeIndex2Map.put(strokes.indexOf(stroke2), bothStrokes.indexOf(stroke2));
-                            } else {
-                                strokeIndex2Map.put(strokes.indexOf(stroke1), bothStrokes.indexOf(stroke2));
                             }
                         }
                     }
-
-                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                        for (int key : fillIndex1Map.keySet()) {
-                            fillIndex1Map.put(key, key);
-                        }
-                        for (int key : fillIndex2Map.keySet()) {
-                            fillIndex2Map.put(key, key);
-                        }
-                        for (int key : strokeIndex1Map.keySet()) {
-                            strokeIndex1Map.put(key, key);
-                        }
-                        for (int key : strokeIndex2Map.keySet()) {
-                            strokeIndex2Map.put(key, key);
-                        }
-                    }
-
+                  
                     Element morphSegmentsElement = getSubElementByName(morphShape, "morphSegments");
                     List<Element> morphSegments = getAllSubElementsByName(morphSegmentsElement, "MorphSegment");
                     fg.writeUI16(morphSegments.size());
@@ -2645,19 +2735,7 @@ public class TimelineConverter extends AbstractConverter {
                         if (morphSegment.hasAttribute("fillIndex2")) {
                             fillIndex2 = Integer.parseInt(morphSegment.getAttribute("fillIndex2"));
                         }
-
-                        /*if (strokeIndex1 != -1) {
-                            strokeIndex1 = strokeIndex1Map.get(strokeIndex1);
-                        }
-                        if (strokeIndex2 != -1) {
-                            strokeIndex2 = strokeIndex2Map.get(strokeIndex2);
-                        }
-                        if (fillIndex1 != -1) {
-                            fillIndex1 = fillIndex1Map.get(fillIndex1);
-                        }
-                        if (fillIndex2 != -1) {                            
-                            fillIndex2 = fillIndex2Map.get(fillIndex2);
-                        }*/
+                      
                         fg.writeUI32(strokeIndex1);
                         fg.writeUI32(strokeIndex2);
                         fg.writeUI32(fillIndex1);
@@ -2687,39 +2765,35 @@ public class TimelineConverter extends AbstractConverter {
                     }
 
                     fg.writeUI16(0);
-
-                    if (fillStyles1.size() == fillStyles2.size()
-                            && (strokeStyles1.size() == strokeStyles2.size() || strokeStyles2.isEmpty() || strokeStyles1.isEmpty())) {
-                        if (!fillStyles1.isEmpty()) {
-                            fg.writeUI16(fills.size());
-                            for (Element fill : fills) {
-                                writeMorphFillStylePart(fg, fill);
-                            }
-                        }
-                        if (strokeStyles1.isEmpty() && strokeStyles2.isEmpty()) {
-                            if (flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
-                                fg.writeUI16(2);
-
-                                fg.writeUI32(0);
-                                fg.writeUI32(0);
-                                fg.writeUI16(0);
-
-                                fg.writeUI32(0);
-                                fg.writeUI32(0);
-                                fg.writeUI16(0);
-                            } else {
-                                fg.writeUI16(1);
-                                fg.writeUI32(0);
-                                fg.writeUI32(0);
-                                fg.writeUI16(0);
-                            }
-                        } else {
-                            fg.writeUI16(strokes.size());
-                            for (Element stroke : strokes) {
-                                writeMorphStrokeStylePart(fg, stroke);
-                            }
-                        }
+                    
+                    fg.writeUI16(fills.size());
+                    for (Element fill : fills) {
+                        writeMorphFillStylePart(document, fg, fill);
                     }
+
+                    if (strokeStyles1.isEmpty() && strokeStyles2.isEmpty()) {
+                        if (flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
+                            fg.writeUI16(2);
+
+                            fg.writeUI32(0);
+                            fg.writeUI32(0);
+                            fg.writeUI16(0);
+
+                            fg.writeUI32(0);
+                            fg.writeUI32(0);
+                            fg.writeUI16(0);
+                        } else {
+                            fg.writeUI16(1);
+                            fg.writeUI32(0);
+                            fg.writeUI32(0);
+                            fg.writeUI16(0);
+                        }
+                    } else {
+                        fg.writeUI16(strokes.size());
+                        for (Element stroke : strokes) {
+                            writeMorphStrokeStylePart(fg, stroke);
+                        }
+                    }                    
                 }
 
                 int shapeTweenBlend = 0;
@@ -2933,7 +3007,7 @@ public class TimelineConverter extends AbstractConverter {
         }
     }
 
-    private static boolean areElementsEqual(Element elem1, Element elem2) {
+    private static boolean areElementsEqual(Element elem1, Element elem2, boolean includeAttributes) {
         if (elem1 == elem2) {
             return true;
         }
@@ -2944,8 +3018,10 @@ public class TimelineConverter extends AbstractConverter {
             return false;
         }
 
-        if (!areAttributesEqual(elem1, elem2)) {
-            return false;
+        if (includeAttributes) {
+            if (!areAttributesEqual(elem1, elem2)) {
+                return false;
+            }
         }
 
         NodeList children1 = elem1.getChildNodes();
@@ -2960,7 +3036,7 @@ public class TimelineConverter extends AbstractConverter {
             Node child2 = children2.item(i);
 
             if (child1.getNodeType() == Node.ELEMENT_NODE && child2.getNodeType() == Node.ELEMENT_NODE) {
-                if (!areElementsEqual((Element) child1, (Element) child2)) {
+                if (!areElementsEqual((Element) child1, (Element) child2, true)) {
                     return false;
                 }
             } else if (!child1.isEqualNode(child2)) {
@@ -3019,6 +3095,7 @@ public class TimelineConverter extends AbstractConverter {
     }
 
     private void writeLayer(
+            Element document,
             FlaWriter fg,
             List<Element> layers,
             int layerIndex,
@@ -3103,7 +3180,7 @@ public class TimelineConverter extends AbstractConverter {
         int nValue = 1 + definedClasses.size() + totalObjectCount.getVal();
         layerIndexToNValue.put(layerIndex, nValue);
 
-        writeLayerContents(layer, fg, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, overrideLayerType);
+        writeLayerContents(layer, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, overrideLayerType);
 
         if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
             if (parentLayerType.equals("mask")) {
@@ -3111,7 +3188,7 @@ public class TimelineConverter extends AbstractConverter {
             }
         }
         if (parentLayerIndex > -1 && !writtenLayers.contains(parentLayerIndex)) {
-            writeLayer(fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, true);
+            writeLayer(document, fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, true);
         } else {
             if (parentLayerIndex > -1) {
                 fg.writeUI16(layerIndexToNValue.get(parentLayerIndex));
@@ -3172,7 +3249,7 @@ public class TimelineConverter extends AbstractConverter {
         }
     }
 
-    public void convert(Element domTimeLine, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
+    public void convert(Element domTimeLine, Element document, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
         FlaWriter fg = new FlaWriter(os, flaFormatVersion);
         fg.setDebugRandom(debugRandom);
         Map<String, Integer> definedClasses = new HashMap<>();
@@ -3197,7 +3274,7 @@ public class TimelineConverter extends AbstractConverter {
             Set<Integer> writtenLayers = new HashSet<>();
 
             for (int layerIndex = layers.size() - 1; layerIndex >= 0; layerIndex--) {
-                writeLayer(fg, layers, layerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, false);
+                writeLayer(document, fg, layers, layerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, false);
             }
         }
         int currentFrame = 0;

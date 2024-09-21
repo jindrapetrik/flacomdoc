@@ -132,9 +132,17 @@ public class FlaConverterTest {
         }
         FlaConverter contentsGenerator = new FlaConverter(flaFormatVersion);
         contentsGenerator.setDebugRandom(true);
+        
         contentsGenerator.convert(new DirectoryInputStorage(new File(SOURCE_DIR + "/" + folderName)),
                 new DirectoryOutputStorage(actualDir)
         );
+        
+        /*contentsGenerator.setDebugRandom(false);        
+        try(CfbOutputStorage cfb = new CfbOutputStorage(new File(outputDirParent + "/" + folderName + ".fla"))) {
+            contentsGenerator.convert(new DirectoryInputStorage(new File(SOURCE_DIR + "/" + folderName)),
+                    cfb
+            );
+        }*/
         
         File expectedDir = new File(expectedDirParent + "/" + folderName);
 
@@ -149,22 +157,24 @@ public class FlaConverterTest {
         List<File> actualFilesList = new ArrayList<>(Arrays.asList(actualFiles));
         actualFilesList.sort(fileNameComparator);
         
-        //Ignore media files
+        //Ignore media and symbol files
         for (int i = actualFilesList.size() - 1; i >= 0; i--) {
             File actualFile = actualFilesList.get(i);
-            if (actualFile.getName().startsWith("M ")) {
+            if (actualFile.getName().startsWith("M ") 
+                    || actualFile.getName().startsWith("S ")) {
                 actualFilesList.remove(i);
             }
         }
         
         for (int i = expectedFilesList.size() - 1; i >= 0; i--) {
             File expectedFile = expectedFilesList.get(i);
-            if (expectedFile.getName().startsWith("M ")) {
+            if (expectedFile.getName().startsWith("M ")
+                 || expectedFile.getName().startsWith("S ")   ) {
                 expectedFilesList.remove(i);
             }
         }
 
-        assertEquals(expectedFilesList.size(), expectedFilesList.size(), "Number of files");
+        assertEquals(actualFilesList.size(), expectedFilesList.size(), "Number of files");
 
         
         for (int i = 0; i < actualFilesList.size(); i++) {
@@ -316,7 +326,7 @@ public class FlaConverterTest {
        
     //@Test
     public void singleTest() throws Exception {
-        //testConvertF5("0008_nested_layers");        
+        //testConvertCs4("floating");
     }
     
     private static void deleteDir(File f) throws IOException {

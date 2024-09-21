@@ -24,6 +24,7 @@ import java.awt.Font;
 import java.awt.GraphicsEnvironment;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -112,23 +113,21 @@ public abstract class AbstractConverter {
         return ret;
     }
 
-    protected Color parseColorWithAlpha(Node node) {
-        return parseColorWithAlpha(node, Color.black, "color", "alpha");
+    protected Color parseColorWithAlpha(Element element) {
+        return parseColorWithAlpha(element, Color.black, "color", "alpha");
     }
 
-    protected Color parseColorWithAlpha(Node node, Color defaultColor) {
-        return parseColorWithAlpha(node, defaultColor, "color", "alpha");
+    protected Color parseColorWithAlpha(Element element, Color defaultColor) {
+        return parseColorWithAlpha(element, defaultColor, "color", "alpha");
     }
 
-    protected Color parseColorWithAlpha(Node node, Color defaultColor, String colorAttributeName, String alphaAttributeName) {
+    protected Color parseColorWithAlpha(Element element, Color defaultColor, String colorAttributeName, String alphaAttributeName) {
         Color color = defaultColor;
-        Node colorAttr = node.getAttributes().getNamedItem(colorAttributeName);
-        if (colorAttr != null) {
-            color = parseColor(colorAttr.getTextContent());
+        if (element.hasAttribute(colorAttributeName)) {
+            color = parseColor(element.getAttribute(colorAttributeName));
         }
-        Node alphaAttr = node.getAttributes().getNamedItem(alphaAttributeName);
-        if (alphaAttr != null) {
-            double alphaD = Double.parseDouble(alphaAttr.getTextContent());
+        if (element.hasAttribute(alphaAttributeName)) {
+            double alphaD = Double.parseDouble(element.getAttribute(alphaAttributeName));
             int alpha255 = (int) Math.round(alphaD * 255);
             color = new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha255);
         }
@@ -143,7 +142,7 @@ public abstract class AbstractConverter {
             int rgb = Integer.parseInt(m.group(1), 16);
             return new Color(rgb);
         }
-        throw new IllegalArgumentException("Invalid color");
+        throw new IllegalArgumentException("Invalid color: " + value);
     }
 
     protected Matrix parseMatrix(Element matrixElement) {
@@ -296,6 +295,13 @@ public abstract class AbstractConverter {
                 }
             }
         }
+        
+        media.sort(new Comparator<Element>() {
+            @Override
+            public int compare(Element o1, Element o2) {
+                return o1.getAttribute("name").compareTo(o2.getAttribute("name"));
+            }            
+        });
         return media;
     }
 }
