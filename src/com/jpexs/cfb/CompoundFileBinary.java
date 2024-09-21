@@ -18,6 +18,13 @@
  */
 package com.jpexs.cfb;
 
+import com.jpexs.flash.fla.converter.FlaConverter;
+import com.jpexs.flash.fla.converter.FlaFormatVersion;
+import com.jpexs.flash.fla.converter.streams.CfbOutputStorage;
+import com.jpexs.flash.fla.converter.streams.DirectoryInputStorage;
+import com.jpexs.flash.fla.converter.streams.InputStorageInterface;
+import com.jpexs.flash.fla.converter.streams.OutputStorageInterface;
+import com.jpexs.flash.fla.converter.streams.ZippedInputStorage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -296,6 +303,7 @@ public class CompoundFileBinary implements AutoCloseable {
         byte[] dirClsId = new byte[16];
         rnd.nextBytes(dirClsId);
 
+        miniStreamStartingSector = 3;
         Date d = new Date();
         writeDirectoryEntry(
                 "Root Entry",
@@ -308,7 +316,7 @@ public class CompoundFileBinary implements AutoCloseable {
                 0,
                 d,
                 d,
-                3, //miniStreamStartingSector
+                miniStreamStartingSector,
                 64 //miniStreamSize xx576
         );
 
@@ -1070,6 +1078,7 @@ public class CompoundFileBinary implements AutoCloseable {
                 raf.seek((1 + newFatSectorId) * sectorLength + i);
                 if (newSectorIds.size() < numSectors) {
                     writeUI32(ENDOFCHAIN);
+                    fat.put(sectorId, ENDOFCHAIN);
                     if (lastSectorFatFileOffset != null) {
                         raf.seek(lastSectorFatFileOffset);
                         writeUI32(sectorId);
