@@ -253,8 +253,9 @@ public abstract class AbstractConverter {
             Reference<Integer> totalObjectCount
     ) throws IOException {
         if (definedClasses.containsKey(className)) {
-            os.write(definedClasses.get(className));
-            os.write(0x80);
+            int val = 0x8000 + definedClasses.get(className); 
+            os.write(val & 0xFF);
+            os.write((val >> 8) & 0xFF);
         } else {
             os.write(0xFF, 0xFF, defineNum, 0x00);
             byte[] sbytes = className.getBytes();

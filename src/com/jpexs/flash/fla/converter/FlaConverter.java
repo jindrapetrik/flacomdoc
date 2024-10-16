@@ -1053,7 +1053,6 @@ public class FlaConverter extends AbstractConverter {
                     1 + currentTimeline,
                     0x00);
 
-            //FIXME: write symbols must be not inside the if FLAversion branch
             int symbolCount = writeSymbols(fg, document, docBuilder, sourceDir, outputDir, generatedItemIdOrder, definedClasses, objectsCount);
 
             fg.write(0x00, 0x00);
@@ -1062,9 +1061,13 @@ public class FlaConverter extends AbstractConverter {
             fg.write(0x00);
             int mediaCount = writeMedia(fg, document, generatedItemIdOrder, definedClasses, objectsCount, outputDir, sourceDir);
 
-            fg.write(0x00, 0x00,
-                    debugRandom ? 'X' : 1 + mediaCount, 0x00); //?
-
+            fg.write(0x00, 0x00);
+            if (debugRandom) {
+                fg.write('X', 'X');
+            } else {
+                fg.writeUI16(1 + mediaCount); //?
+            }
+                    
             boolean gridVisible = false;
             if (document.hasAttribute("gridVisible")) {
                 gridVisible = !"false".equals(document.getAttribute("gridVisible"));
