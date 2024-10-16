@@ -1011,7 +1011,7 @@ public class CompoundFileBinary implements AutoCloseable {
 
                 long difatSectorLocation = firstDifatSectorLocation;
                 loopsec:
-                while (difatSectorLocation != ENDOFCHAIN) {
+                while (difatSectorLocation <= MAXREGSECT) {
                     for (int i = 0; i < sectorLength - 4; i += 4) {
                         raf.seek((1 + difatSectorLocation) * sectorLength + i);
                         long fatSector = readUI32();
@@ -1038,7 +1038,7 @@ public class CompoundFileBinary implements AutoCloseable {
                         firstDifatSectorLocation = newDiFatSectorId;
                     } else {
                         difatSectorLocation = firstDifatSectorLocation;
-                        while (difatSectorLocation != ENDOFCHAIN) {
+                        while (difatSectorLocation <= MAXREGSECT) {
                             raf.seek((1 + difatSectorLocation) * sectorLength + sectorLength - 4);
                             long newDifatSectorLocation = readUI32();
                             if (newDifatSectorLocation == ENDOFCHAIN) {
@@ -1237,7 +1237,7 @@ public class CompoundFileBinary implements AutoCloseable {
 
         long difatSectorLocation = firstDifatSectorLocation;
 
-        while (difatSectorLocation != ENDOFCHAIN) {
+        while (difatSectorLocation <= MAXREGSECT) { //It should check for ENDOFCHAIN, but some FLA generators put FREESECT there too
             raf.seek((1 + difatSectorLocation) * sectorLength);
             for (int i = 0; i < sectorLength - 4; i += 4) {
                 difat.add(readUI32());
