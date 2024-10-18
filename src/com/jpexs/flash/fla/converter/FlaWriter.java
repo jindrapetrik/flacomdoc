@@ -652,9 +652,11 @@ public class FlaWriter {
                 type,
                 0x00);
         writeMatrix(bitmapMatrix);
-        write(
-                debugRandom ? 'X' : bitmapId, 0x00
-        );
+        if (debugRandom) {
+            write('X', 'X');
+        } else {
+            writeUI16(bitmapId);
+        }        
     }
 
     public void writeGradientFill(
