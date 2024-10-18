@@ -2483,9 +2483,9 @@ public class TimelineConverter extends AbstractConverter {
                 //atributes are part of the keymode
                 int frameId = fg.generateRandomId();
 
-                fg.write(flaFormatVersion.getFrameVersionB(), duration,
-                        0x00);
-
+                fg.write(flaFormatVersion.getFrameVersionB());
+                fg.writeUI16(duration);
+                
                 /*
         KEYMODES:
         
