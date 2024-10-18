@@ -856,6 +856,9 @@ public class FlaWriter {
             /*if (pos == 28766) {
                 System.out.println("xxx");
             }*/
+            if (i > 255) {
+                throw new IllegalArgumentException("Attempt to write larger value than 255 as byte");
+            }
             os.write(i);
             pos++;
         }
