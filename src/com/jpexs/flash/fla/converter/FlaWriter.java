@@ -865,6 +865,9 @@ public class FlaWriter {
     }
 
     public void writeUI16(int value) throws IOException {
+        if (value > 0xFFFF) {
+            throw new IllegalArgumentException("Attempt to write larger value than 0xFFFF as UI16");
+        }
         write(value & 0xFF);
         write((value >> 8) & 0xFF);
     }

@@ -937,8 +937,12 @@ public class TimelineConverter extends AbstractConverter {
         );
 
         fg.writeBomString("");
-        fg.write(debugRandom ? 'X' : libraryItemIndex, 0x00, 0x00, 0x00 //FIXME? this is probably a long val                
-        );
+        if (debugRandom) {
+            fg.write('X', 'X');
+        } else {
+            fg.writeUI16(libraryItemIndex);
+        }
+        fg.write(0x00, 0x00); //Is this an extension to the libraryItemIndex? 
 
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
             fg.write(0x00, 0x00, 0x00);
