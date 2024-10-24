@@ -362,7 +362,7 @@ public class TimelineConverter extends AbstractConverter {
         }
     }
 
-    protected void handleElements(List<Element> elements, Element document, 
+    protected void handleElements(List<Element> elements, Element document,
             FlaWriter fg,
             Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
@@ -413,7 +413,7 @@ public class TimelineConverter extends AbstractConverter {
                         locked = "true".equals(element.getAttribute("locked"));
                     }
                     isFloating = true;
-                    fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00) + (isFloating /*???*/ ? 0x01 : 0x00));            
+                    fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00) + (isFloating /*???*/ ? 0x01 : 0x00));
                     shapeElement = element;
                 }
                 handleShape(element, document, fg, false, definedClasses, totalObjectCount);
@@ -1377,7 +1377,7 @@ public class TimelineConverter extends AbstractConverter {
             if (textRunsElement != null) {
                 domTextRuns = getAllSubElementsByName(textRunsElement, "DOMTextRun");
             }
-                        
+
             int textFlags = (!isStatic ? 0x01 : 0)
                     + (isDynamic ? 0x02 : 0)
                     + (password ? 0x04 : 0)
@@ -1401,14 +1401,13 @@ public class TimelineConverter extends AbstractConverter {
                         String face = domTextAttrs.getAttribute("face");
 
                         for (Element domFontItem : domFontItems) {
-                            if (domFontItem.hasAttribute("font")) {
-                                String fontPsName = domFontItem.getAttribute("font");
-                                if (fontPsName.equals(face)) {
-                                    if (domFontItem.hasAttribute("embeddedCharacters")) {
-                                        textFlags |= 0x20;
-                                    }
-                                    break;
+                            if (face.equals(domFontItem.getAttribute("font"))
+                                    || face.equals(domFontItem.getAttribute("name") + "*") //imported
+                                    ) {
+                                if (domFontItem.hasAttribute("embeddedCharacters")) {
+                                    textFlags |= 0x20;
                                 }
+                                break;
                             }
                         }
                         break;
@@ -1422,6 +1421,8 @@ public class TimelineConverter extends AbstractConverter {
             List<String> allEmbedRanges = new ArrayList<>();
             int embedFlag = 0;
             String embeddedCharacters = "";
+            Map<String, String> faceToRealFace = new HashMap<>();
+
             for (Element textRun : domTextRuns) {
                 Element textAttrsElement = getSubElementByName(textRun, "textAttrs");
                 if (textAttrsElement == null) {
@@ -1433,49 +1434,47 @@ public class TimelineConverter extends AbstractConverter {
                 }
                 if (domTextAttrs.hasAttribute("face")) {
                     String face = domTextAttrs.getAttribute("face");
-
                     for (Element domFontItem : domFontItems) {
-                        if (domFontItem.hasAttribute("font")) {
-                            String fontPsName = domFontItem.getAttribute("font");
-                            if (fontPsName.equals(face)) {
-
-                                if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                        if (face.equals(domFontItem.getAttribute("font"))
+                                || face.equals(domFontItem.getAttribute("name") + "*") //imported
+                                ) {
+                            faceToRealFace.put(face, domFontItem.getAttribute("font"));
+                            if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                                embedFlag |= 1;
+                            } else {
+                                if (domFontItem.hasAttribute("linkageExportForAS")
+                                        && "true".equals(domFontItem.getAttribute("linkageExportForAS"))) {
                                     embedFlag |= 1;
-                                } else {
-                                    if (domFontItem.hasAttribute("linkageExportForAS")
-                                            && "true".equals(domFontItem.getAttribute("linkageExportForAS"))) {
-                                        embedFlag |= 1;
+                                }
+                            }
+
+                            if (domFontItem.hasAttribute("embeddedCharacters")) {
+                                embeddedCharacters = domFontItem.getAttribute("embeddedCharacters");
+                                embedFlag |= 0x20;
+                            }
+                            if (domFontItem.hasAttribute("embedRanges")) {
+                                String embedRanges = domFontItem.getAttribute("embedRanges");
+                                String[] rangesParts = embedRanges.split("\\|", -1);
+                                for (String part : rangesParts) {
+                                    if (part.isEmpty()) {
+                                        continue;
                                     }
-                                }
-                                
-                                if (domFontItem.hasAttribute("embeddedCharacters")) {
-                                    embeddedCharacters = domFontItem.getAttribute("embeddedCharacters");
-                                    embedFlag |= 0x20;
-                                }
-                                if (domFontItem.hasAttribute("embedRanges")) {
-                                    String embedRanges = domFontItem.getAttribute("embedRanges");
-                                    String[] rangesParts = embedRanges.split("\\|", -1);
-                                    for (String part : rangesParts) {
-                                        if (part.isEmpty()) {
-                                            continue;
-                                        }
-                                        int rangeId = Integer.parseInt(part);
-                                        if (rangeId >= 1 && rangeId <= 4) {
-                                            embedFlag |= (1 << rangeId);
-                                        }
-                                        if (!allEmbedRanges.contains(part)) {
-                                            allEmbedRanges.add(part);
-                                        }
+                                    int rangeId = Integer.parseInt(part);
+                                    if (rangeId >= 1 && rangeId <= 4) {
+                                        embedFlag |= (1 << rangeId);
+                                    }
+                                    if (!allEmbedRanges.contains(part)) {
+                                        allEmbedRanges.add(part);
                                     }
                                 }
                             }
                         }
                     }
                 }
-            }                    
-                 
+            }
+
             boolean isEmpty = true;
-            
+
             for (Element textRun : domTextRuns) {
                 String characters = "";
 
@@ -1488,15 +1487,15 @@ public class TimelineConverter extends AbstractConverter {
                     break;
                 }
             }
-            
+
             if (isEmpty) {
                 embedFlag |= 0x40;
             }
-            
+
             if (renderAsHTML) {
                 embedFlag |= 0x80;
             }
-            
+
             fg.write(embedFlag);
             if (!isStatic) {
                 fg.write(0);
@@ -1557,7 +1556,7 @@ public class TimelineConverter extends AbstractConverter {
                 if (charactersElement != null) {
                     characters = charactersElement.getTextContent();
                 }
-                
+
                 if (characters.isEmpty() && domTextRuns.size() != 1) {
                     continue;
                 }
@@ -1570,7 +1569,7 @@ public class TimelineConverter extends AbstractConverter {
                 if (domTextAttrs == null) {
                     continue;
                 }
-                
+
                 //Merge textRuns with same attributes into single run
                 for (int r2 = r + 1; r2 < domTextRuns.size(); r2++) {
                     Element textRun2 = domTextRuns.get(r2);
@@ -1582,7 +1581,7 @@ public class TimelineConverter extends AbstractConverter {
                     if (domTextAttrs2 == null) {
                         break;
                     }
-                    if (areAttributesEqual(domTextAttrs, domTextAttrs2)) {                      
+                    if (areAttributesEqual(domTextAttrs, domTextAttrs2)) {
                         String characters2 = "";
 
                         Element charactersElement2 = getSubElementByName(textRun2, "characters");
@@ -1602,7 +1601,12 @@ public class TimelineConverter extends AbstractConverter {
                     face = domTextAttrs.getAttribute("face");
                 }
 
-                Font font = psNameToFontName.get(face);
+                String realFace = face;
+                if (faceToRealFace.containsKey(face)) {
+                    realFace = faceToRealFace.get(face);
+                }
+
+                Font font = psNameToFontName.get(realFace);
                 String fontFamily = "";
                 boolean bold = false;
                 boolean italic = false;
@@ -1719,7 +1723,7 @@ public class TimelineConverter extends AbstractConverter {
                 }
 
                 if (!characters.isEmpty()) { //??
-                    fg.writeUI16(characters.length());                
+                    fg.writeUI16(characters.length());
                 }
                 fg.write(flaFormatVersion.getTextVersionB());
                 fg.writeUI16(bitmapSize);
@@ -1730,7 +1734,7 @@ public class TimelineConverter extends AbstractConverter {
                 }
 
                 if (flaFormatVersion == FlaFormatVersion.CS4) {
-                    fg.writeBomString(face);
+                    fg.writeBomString(face); //can be also imported
                     fg.write(0x00, 0x00, 0x00, 0x40);
                 }
                 fg.write(fillColor.getRed(), fillColor.getGreen(), fillColor.getBlue(), fillColor.getAlpha());
@@ -1760,8 +1764,8 @@ public class TimelineConverter extends AbstractConverter {
                         0x00);
 
                 fg.write(
-                        debugRandom ? 'X': (bold ? 1 : 0),
-                        debugRandom ? 'X': (italic ? 1 : 0),
+                        debugRandom ? 'X' : (bold ? 1 : 0),
+                        debugRandom ? 'X' : (italic ? 1 : 0),
                         0x00,
                         autoKern ? 1 : 0,
                         characterPosition,
@@ -1828,7 +1832,7 @@ public class TimelineConverter extends AbstractConverter {
             }
 
             fg.write(0x00, 0x00);
-            
+
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
                 fg.writeBomString(instanceName);
                 writeAccessibleData(fg, element, false);
@@ -1870,8 +1874,8 @@ public class TimelineConverter extends AbstractConverter {
         boolean isTransparent = false;
         if ("SolidColor".equals(fillElement.getTagName())) {
             Color color = parseColorWithAlpha(fillElement);
-            fg.write(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());            
-            isTransparent = color.equals(new Color(0,0,0,0));
+            fg.write(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+            isTransparent = color.equals(new Color(0, 0, 0, 0));
         } else {
             fg.write(0x00, 0x00, 0x00, debugRandom ? 'U' : 0x00);
         }
@@ -2322,7 +2326,7 @@ public class TimelineConverter extends AbstractConverter {
             }
         }
     }
-    
+
     private boolean isZeroAlphaStroke(Element element) {
         if (element == null) {
             return false;
@@ -2489,7 +2493,7 @@ public class TimelineConverter extends AbstractConverter {
 
                 fg.write(flaFormatVersion.getFrameVersionB());
                 fg.writeUI16(duration);
-                
+
                 /*
         KEYMODES:
         
@@ -2682,10 +2686,9 @@ public class TimelineConverter extends AbstractConverter {
                         }
                     }
 
-                    
                     List<Element> fills = new ArrayList<>();
                     List<Element> strokes = new ArrayList<>();
-                    
+
                     if (!fillStyles1.isEmpty()) {
 
                         int maxNumFills = Math.max(fillStyles1.size(), fillStyles2.size());
@@ -2693,7 +2696,7 @@ public class TimelineConverter extends AbstractConverter {
                             Element fill1 = fillStyles1.size() > i ? fillStyles1.get(i) : null;
                             Element fill2 = fillStyles2.size() > i ? fillStyles2.get(i) : null;
                             fills.add(fill1);
-                            
+
                             if (!areElementsEqual(fill1, fill2, false) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
                                 fills.add(fill2);
                             }
@@ -2705,16 +2708,16 @@ public class TimelineConverter extends AbstractConverter {
                         int maxNumStrokes = Math.max(strokeStyles1.size(), strokeStyles2.size());
                         for (int i = 0; i < maxNumStrokes; i++) {
                             Element stroke1 = strokeStyles1.size() > i ? strokeStyles1.get(i) : null;
-                            Element stroke2 = strokeStyles2.size() > i ? strokeStyles2.get(i) : null;                                                                                    
-                            
+                            Element stroke2 = strokeStyles2.size() > i ? strokeStyles2.get(i) : null;
+
                             strokes.add(stroke1);
-                            
+
                             if (!areElementsEqual(stroke1, stroke2, false) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
                                 strokes.add(stroke2);
                             }
                         }
                     }
-                  
+
                     Element morphSegmentsElement = getSubElementByName(morphShape, "morphSegments");
                     List<Element> morphSegments = getAllSubElementsByName(morphSegmentsElement, "MorphSegment");
                     fg.writeUI16(morphSegments.size());
@@ -2739,7 +2742,7 @@ public class TimelineConverter extends AbstractConverter {
                         if (morphSegment.hasAttribute("fillIndex2")) {
                             fillIndex2 = Integer.parseInt(morphSegment.getAttribute("fillIndex2"));
                         }
-                      
+
                         fg.writeUI32(strokeIndex1);
                         fg.writeUI32(strokeIndex2);
                         fg.writeUI32(fillIndex1);
@@ -2769,7 +2772,7 @@ public class TimelineConverter extends AbstractConverter {
                     }
 
                     fg.writeUI16(0);
-                    
+
                     fg.writeUI16(fills.size());
                     for (Element fill : fills) {
                         writeMorphFillStylePart(document, fg, fill);
@@ -2797,7 +2800,7 @@ public class TimelineConverter extends AbstractConverter {
                         for (Element stroke : strokes) {
                             writeMorphStrokeStylePart(fg, stroke);
                         }
-                    }                    
+                    }
                 }
 
                 int shapeTweenBlend = 0;
