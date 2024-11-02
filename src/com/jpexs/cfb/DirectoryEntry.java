@@ -28,6 +28,7 @@ import java.util.Date;
 public class DirectoryEntry {
 
     public long fileOffset;
+    public long directorySector;
 
     public long streamId;
     public String name;
@@ -43,8 +44,9 @@ public class DirectoryEntry {
     public long startingSectorLocation;
     public long streamSize;
 
-    public DirectoryEntry(long fileOffset, long streamId, String name, int objectType, int colorFlag, long leftSiblingId, long rightSiblingId, long childId, byte[] clsId, long stateBits, Date creationTime, Date modifiedTime, long startingSectorLocation, long streamSize) {
+    public DirectoryEntry(long fileOffset, long directorySector, long streamId, String name, int objectType, int colorFlag, long leftSiblingId, long rightSiblingId, long childId, byte[] clsId, long stateBits, Date creationTime, Date modifiedTime, long startingSectorLocation, long streamSize) {
         this.fileOffset = fileOffset;
+        this.directorySector = directorySector;
         this.streamId = streamId;
         this.name = name;
         this.objectType = objectType;

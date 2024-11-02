@@ -38,9 +38,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -106,10 +109,16 @@ public class CompoundFileBinary implements AutoCloseable {
     private Map<Long, Long> minifat;
     private List<DirectoryEntry> directoryEntries;
     private long miniStreamStartingSector;
+    private long miniStreamSizeFileOffset;
 
+    private long firstDirectorySectorLocation;
+    private long numFatSectors;
     private long miniStreamCutoffSize;
     private long miniStreamSize;
     private int sectorLength;
+    private long firstMiniFatSectorLocation;
+    private long numMiniFatSectors;
+    private long numDifatSectors;
 
     private long firstDifatSectorLocation;
 
@@ -267,14 +276,14 @@ public class CompoundFileBinary implements AutoCloseable {
 
         sectorLength = 512; //major version 3
 
-        long numFatSectors = 1;
-        long firstDirectorySectorLocation = 1;
+        numFatSectors = 1;
+        firstDirectorySectorLocation = 1;
         long transactionSignatureNumber = 0;
         miniStreamCutoffSize = 4096;
-        long firstMiniFatSectorLocation = 2; //ENDOFCHAIN;
-        long numMiniFatSectors = 1; //
+        firstMiniFatSectorLocation = 2; //ENDOFCHAIN;
+        numMiniFatSectors = 1; //
         firstDifatSectorLocation = ENDOFCHAIN;
-        long numDifatSectors = 0;
+        numDifatSectors = 0;
         writeUI32(numFatSectors);   //0x2C
         writeUI32(firstDirectorySectorLocation); //0x30
         writeUI32(transactionSignatureNumber); //0x34
@@ -305,6 +314,7 @@ public class CompoundFileBinary implements AutoCloseable {
 
         miniStreamStartingSector = 3;
         Date d = new Date();
+        miniStreamSizeFileOffset = raf.getFilePointer() + 0x78;
         writeDirectoryEntry(
                 "Root Entry",
                 TYPE_ROOT_STORAGE_OBJECT,
@@ -473,7 +483,7 @@ public class CompoundFileBinary implements AutoCloseable {
             }
         }
         Date d = new Date();
-        DirectoryEntry entry = new DirectoryEntry(-1, -1, path, TYPE_STORAGE_OBJECT, COLOR_BLACK, NOSTREAM, NOSTREAM, NOSTREAM, CLSID_NULL, 0, d, d, 0, 0);
+        DirectoryEntry entry = new DirectoryEntry(-1, -1, -1, path, TYPE_STORAGE_OBJECT, COLOR_BLACK, NOSTREAM, NOSTREAM, NOSTREAM, CLSID_NULL, 0, d, d, 0, 0);
         addDirectoryEntry(parent, entry);
         return entry;
     }
@@ -525,85 +535,42 @@ public class CompoundFileBinary implements AutoCloseable {
             targetId = e.streamId;
         }
 
-        raf.seek(0x30);
-        long firstDirectorySectorLocation = readUI32();
-
         long directorySector = firstDirectorySectorLocation;
         long sectorBefore = directorySector;
         int newStreamId = 0;
-        DirectoryEntry entry = null;
-        loopDir:
-        while (directorySector != ENDOFCHAIN) {
-            raf.seek((1 + directorySector) * sectorLength);
-            for (int i = 0; i < sectorLength; i += 128) {
-                byte[] nameBytes = readBytes(64);
-                int nameLen = readUI16();   //64
+        DirectoryEntry entry;
 
-                int objectType = readEx(); //66
-                int colorFlag = readEx(); //67
-                long leftSiblingId = readUI32(); //68
-                long rightSiblingId = readUI32(); //72
-                long childId = readUI32(); //76
-                byte dirClsId[] = readBytes(16); // 80
-                long stateBits = readUI32(); //96
-                Date creationTime = readDate(); //100
-                Date modifiedTime = readDate(); //108
-                long startingSectorLocation = readUI32(); //if rootdir, then miniStreamStartingSector , 116
-                long streamSize = readUI64(); //if rootdir, then miniStreamSize, 120
-                //if (majorVersion == 3) {
-                streamSize = streamSize & 0xFFFFFFFFl;
-                //}
-                boolean nameEmpty = true;
-                for (int j = 0; j < 64; j++) {
-                    if (nameBytes[j] != 0) {
-                        nameEmpty = false;
-                        break;
-                    }
-                }
+        int entriesPerSector = sectorLength / 128;
+        for (int i = 0; i < directoryEntries.size(); i++) {
+            DirectoryEntry en = directoryEntries.get(i);
 
-                if (nameEmpty
-                        && nameLen == 0
-                        && objectType == TYPE_UNKNOWN
-                        && colorFlag == COLOR_RED
-                        && leftSiblingId == NOSTREAM
-                        && rightSiblingId == NOSTREAM
-                        && childId == NOSTREAM
-                        && Arrays.equals(dirClsId, CLSID_NULL)
-                        && stateBits == 0
-                        && creationTime == null
-                        && modifiedTime == null
-                        && startingSectorLocation == 0
-                        && streamSize == 0) {
-                    raf.seek((1 + directorySector) * sectorLength + i);
-                    entry = newEntry;
-                    entry.fileOffset = (1 + directorySector) * sectorLength + i;
-                    entry.streamId = newStreamId;
-                    writeDirectoryEntry(entry);
-                    directoryEntries.set(newStreamId, entry);
+            if ((en.name == null || en.name.isEmpty())
+                    && en.objectType == TYPE_UNKNOWN
+                    && en.colorFlag == COLOR_RED
+                    && en.leftSiblingId == NOSTREAM
+                    && en.rightSiblingId == NOSTREAM
+                    && en.childId == NOSTREAM
+                    && Arrays.equals(en.clsId, CLSID_NULL)
+                    && en.stateBits == 0
+                    && en.creationTime == null
+                    && en.modifiedTime == null
+                    && en.startingSectorLocation == 0
+                    && en.streamSize == 0) {
+                raf.seek(en.fileOffset);
+                entry = newEntry;
+                entry.fileOffset = en.fileOffset;
+                entry.directorySector = directorySector;
+                entry.streamId = newStreamId;
+                writeDirectoryEntry(entry);
+                directoryEntries.set(newStreamId, entry);
 
-                    if (i == sectorLength - 128) { // last directory entry in sector
-                        directorySector = allocateNewSector(directorySector);
-                        int sid = newStreamId;
-                        raf.seek((1 + directorySector) * sectorLength);
-                        for (int j = 0; j < sectorLength; j += 128) {
-                            sid++;
-                            DirectoryEntry en = new DirectoryEntry(raf.getFilePointer(), sid, null,
-                                    TYPE_UNKNOWN,
-                                    COLOR_RED,
-                                    NOSTREAM,
-                                    NOSTREAM,
-                                    NOSTREAM,
-                                    CLSID_NULL,
-                                    0,
-                                    null,
-                                    null,
-                                    0,
-                                    0);
-                            directoryEntries.add(en);
-                            writeDirectoryEntry(en);
-                        }
-                    } else {
-                        DirectoryEntry en = new DirectoryEntry(raf.getFilePointer(), newStreamId + 1, null,
+                if (i % entriesPerSector == entriesPerSector - 1) { // last directory entry in sector
+                    directorySector = allocateNewSector(directorySector);
+                    int sid = newStreamId;
+                    raf.seek((1 + directorySector) * sectorLength);
+                    for (int j = 0; j < sectorLength; j += 128) {
+                        sid++;
+                        en = new DirectoryEntry(raf.getFilePointer(), directorySector, sid, null,
                                 TYPE_UNKNOWN,
                                 COLOR_RED,
                                 NOSTREAM,
@@ -618,13 +585,30 @@ public class CompoundFileBinary implements AutoCloseable {
                         directoryEntries.add(en);
                         writeDirectoryEntry(en);
                     }
-
-                    break loopDir;
+                } else {
+                    en = new DirectoryEntry(raf.getFilePointer(), directorySector, newStreamId + 1, null,
+                            TYPE_UNKNOWN,
+                            COLOR_RED,
+                            NOSTREAM,
+                            NOSTREAM,
+                            NOSTREAM,
+                            CLSID_NULL,
+                            0,
+                            null,
+                            null,
+                            0,
+                            0);
+                    directoryEntries.set(i + 1, en);
+                    writeDirectoryEntry(en);
                 }
-                newStreamId++;
+                break;
             }
-            sectorBefore = directorySector;
-            directorySector = fat.get(directorySector);
+            newStreamId++;
+
+            if (i % entriesPerSector == entriesPerSector - 1) { //last entry in sector
+                sectorBefore = directorySector;
+                directorySector = fat.get(directorySector);
+            }
         }
 
         if (directorySector == ENDOFCHAIN) {
@@ -632,6 +616,7 @@ public class CompoundFileBinary implements AutoCloseable {
             raf.seek((1 + directorySector) * sectorLength);
             entry = newEntry;
             entry.fileOffset = (1 + directorySector) * sectorLength;
+            entry.directorySector = directorySector;
             entry.streamId = newStreamId;
             directoryEntries.add(entry);
             writeDirectoryEntry(entry);
@@ -639,7 +624,7 @@ public class CompoundFileBinary implements AutoCloseable {
 
             for (int i = 128; i < sectorLength; i += 128) {
                 sid++;
-                DirectoryEntry en = new DirectoryEntry(raf.getFilePointer(), sid, null,
+                DirectoryEntry en = new DirectoryEntry(raf.getFilePointer(), directorySector, sid, null,
                         TYPE_UNKNOWN,
                         COLOR_RED,
                         NOSTREAM,
@@ -661,16 +646,6 @@ public class CompoundFileBinary implements AutoCloseable {
         loopDir:
         while (directorySector != ENDOFCHAIN) {
             for (int i = 0; i < sectorLength; i += 128) {
-                raf.seek((1 + directorySector) * sectorLength + i);
-                readBytes(64);
-                readUI16();   //64
-
-                int objectType = readEx(); //66
-                readEx(); //67
-                long leftSiblingId = readUI32(); //68
-                long rightSiblingId = readUI32(); //72
-                long childId = readUI32(); //76
-
                 if (asChild && streamId == parent.streamId) {
                     raf.seek((1 + directorySector) * sectorLength + i + 76);
                     writeUI32(newStreamId);
@@ -784,7 +759,7 @@ public class CompoundFileBinary implements AutoCloseable {
             return null;
         }
         Date d = new Date();
-        DirectoryEntry entry = new DirectoryEntry(-1, -1, path, TYPE_STREAM_OBJECT, COLOR_BLACK, NOSTREAM, NOSTREAM, NOSTREAM, CLSID_NULL, 0, d, d, firstSectorId, data.length);
+        DirectoryEntry entry = new DirectoryEntry(-1, -1, -1, path, TYPE_STREAM_OBJECT, COLOR_BLACK, NOSTREAM, NOSTREAM, NOSTREAM, CLSID_NULL, 0, d, d, firstSectorId, data.length);
         addDirectoryEntry(parent, entry);
         return entry;
     }
@@ -792,43 +767,47 @@ public class CompoundFileBinary implements AutoCloseable {
     public boolean USE_DIRENTRY = true;
 
     private long allocateNewMiniSector(Long prevSector) throws IOException {
-        raf.seek(0x30);
+        //raf.seek(0x30);
 
-        long firstDirectorySectorLocation = readUI32();
+        //long firstDirectorySectorLocation = readUI32();
+        //long miniStreamSizeFileOffset = 0;
+        if (miniStreamStartingSector == ENDOFCHAIN) {
+            long directorySector = firstDirectorySectorLocation;
 
-        long miniStreamSizeFileOffset = 0;
-        long directorySector = firstDirectorySectorLocation;
-        miniStreamStartingSector = ENDOFCHAIN;
-        miniStreamSize = 0L;
-        loopDir:
-        while (directorySector != ENDOFCHAIN) {
-            for (int i = 0; i < sectorLength; i += 128) {
-                raf.seek((1 + directorySector) * sectorLength + i * 128 + 0x42);
-                int objectType = readEx();
-                if (objectType == TYPE_ROOT_STORAGE_OBJECT) {
-                    raf.seek((1 + directorySector) * sectorLength + i * 128 + 0x74);
-                    miniStreamStartingSector = readUI32();
-                    miniStreamSizeFileOffset = raf.getFilePointer();
-                    miniStreamSize = readUI32();
-                    if (miniStreamStartingSector == ENDOFCHAIN) {
-                        miniStreamStartingSector = allocateNewSector(null);
+            miniStreamStartingSector = ENDOFCHAIN;
+            miniStreamSize = 0L;
+            loopDir:
+            while (directorySector != ENDOFCHAIN) {
+                for (int i = 0; i < sectorLength; i += 128) {
+                    raf.seek((1 + directorySector) * sectorLength + i * 128 + 0x42);
+                    int objectType = readEx();
+                    if (objectType == TYPE_ROOT_STORAGE_OBJECT) {
                         raf.seek((1 + directorySector) * sectorLength + i * 128 + 0x74);
-                        writeUI32(miniStreamStartingSector);
-                        raf.seek((1 + miniStreamStartingSector) * sectorLength);
-                        for (int j = 0; j < sectorLength; j++) {
-                            write(0);
+                        miniStreamStartingSector = readUI32();
+                        miniStreamSizeFileOffset = raf.getFilePointer();
+                        miniStreamSize = readUI32();
+                        if (miniStreamStartingSector == ENDOFCHAIN) {
+                            miniStreamStartingSector = allocateNewSector(null);
+                            raf.seek((1 + directorySector) * sectorLength + i * 128 + 0x74);
+                            writeUI32(miniStreamStartingSector);
+                            raf.seek((1 + miniStreamStartingSector) * sectorLength);
+                            for (int j = 0; j < sectorLength; j++) {
+                                write(0);
+                            }
                         }
+                        break loopDir;
                     }
-                    break loopDir;
                 }
+                directorySector = fat.get(directorySector);
             }
-            directorySector = fat.get(directorySector);
         }
 
-        raf.seek(0x3C);
-        long firstMiniFatSectorLocation = readUI32();
+        //raf.seek(0x3C);
+        //long firstMiniFatSectorLocation = readUI32();
         if (firstMiniFatSectorLocation == ENDOFCHAIN) {
             firstMiniFatSectorLocation = allocateNewSector(null);
+            raf.seek(0x3C);
+            writeUI32(firstMiniFatSectorLocation);
             raf.seek((1 + firstMiniFatSectorLocation) * sectorLength);
             for (int i = 0; i < sectorLength; i += 4) {
                 writeUI32(FREESECT);
@@ -844,7 +823,7 @@ public class CompoundFileBinary implements AutoCloseable {
         while (minifatSector != ENDOFCHAIN) {
             raf.seek((1 + minifatSector) * sectorLength);
             for (int i = 0; i < sectorLength; i += 4) {
-                long val = readUI32();
+                long val = minifat.get(sectorId); //readUI32();
                 if (val == FREESECT) {
                     raf.seek((1 + minifatSector) * sectorLength + i);
                     writeUI32(ENDOFCHAIN);
@@ -862,13 +841,15 @@ public class CompoundFileBinary implements AutoCloseable {
             minifatSector = allocateNewSector(sectorBefore);
             raf.seek((1 + minifatSector) * sectorLength);
             writeUI32(ENDOFCHAIN);
+            minifat.put((long) minifat.size(), ENDOFCHAIN);
             for (int i = 4; i < sectorLength; i += 4) {
                 writeUI32(FREESECT);
+                minifat.put((long) minifat.size(), FREESECT);
             }
             foundMiniSectorId = sectorId;
 
-            raf.seek(0x40);
-            long numMiniFatSectors = readUI32();
+            //raf.seek(0x40);
+            //long numMiniFatSectors = readUI32();
             numMiniFatSectors++;
             raf.seek(0x40);
             writeUI32(numMiniFatSectors);
@@ -908,14 +889,13 @@ public class CompoundFileBinary implements AutoCloseable {
             sectorId = 0;
             loopMiniFat2:
             while (minifatSector != ENDOFCHAIN) {
-                raf.seek((1 + minifatSector) * sectorLength);
                 for (int i = 0; i < sectorLength; i += 4) {
                     if (sectorId == prevSector) {
+                        raf.seek((1 + minifatSector) * sectorLength + i);
                         writeUI32(foundMiniSectorId);
                         minifat.put(prevSector, foundMiniSectorId);
                         break loopMiniFat2;
                     }
-                    readUI32();
                     sectorId++;
                 }
                 minifatSector = fat.get(minifatSector);
@@ -925,7 +905,7 @@ public class CompoundFileBinary implements AutoCloseable {
         Logger.getLogger(CompoundFileBinary.class.getName()).log(Level.FINE, "allocated new mini sector {0}({1}) after sector {2}", new Object[]{foundMiniSectorId, String.format("%1$04X", (1 + miniStreamSector) * sectorLength + offset), prevSector});
 
         return foundMiniSectorId;
-    }
+    }   
 
     private long allocateNewSector(Long prevSector) throws IOException {
         List<Long> newSectors = allocateNewLength(sectorLength);
@@ -958,41 +938,47 @@ public class CompoundFileBinary implements AutoCloseable {
         long sectorId = 0;
         Long lastSectorFatFileOffset = null;
         long lastSectorId = -1;
-        for (long fatSect : difat) {
-            if (fatSect == FREESECT) {
-                continue;
-            }
-            for (int i = 0; i < sectorLength; i += 4) {
-                raf.seek((1 + fatSect) * sectorLength + i);
-                long sect = readUI32();
-                if (sect == FREESECT) {
-                    newSectorIds.add(sectorId);
-                    raf.seek((1 + fatSect) * sectorLength + i);
-                    writeUI32(ENDOFCHAIN);
-                    fat.put(sectorId, ENDOFCHAIN);
-                    if (lastSectorFatFileOffset != null) {
-                        raf.seek(lastSectorFatFileOffset);
-                        writeUI32(sectorId);
-                        fat.put(lastSectorId, sectorId);
-                    }
-                    lastSectorFatFileOffset = (1 + fatSect) * sectorLength + i;
-                    lastSectorId = sectorId;
-                    if (newSectorIds.size() == numSectors) {
-                        break;
-                    }
+
+        Set<Long> sectors = fat.keySet();
+        Iterator<Long> sectorsIt = sectors.iterator();
+        while (sectorsIt.hasNext()) {
+            sectorId = sectorsIt.next();
+            long sectVal = fat.get(sectorId);
+            if (sectVal == FREESECT) {
+                newSectorIds.add(sectorId);
+                int sectPerFat = sectorLength / 4;
+                int fatSectInOrder = (int) (sectorId / sectPerFat);
+                long fatSectInOrderMod = sectorId % sectPerFat;
+                long fatSect = difat.get(fatSectInOrder);
+                raf.seek((1 + fatSect) * sectorLength + fatSectInOrderMod * 4);
+                writeUI32(ENDOFCHAIN);
+                fat.put(sectorId, ENDOFCHAIN);
+                if (lastSectorFatFileOffset != null) {
+                    raf.seek(lastSectorFatFileOffset);
+                    writeUI32(sectorId);
+                    fat.put(lastSectorId, sectorId);
                 }
-                sectorId++;
+                lastSectorFatFileOffset = (1 + fatSect) * sectorLength + fatSectInOrderMod * 4;
+                lastSectorId = sectorId;
+                if (newSectorIds.size() == numSectors) {
+                    break;
+                }
             }
         }
+        if (newSectorIds.size() < numSectors) {
+            sectorId++;
+        }
+        
         while (newSectorIds.size() < numSectors) {
             int numNewSectors = 1;
             Long newFatSectorId = sectorId;
+            //System.err.println("Enlarging DIFAT");
             //we need to enlarge difat
             raf.seek(0x4C);
             boolean inMainDiFat = false;
             int diFatIndex = 0;
             for (int i = 0; i < 109; i++) {
-                long difatval = readUI32();
+                long difatval = difatval = difat.get(diFatIndex); //readUI32();
                 if (difatval == FREESECT) {
                     raf.seek(0x4C + i * 4);
                     writeUI32(sectorId);
@@ -1013,8 +999,9 @@ public class CompoundFileBinary implements AutoCloseable {
                 loopsec:
                 while (difatSectorLocation <= MAXREGSECT) {
                     for (int i = 0; i < sectorLength - 4; i += 4) {
-                        raf.seek((1 + difatSectorLocation) * sectorLength + i);
-                        long fatSector = readUI32();
+                        //raf.seek((1 + difatSectorLocation) * sectorLength + i);
+                        long fatSector = difat.get(diFatIndex);// readUI32();
+                        
                         if (fatSector == FREESECT) {
                             raf.seek((1 + difatSectorLocation) * sectorLength + i);
                             writeUI32(newFatSectorId);
@@ -1024,6 +1011,7 @@ public class CompoundFileBinary implements AutoCloseable {
                         }
                         diFatIndex++;
                     }
+                    raf.seek((1 + difatSectorLocation) * sectorLength + sectorLength - 4);
                     difatSectorLocation = readUI32();
                 }
 
@@ -1057,11 +1045,9 @@ public class CompoundFileBinary implements AutoCloseable {
                     }
                     writeUI32(ENDOFCHAIN);
                     fat.put(newDiFatSectorId, DIFSECT);
+                    numDifatSectors++;
                     raf.seek(0x48);
-                    long difatSectorsCount = readUI32();
-                    difatSectorsCount++;
-                    raf.seek(0x48);
-                    writeUI32(difatSectorsCount);
+                    writeUI32(numDifatSectors);
                 }
             }
             fat.put(newFatSectorId, FATSECT);
@@ -1082,18 +1068,17 @@ public class CompoundFileBinary implements AutoCloseable {
                     if (lastSectorFatFileOffset != null) {
                         raf.seek(lastSectorFatFileOffset);
                         writeUI32(sectorId);
-                        fat.put(lastSectorId, sectorId);
+                        fat.put(lastSectorId, sectorId);                                            
                     }
                     lastSectorFatFileOffset = (1 + newFatSectorId) * sectorLength + i;
                     lastSectorId = sectorId;
                     newSectorIds.add(sectorId);
                 } else {
                     writeUI32(FREESECT);
+                    fat.put(sectorId, FREESECT);
                 }
                 sectorId++;
             }
-            raf.seek(0x2C);
-            long numFatSectors = readUI32();
             numFatSectors++;
             raf.seek(0x2C);
             writeUI32(numFatSectors);
@@ -1211,14 +1196,14 @@ public class CompoundFileBinary implements AutoCloseable {
             throw new IOException("Number of directory sectors must be zero for majorVersion 3");
         }
 
-        long numFatSectors = readUI32();
-        long firstDirectorySectorLocation = readUI32();
+        numFatSectors = readUI32();
+        firstDirectorySectorLocation = readUI32();
         long transactionSignatureNumber = readUI32();
         miniStreamCutoffSize = readUI32();
-        long firstMiniFatSectorLocation = readUI32();
-        long numMiniFatSectors = readUI32();
+        firstMiniFatSectorLocation = readUI32();
+        numMiniFatSectors = readUI32();
         long firstDifatSectorLocation = readUI32();
-        long numDifatSectors = readUI32();
+        numDifatSectors = readUI32();
 
         difat = new ArrayList<>();
         for (int i = 0; i < 109; i++) {
@@ -1245,7 +1230,7 @@ public class CompoundFileBinary implements AutoCloseable {
             difatSectorLocation = readUI32();
         }
 
-        fat = new HashMap<>();
+        fat = new TreeMap<>();
         long fatPos = 0;
         for (long fatSect : difat) {
             if (fatSect <= MAXREGSECT) {
@@ -1257,10 +1242,12 @@ public class CompoundFileBinary implements AutoCloseable {
             }
         }
 
-        minifat = new HashMap<>();
+        minifat = new TreeMap<>();
         long miniFatSectorLocation = firstMiniFatSectorLocation;
         long miniFatPos = 0;
         while (miniFatSectorLocation != ENDOFCHAIN) {
+            //System.err.println("file pos: " + raf.getFilePointer());
+            //System.err.println("miniFatSectorLocation="+miniFatSectorLocation);
             raf.seek((1 + miniFatSectorLocation) * sectorLength);
             for (int i = 0; i < sectorLength; i += 4) {
                 minifat.put(miniFatPos, readUI32());
@@ -1298,11 +1285,14 @@ public class CompoundFileBinary implements AutoCloseable {
                 Date creationTime = readDate();
                 Date modifiedTime = readDate();
                 long startingSectorLocation = readUI32(); //if rootdir, then miniStreamStartingSector
+                if (objectType == TYPE_ROOT_STORAGE_OBJECT) {
+                    miniStreamSizeFileOffset = raf.getFilePointer();
+                }
                 long streamSize = readUI64(); //if rootdir, then miniStreamSize
                 if (majorVersion == 3) {
                     streamSize = streamSize & 0xFFFFFFFFl;
                 }
-                DirectoryEntry dirEntry = new DirectoryEntry((1 + directorySector) * sectorLength + i, streamId, name, objectType, colorFlag, leftSiblingId, rightSiblingId, childId, dirClsId, stateBits, creationTime, modifiedTime, startingSectorLocation, streamSize);
+                DirectoryEntry dirEntry = new DirectoryEntry((1 + directorySector) * sectorLength + i, directorySector, streamId, name, objectType, colorFlag, leftSiblingId, rightSiblingId, childId, dirClsId, stateBits, creationTime, modifiedTime, startingSectorLocation, streamSize);
                 if (objectType == TYPE_ROOT_STORAGE_OBJECT) {
                     miniStreamStartingSector = startingSectorLocation;
                     miniStreamSize = streamSize;
