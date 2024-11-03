@@ -85,7 +85,7 @@ public class TimelineConverter extends AbstractConverter {
 
     public String getTitle() {
         return title;
-    }        
+    }
 
     /*protected void useClass(String className, FlaWriter os, Map<String, Integer> definedClasses,            Reference<Integer> totalObjectCount) throws IOException {
         if (definedClasses.contains(className)) {
@@ -420,7 +420,7 @@ public class TimelineConverter extends AbstractConverter {
                     }
                     isFloating = true;
                     fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00) + (isFloating /*???*/ ? 0x01 : 0x00));
-                    shapeElement = element;                    
+                    shapeElement = element;
                 }
                 handleShape(element, document, fg, false, definedClasses, totalObjectCount);
                 hasShape = true;
@@ -760,7 +760,7 @@ public class TimelineConverter extends AbstractConverter {
                 firstFrame = Integer.parseInt(symbolInstance.getAttribute("firstFrame"));
             }
         } else {
-            useClass("CPicSprite", fg, definedClasses, totalObjectCount);            
+            useClass("CPicSprite", fg, definedClasses, totalObjectCount);
         }
 
         String instanceName = "";
@@ -934,11 +934,11 @@ public class TimelineConverter extends AbstractConverter {
 
         fg.write(
                 debugRandom ? 'X' : (alphaMultiplier & 0xFF), ((alphaMultiplier >> 8) & 0xFF), (alphaOffset & 0xFF), ((alphaOffset >> 8) & 0xFF),
-                debugRandom ? 'X' :(redMultiplier & 0xFF), ((redMultiplier >> 8) & 0xFF), (redOffset & 0xFF), ((redOffset >> 8) & 0xFF),
-                debugRandom ? 'X' :(greenMultiplier & 0xFF), ((greenMultiplier >> 8) & 0xFF), (greenOffset & 0xFF), ((greenOffset >> 8) & 0xFF),
-                debugRandom ? 'X' :(blueMultiplier & 0xFF), ((blueMultiplier >> 8) & 0xFF), (blueOffset & 0xFF), ((blueOffset >> 8) & 0xFF),
+                debugRandom ? 'X' : (redMultiplier & 0xFF), ((redMultiplier >> 8) & 0xFF), (redOffset & 0xFF), ((redOffset >> 8) & 0xFF),
+                debugRandom ? 'X' : (greenMultiplier & 0xFF), ((greenMultiplier >> 8) & 0xFF), (greenOffset & 0xFF), ((greenOffset >> 8) & 0xFF),
+                debugRandom ? 'X' : (blueMultiplier & 0xFF), ((blueMultiplier >> 8) & 0xFF), (blueOffset & 0xFF), ((blueOffset >> 8) & 0xFF),
                 colorEffect.getType(), 0x00);
-        
+
         if ((colorEffect instanceof NoColorEffect) && debugRandom) {
             fg.write('X', 'X');
             fg.write('X', 'X', 'X', 'X');
@@ -2205,10 +2205,10 @@ public class TimelineConverter extends AbstractConverter {
                 }
             }
         }
-        
+
         if (debugRandom) {
             fg.writeDebugNote("EDGES");
-        } else {        
+        } else {
             fg.beginShape();
             for (Element edge : edges) {
                 int strokeStyle = 0;

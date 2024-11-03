@@ -116,17 +116,15 @@ public class FlaWriter {
 
     private boolean debugRandom = false;
     private final FlaFormatVersion flaFormatVersion;
-    
+
     private long pos = 0;
-    
+
     private String title = "";
 
     public void setTitle(String title) {
         this.title = title;
     }
 
-    
-    
     public void setDebugRandom(boolean debugRandom) {
         this.debugRandom = debugRandom;
     }
@@ -650,7 +648,7 @@ public class FlaWriter {
             }
             return;
         }
-        
+
         write(
                 (int) (aLong & 0xFF), (int) ((aLong >> 8) & 0xFF), (int) ((aLong >> 16) & 0xFF), (int) ((aLong >> 24) & 0xFF),
                 (int) (bLong & 0xFF), (int) ((bLong >> 8) & 0xFF), (int) ((bLong >> 16) & 0xFF), (int) ((bLong >> 24) & 0xFF),
@@ -674,7 +672,7 @@ public class FlaWriter {
             write('X', 'X');
         } else {
             writeUI16(bitmapId);
-        }        
+        }
     }
 
     public void writeGradientFill(
@@ -723,8 +721,8 @@ public class FlaWriter {
                 3,
                 0,
                 0);
-    }   
-    
+    }
+
     public void writeStrokeBegin(Color lineColor,
             double strokeWidth,
             boolean pixelHinting,
@@ -870,7 +868,7 @@ public class FlaWriter {
     }
 
     public void write(int... values) throws IOException {
-        for (int i : values) {            
+        for (int i : values) {
             if (i > 255) {
                 throw new IllegalArgumentException("Attempt to write larger value than 255 as byte");
             }
@@ -887,7 +885,7 @@ public class FlaWriter {
         }
         writeUI16(value);
     }
-    
+
     public void writeUI16(int value) throws IOException {
         if (value > 0xFFFF) {
             throw new IllegalArgumentException("Attempt to write larger value than 0xFFFF as UI16");
@@ -947,8 +945,8 @@ public class FlaWriter {
 
     public long getPos() {
         return pos;
-    }       
-    
+    }
+
     public void writeDebugNote(String note) throws IOException {
         write('!');
         write(note.getBytes("UTF-8"));

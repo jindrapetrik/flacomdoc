@@ -18,6 +18,7 @@
  */
 package com.jpexs.flash.fla.converter.debug;
 
+import com.jpexs.flash.fla.converter.FlaFormatVersion;
 import com.jpexs.flash.fla.converter.FlaWriter;
 import java.io.File;
 import java.io.FileInputStream;
@@ -68,12 +69,24 @@ public class EdgeReader {
         return s;
     }
 
-    public static void readEdge(InputStream fis) throws IOException {
+    public static void readEdge(InputStream fis, FlaFormatVersion flaFormatVersion) throws IOException {
         int flags = fis.read();
-        if ((flags & FlaWriter.FLAG_EDGE_NO_SELECTION) == FlaWriter.FLAG_EDGE_NO_SELECTION) {
+
+        boolean hasSelection = (flags & FlaWriter.FLAG_EDGE_NO_SELECTION) != FlaWriter.FLAG_EDGE_NO_SELECTION;
+
+        if ((flags & FlaWriter.FLAG_EDGE_HAS_STYLES) == FlaWriter.FLAG_EDGE_HAS_STYLES) {
             fis.read();
+            if (hasSelection) {
+                fis.read();
+            }
             fis.read();
+            if (hasSelection) {
+                fis.read();
+            }
             fis.read();
+            if (hasSelection) {
+                fis.read();
+            }
         }
         if ((flags & FlaWriter.FLAG_EDGE_FROM_SHORT) == FlaWriter.FLAG_EDGE_FROM_SHORT) {
             readShort(fis);
@@ -111,8 +124,10 @@ public class EdgeReader {
             readFloat(fis);
             readFloat(fis);
         }
-        if (!hasControl) {
-            fis.read();
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+            if (!hasControl) {
+                fis.read();
+            }
         }
     }
 
