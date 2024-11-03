@@ -18,13 +18,7 @@
  */
 package com.jpexs.cfb;
 
-import com.jpexs.flash.fla.converter.FlaConverter;
-import com.jpexs.flash.fla.converter.FlaFormatVersion;
-import com.jpexs.flash.fla.converter.streams.CfbOutputStorage;
-import com.jpexs.flash.fla.converter.streams.DirectoryInputStorage;
-import com.jpexs.flash.fla.converter.streams.InputStorageInterface;
-import com.jpexs.flash.fla.converter.streams.OutputStorageInterface;
-import com.jpexs.flash.fla.converter.streams.ZippedInputStorage;
+import com.jpexs.cfb.RedBlackTree.Node;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -121,6 +115,8 @@ public class CompoundFileBinary implements AutoCloseable {
     private long numDifatSectors;
 
     private long firstDifatSectorLocation;
+    
+    private Map<Long, Long> entryParents = new HashMap<>();
 
     public CompoundFileBinary(File file) throws IOException {
         this(file, false);
@@ -488,6 +484,57 @@ public class CompoundFileBinary implements AutoCloseable {
         return entry;
     }
 
+    private void addToTree(RedBlackTree<DirectoryEntry> tree, DirectoryEntry entry) {
+        if (entry == null) {
+            return;
+        }
+        tree.insert(entry);
+        DirectoryEntry left = entry.leftSiblingId == NOSTREAM ? null : getDirEntryById(entry.leftSiblingId);
+        addToTree(tree, left);
+        DirectoryEntry right = entry.rightSiblingId == NOSTREAM ? null : getDirEntryById(entry.rightSiblingId);
+        addToTree(tree, right);
+    }
+    
+    private void writeColors(Node<DirectoryEntry> node) throws IOException {
+        if (node == null || node.data == null) {
+            return;
+        }
+        int newColorFlag = node.color == RedBlackTree.Color.RED ? COLOR_RED : COLOR_BLACK;;
+        if (node.data.colorFlag != newColorFlag) {
+            node.data.colorFlag = newColorFlag;
+            raf.seek(node.data.fileOffset + 0x43);
+            write(node.data.colorFlag);
+        }
+        long newLeftSibling = node.left == null || node.left.data == null ? NOSTREAM : node.left.data.streamId;
+        if (node.data.leftSiblingId != newLeftSibling) {
+            node.data.leftSiblingId = newLeftSibling;
+            raf.seek(node.data.fileOffset + 68);
+            writeUI32(newLeftSibling);
+        }
+        
+        long newRightSibling = node.right == null || node.right.data == null ? NOSTREAM : node.right.data.streamId;
+        if (node.data.rightSiblingId != newRightSibling) {
+            node.data.rightSiblingId = newRightSibling;
+            raf.seek(node.data.fileOffset + 72);
+            writeUI32(newRightSibling);
+        }
+        
+        writeColors(node.left);
+        writeColors(node.right);        
+    }
+    
+    private void markTreeColors(DirectoryEntry child, DirectoryEntry parent) throws IOException {
+        RedBlackTree<DirectoryEntry> tree = new RedBlackTree<>();
+        addToTree(tree, child);
+        Node<DirectoryEntry> rootNode = tree.getRoot();
+        if (child.streamId != rootNode.data.streamId) {
+            parent.childId = rootNode.data.streamId;
+            raf.seek(parent.fileOffset + 76);
+            writeUI32(parent.childId);
+        }
+        writeColors(rootNode);
+    }
+    
     private void markTreeBlack(DirectoryEntry entry) throws IOException {
         if (entry == null) {
             return;
@@ -566,7 +613,7 @@ public class CompoundFileBinary implements AutoCloseable {
 
                 if (i % entriesPerSector == entriesPerSector - 1) { // last directory entry in sector
                     directorySector = allocateNewSector(directorySector);
-                    int sid = newStreamId;
+                    long sid = newStreamId;
                     raf.seek((1 + directorySector) * sectorLength);
                     for (int j = 0; j < sectorLength; j += 128) {
                         sid++;
@@ -620,7 +667,7 @@ public class CompoundFileBinary implements AutoCloseable {
             entry.streamId = newStreamId;
             directoryEntries.add(entry);
             writeDirectoryEntry(entry);
-            int sid = newStreamId;
+            long sid = newStreamId;
 
             for (int i = 128; i < sectorLength; i += 128) {
                 sid++;
@@ -642,7 +689,7 @@ public class CompoundFileBinary implements AutoCloseable {
         }
 
         directorySector = firstDirectorySectorLocation;
-        int streamId = 0;
+        long streamId = 0;
         loopDir:
         while (directorySector != ENDOFCHAIN) {
             for (int i = 0; i < sectorLength; i += 128) {
@@ -666,8 +713,10 @@ public class CompoundFileBinary implements AutoCloseable {
             }
             directorySector = fat.get(directorySector);
         }
-        markTreeBlack(getDirEntryById(parent.childId));
-    }
+        
+        markTreeColors(getDirEntryById(parent.childId), parent);
+        //markTreeBlack(getDirEntryById(parent.childId));
+    }       
 
     private void walkFiles(String localPath, String absPath, List<DirectoryEntry> ret) throws IOException {
 
@@ -1279,6 +1328,12 @@ public class CompoundFileBinary implements AutoCloseable {
 
                 long leftSiblingId = readUI32();
                 long rightSiblingId = readUI32();
+                if (leftSiblingId != NOSTREAM) {
+                    entryParents.put(leftSiblingId, streamId);
+                }
+                if (rightSiblingId != NOSTREAM) {
+                    entryParents.put(rightSiblingId, streamId);
+                }
                 long childId = readUI32();
                 byte dirClsId[] = readBytes(16);
                 long stateBits = readUI32();

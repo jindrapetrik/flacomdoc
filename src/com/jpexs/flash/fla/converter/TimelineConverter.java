@@ -76,10 +76,16 @@ public class TimelineConverter extends AbstractConverter {
     //https://stackoverflow.com/questions/4077200/whats-the-meaning-of-the-non-numerical-values-in-the-xfls-edge-definition
     private static final Pattern CUBICS_PATTERN = Pattern.compile("^!(?<mx>[0-9]+) +(?<my>[0-9]+) *\\(((?<pBCPx>[0-9]+) *, *(?<pBCPy>[0-9]+))? *; *(?<x1>[0-9]+),(?<y1>[0-9]+) +(?<x2>[0-9]+),(?<y2>[0-9]+) +(?<ex>[0-9]+),(?<ey>[0-9]+) *(?<xy>([QqPp]? *[0-9]+ +[0-9]+)+) *\\)((?<nBCPx>[0-9]+) *, *(?<nBCPy>[0-9]+))? *; *$");
     private static final Pattern CUBICS_XY_PATTERN = Pattern.compile("(?<letter>[QqPp]?) *(?<x>[0-9]+) +(?<y>[0-9]+)");
+    private final String title;
 
-    public TimelineConverter(FlaFormatVersion flaFormatVersion) {
+    public TimelineConverter(FlaFormatVersion flaFormatVersion, String title) {
         super(flaFormatVersion);
+        this.title = title;
     }
+
+    public String getTitle() {
+        return title;
+    }        
 
     /*protected void useClass(String className, FlaWriter os, Map<String, Integer> definedClasses,            Reference<Integer> totalObjectCount) throws IOException {
         if (definedClasses.contains(className)) {
@@ -414,7 +420,7 @@ public class TimelineConverter extends AbstractConverter {
                     }
                     isFloating = true;
                     fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00) + (isFloating /*???*/ ? 0x01 : 0x00));
-                    shapeElement = element;
+                    shapeElement = element;                    
                 }
                 handleShape(element, document, fg, false, definedClasses, totalObjectCount);
                 hasShape = true;
@@ -754,7 +760,7 @@ public class TimelineConverter extends AbstractConverter {
                 firstFrame = Integer.parseInt(symbolInstance.getAttribute("firstFrame"));
             }
         } else {
-            useClass("CPicSprite", fg, definedClasses, totalObjectCount);
+            useClass("CPicSprite", fg, definedClasses, totalObjectCount);            
         }
 
         String instanceName = "";
@@ -927,14 +933,19 @@ public class TimelineConverter extends AbstractConverter {
         Color effectColor = colorEffect.getValueColor();
 
         fg.write(
-                (alphaMultiplier & 0xFF), ((alphaMultiplier >> 8) & 0xFF), (alphaOffset & 0xFF), ((alphaOffset >> 8) & 0xFF),
-                (redMultiplier & 0xFF), ((redMultiplier >> 8) & 0xFF), (redOffset & 0xFF), ((redOffset >> 8) & 0xFF),
-                (greenMultiplier & 0xFF), ((greenMultiplier >> 8) & 0xFF), (greenOffset & 0xFF), ((greenOffset >> 8) & 0xFF),
-                (blueMultiplier & 0xFF), ((blueMultiplier >> 8) & 0xFF), (blueOffset & 0xFF), ((blueOffset >> 8) & 0xFF),
+                debugRandom ? 'X' : (alphaMultiplier & 0xFF), ((alphaMultiplier >> 8) & 0xFF), (alphaOffset & 0xFF), ((alphaOffset >> 8) & 0xFF),
+                debugRandom ? 'X' :(redMultiplier & 0xFF), ((redMultiplier >> 8) & 0xFF), (redOffset & 0xFF), ((redOffset >> 8) & 0xFF),
+                debugRandom ? 'X' :(greenMultiplier & 0xFF), ((greenMultiplier >> 8) & 0xFF), (greenOffset & 0xFF), ((greenOffset >> 8) & 0xFF),
+                debugRandom ? 'X' :(blueMultiplier & 0xFF), ((blueMultiplier >> 8) & 0xFF), (blueOffset & 0xFF), ((blueOffset >> 8) & 0xFF),
                 colorEffect.getType(), 0x00);
-        fg.writeUI16(colorEffect.getValuePercent());
-        fg.write(effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), effectColor.getAlpha()
-        );
+        
+        if ((colorEffect instanceof NoColorEffect) && debugRandom) {
+            fg.write('X', 'X');
+            fg.write('X', 'X', 'X', 'X');
+        } else {
+            fg.writeUI16(colorEffect.getValuePercent());
+            fg.write(effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), effectColor.getAlpha());
+        }
 
         fg.writeBomString("");
         if (debugRandom) {
@@ -2027,7 +2038,11 @@ public class TimelineConverter extends AbstractConverter {
             }
         }
 
-        fg.writeUI32(totalEdgeCount);
+        if (debugRandom) {
+            fg.writeDebugNote("ECOUNT");
+        } else {
+            fg.writeUI32(totalEdgeCount);
+        }
         fg.write(fillStyles.size(), 0x00);
         for (Node fillStyle : fillStyles) {
             Element fillStyleVal = getFirstSubElement(fillStyle);
@@ -2190,27 +2205,32 @@ public class TimelineConverter extends AbstractConverter {
                 }
             }
         }
-        fg.beginShape();
-        for (Element edge : edges) {
-            int strokeStyle = 0;
-            int fillStyle0 = 0;
-            int fillStyle1 = 0;
-            Node strokeStyleAttr = edge.getAttributes().getNamedItem("strokeStyle");
-            if (strokeStyleAttr != null) {
-                strokeStyle = Integer.parseInt(strokeStyleAttr.getTextContent());
-            }
-            Node fillStyle0StyleAttr = edge.getAttributes().getNamedItem("fillStyle0");
-            if (fillStyle0StyleAttr != null) {
-                fillStyle0 = Integer.parseInt(fillStyle0StyleAttr.getTextContent());
-            }
-            Node fillStyle1StyleAttr = edge.getAttributes().getNamedItem("fillStyle1");
-            if (fillStyle1StyleAttr != null) {
-                fillStyle1 = Integer.parseInt(fillStyle1StyleAttr.getTextContent());
-            }
-            Node edgesAttrNode = edge.getAttributes().getNamedItem("edges");
-            if (edgesAttrNode != null) {
-                String edgesStr = edgesAttrNode.getTextContent();
-                fg.writeEdges(edgesStr, strokeStyle, fillStyle0, fillStyle1);
+        
+        if (debugRandom) {
+            fg.writeDebugNote("EDGES");
+        } else {        
+            fg.beginShape();
+            for (Element edge : edges) {
+                int strokeStyle = 0;
+                int fillStyle0 = 0;
+                int fillStyle1 = 0;
+                Node strokeStyleAttr = edge.getAttributes().getNamedItem("strokeStyle");
+                if (strokeStyleAttr != null) {
+                    strokeStyle = Integer.parseInt(strokeStyleAttr.getTextContent());
+                }
+                Node fillStyle0StyleAttr = edge.getAttributes().getNamedItem("fillStyle0");
+                if (fillStyle0StyleAttr != null) {
+                    fillStyle0 = Integer.parseInt(fillStyle0StyleAttr.getTextContent());
+                }
+                Node fillStyle1StyleAttr = edge.getAttributes().getNamedItem("fillStyle1");
+                if (fillStyle1StyleAttr != null) {
+                    fillStyle1 = Integer.parseInt(fillStyle1StyleAttr.getTextContent());
+                }
+                Node edgesAttrNode = edge.getAttributes().getNamedItem("edges");
+                if (edgesAttrNode != null) {
+                    String edgesStr = edgesAttrNode.getTextContent();
+                    fg.writeEdges(edgesStr, strokeStyle, fillStyle0, fillStyle1);
+                }
             }
         }
 
@@ -3198,7 +3218,7 @@ public class TimelineConverter extends AbstractConverter {
             writeLayer(document, fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, true);
         } else {
             if (parentLayerIndex > -1) {
-                fg.writeUI16(layerIndexToNValue.get(parentLayerIndex));
+                fg.writeEncodedUI(layerIndexToNValue.get(parentLayerIndex));
             } else {
                 fg.writeUI16(0);
             }
@@ -3238,7 +3258,7 @@ public class TimelineConverter extends AbstractConverter {
             int li = layerIndex;
             while (pi > -1) {
                 if (li == pi + 1) {
-                    fg.writeUI16(layerIndexToNValue.get(pi));
+                    fg.writeEncodedUI(layerIndexToNValue.get(pi));
                 } else {
                     break;
                 }
@@ -3258,6 +3278,7 @@ public class TimelineConverter extends AbstractConverter {
 
     public void convert(Element domTimeLine, Element document, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
         FlaWriter fg = new FlaWriter(os, flaFormatVersion);
+        fg.setTitle(getTitle());
         fg.setDebugRandom(debugRandom);
         Map<String, Integer> definedClasses = new HashMap<>();
         Reference<Integer> totalObjectCount = new Reference<>(0);

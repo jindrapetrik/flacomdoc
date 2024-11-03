@@ -247,15 +247,22 @@ public abstract class AbstractConverter {
             fg.write(autoLabeling ? 0 : 1);
         }
     }
-
+        
     protected void useClass(String className, int defineNum, FlaWriter os,
             Map<String, Integer> definedClasses,
             Reference<Integer> totalObjectCount
     ) throws IOException {
         if (definedClasses.containsKey(className)) {
-            int val = 0x8000 + definedClasses.get(className); 
-            os.write(val & 0xFF);
-            os.write((val >> 8) & 0xFF);
+            int cls = definedClasses.get(className);
+            if (cls >= 0x7FFF) {
+                long val = 0x80000000L + cls;
+                os.write(0xFF, 0x7F);                
+                os.writeUI32(val);
+            } else {
+                int val = 0x8000 + cls; 
+                os.write(val & 0xFF);
+                os.write((val >> 8) & 0xFF);
+            }
         } else {
             os.write(0xFF, 0xFF, defineNum, 0x00);
             byte[] sbytes = className.getBytes();
@@ -264,7 +271,7 @@ public abstract class AbstractConverter {
             os.write(sbytes);
             definedClasses.put(className, 1 + definedClasses.size() + totalObjectCount.getVal());
         }
-        totalObjectCount.setVal(totalObjectCount.getVal() + 1);
+        totalObjectCount.setVal(totalObjectCount.getVal() + 1);        
     }
 
     protected void useClass(String className, FlaWriter os,
@@ -301,8 +308,8 @@ public abstract class AbstractConverter {
             @Override
             public int compare(Element o1, Element o2) {
                 return o1.getAttribute("name").compareTo(o2.getAttribute("name"));
-            }            
+            }
         });
         return media;
-    }
+    }       
 }

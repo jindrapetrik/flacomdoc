@@ -199,6 +199,7 @@ public class MainMenuFrame extends JFrame {
             inputStorage.close();
             outputStorage.close();
         } catch (Exception ex) {
+            ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error: " + ex.getLocalizedMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }

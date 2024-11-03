@@ -68,6 +68,54 @@ public class EdgeReader {
         return s;
     }
 
+    public static void readEdge(InputStream fis) throws IOException {
+        int flags = fis.read();
+        if ((flags & FlaWriter.FLAG_EDGE_NO_SELECTION) == FlaWriter.FLAG_EDGE_NO_SELECTION) {
+            fis.read();
+            fis.read();
+            fis.read();
+        }
+        if ((flags & FlaWriter.FLAG_EDGE_FROM_SHORT) == FlaWriter.FLAG_EDGE_FROM_SHORT) {
+            readShort(fis);
+            readShort(fis);
+        } else if ((flags & FlaWriter.FLAG_EDGE_FROM_BYTE) == FlaWriter.FLAG_EDGE_FROM_BYTE) {
+            readByte(fis);
+            readByte(fis);
+        } else if ((flags & FlaWriter.FLAG_EDGE_FROM_FLOAT) == FlaWriter.FLAG_EDGE_FROM_FLOAT) {
+            readFloat(fis);
+            readFloat(fis);
+        }
+
+        boolean hasControl = false;
+        if ((flags & FlaWriter.FLAG_EDGE_CONTROL_SHORT) == FlaWriter.FLAG_EDGE_CONTROL_SHORT) {
+            readShort(fis);
+            readShort(fis);
+            hasControl = true;
+
+        } else if ((flags & FlaWriter.FLAG_EDGE_CONTROL_BYTE) == FlaWriter.FLAG_EDGE_CONTROL_BYTE) {
+            readByte(fis);
+            readByte(fis);
+            hasControl = true;
+        } else if ((flags & FlaWriter.FLAG_EDGE_CONTROL_FLOAT) == FlaWriter.FLAG_EDGE_CONTROL_FLOAT) {
+            readFloat(fis);
+            readFloat(fis);
+            hasControl = true;
+        }
+        if ((flags & FlaWriter.FLAG_EDGE_TO_SHORT) == FlaWriter.FLAG_EDGE_TO_SHORT) {
+            readShort(fis);
+            readShort(fis);
+        } else if ((flags & FlaWriter.FLAG_EDGE_TO_BYTE) == FlaWriter.FLAG_EDGE_TO_BYTE) {
+            readByte(fis);
+            readByte(fis);
+        } else if ((flags & FlaWriter.FLAG_EDGE_TO_FLOAT) == FlaWriter.FLAG_EDGE_TO_FLOAT) {
+            readFloat(fis);
+            readFloat(fis);
+        }
+        if (!hasControl) {
+            fis.read();
+        }
+    }
+
     public static void main(String[] args) throws IOException {
         File file = new File("testdata\\fla\\cs3\\0003_fills\\P 2 1726169870");
         FileInputStream fis = new FileInputStream(file);

@@ -18,22 +18,28 @@
  */
 package com.jpexs.flash.fla.converter;
 
+import com.jpexs.flash.fla.converter.debug.EdgeReader;
 import com.jpexs.flash.fla.converter.streams.DirectoryInputStorage;
 import com.jpexs.flash.fla.converter.streams.DirectoryOutputStorage;
 import com.jpexs.flash.fla.extractor.FlaCfbExtractor;
+import com.jpexs.helpers.Reference;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import javax.xml.parsers.ParserConfigurationException;
 import org.testng.annotations.Test;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 import org.testng.annotations.DataProvider;
+import org.xml.sax.SAXException;
 
 /**
  *
@@ -175,7 +181,7 @@ public class FlaConverterTest {
         }
 
         assertEquals(actualFilesList.size(), expectedFilesList.size(), "Number of files");
-
+        
         
         for (int i = 0; i < actualFilesList.size(); i++) {
             File actualFile = actualFilesList.get(i);
@@ -196,7 +202,7 @@ public class FlaConverterTest {
             
             assertEquals(actualType, expectedType, "File type");
         }
-
+                
         for (int i = 0; i < actualFilesList.size(); i++) {
             File actualFile = actualFilesList.get(i);
             File expectedFile = expectedFilesList.get(i);
@@ -205,13 +211,18 @@ public class FlaConverterTest {
                 //do not compare media files
                 continue;
             }
+            compareFiles(actualFile, expectedFile);
+        }
+    }
 
-            byte[] actualData = readFile(actualFile);
+    private void compareFiles(File actualFile, File expectedFile) throws IOException {
+        byte[] actualData = readFile(actualFile);
             byte[] expectedData = readFile(expectedFile);
 
             //assertEquals(actualData.length, expectedData.length, "File data length of file " + actualFile);
             int epos = 0;
             int apos = 0;
+            long lastEdgeCount = -1;
             for (; apos < actualData.length && epos < expectedData.length; apos++, epos++) {
                 if (actualData[apos] == 'X') { //special - all randomness is replaced with 'X' - setDebugRandom(true)
                     continue;
@@ -219,6 +230,50 @@ public class FlaConverterTest {
                 if (actualData[apos] == 'U') { //unknown data - also when setDebugRandom(true)
                     continue;
                 }
+                
+                if (apos + 6 < actualData.length
+                        && actualData[apos] == '!'
+                        && actualData[apos + 1] == 'E'
+                        && actualData[apos + 2] == 'C'
+                        && actualData[apos + 3] == 'O'
+                        && actualData[apos + 4] == 'U'
+                        && actualData[apos + 5] == 'N'
+                        && actualData[apos + 6] == 'T') {
+                    lastEdgeCount = (expectedData[epos] & 0xFF) 
+                            + ((expectedData[epos + 1] & 0xFF) << 8)
+                            + ((expectedData[epos + 2] & 0xFF) << 16)
+                            + ((expectedData[epos + 3] & 0xFF) << 24);
+                    epos += 3;
+                    apos += 6;
+                    continue;
+                }
+                
+                if (apos + 5 < actualData.length
+                        && actualData[apos] == '!'
+                        && actualData[apos + 1] == 'E'
+                        && actualData[apos + 2] == 'D'
+                        && actualData[apos + 3] == 'G'
+                        && actualData[apos + 4] == 'E'
+                        && actualData[apos + 5] == 'S') {
+                    Reference<Integer> eposRef = new Reference<Integer>(epos);
+                    for (long e = 0; e < lastEdgeCount; e++) {                                                
+                        EdgeReader.readEdge(new InputStream() {
+                            @Override
+                            public int read() throws IOException {
+                                int epos = eposRef.getVal();
+                                eposRef.setVal(epos + 1);
+                                return expectedData[epos];
+                            }
+                        });                        
+                    }
+                    if (lastEdgeCount > 0) {
+                        epos = eposRef.getVal() - 1;
+                        apos += 5;
+                        continue;                        
+                    }
+                    lastEdgeCount = -1;                    
+                }
+                
                 if (apos + 2 < actualData.length
                         && actualData[apos] == 'N'
                         && actualData[apos + 1] == 'N'
@@ -291,9 +346,9 @@ public class FlaConverterTest {
             }
             assertEquals(apos, actualData.length, "The file " + actualFile + " is longer than expected file");
             assertEquals(epos, expectedData.length, "The file " + actualFile + " is shorter than expected file");
-        }
+        
     }
-
+    
     @Test(dataProvider = "folders-cs4")
     public void testConvertCs4(String folder) throws Exception {
         convert(folder, FlaFormatVersion.CS4);
@@ -324,9 +379,30 @@ public class FlaConverterTest {
         convert(folder, FlaFormatVersion.F5);
     }
        
-    //@Test
+    @Test
     public void singleTest() throws Exception {
         //testConvertCs4("floating");
+    }
+    
+    private void compareSpecific(FlaFormatVersion flaFormatVersion, String folderName, String actualFilename, String expectedFileName) throws IOException, SAXException, ParserConfigurationException {
+        FlaConverter contentsGenerator = new FlaConverter(flaFormatVersion);
+        contentsGenerator.setDebugRandom(true);
+        
+        
+        String outputDirParent = OUTPUT_BASE_DIR + "/" + flaFormatVersion.name().toLowerCase();
+        String expectedDirParent = EXPECTED_BASE_DIR + "/" + flaFormatVersion.name().toLowerCase();
+
+        File actualDir = new File(outputDirParent + "/" + folderName);
+        deleteDir(actualDir);
+        if (!actualDir.exists()) {
+            actualDir.mkdirs();
+        }
+        
+        contentsGenerator.convert(new DirectoryInputStorage(new File(SOURCE_DIR + "/" +folderName)),
+                new DirectoryOutputStorage(actualDir)
+        );
+        compareFiles(actualDir.toPath().resolve(actualFilename).toFile(),
+                new File(expectedDirParent).toPath().resolve(folderName + "/" + expectedFileName).toFile());   
     }
     
     private static void deleteDir(File f) throws IOException {

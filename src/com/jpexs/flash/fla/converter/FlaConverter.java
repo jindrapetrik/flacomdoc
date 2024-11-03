@@ -586,8 +586,8 @@ public class FlaConverter extends AbstractConverter {
             String symbolName = "Symbol " + symbolId;
             if (domTimelineElement.hasAttribute("name")) {
                 symbolName = domTimelineElement.getAttribute("name");
-            }
-
+            }          
+            
             String symbolFullName = symbolElement.getAttribute("name");
             String parentFolderItemId = getParentFolderItemID(document, symbolFullName);
 
@@ -749,7 +749,7 @@ public class FlaConverter extends AbstractConverter {
             if (flaFormatVersion == FlaFormatVersion.CS4) {
                 fg.write(0x00, 0x00);
             }
-            TimelineConverter symbolPageGenerator = new TimelineConverter(flaFormatVersion);
+            TimelineConverter symbolPageGenerator = new TimelineConverter(flaFormatVersion, symbolName);
             symbolPageGenerator.setDebugRandom(debugRandom);
             try (OutputStream sos = outputDir.getOutputStream(symbolFile)) {
                 symbolPageGenerator.convert(domTimelineElement, document, sos);
@@ -813,6 +813,7 @@ public class FlaConverter extends AbstractConverter {
 
         try (OutputStream os = outputDir.getOutputStream("Contents")) {
             FlaWriter fg = new FlaWriter(os, flaFormatVersion);
+            fg.setTitle("Contents");
             if (debugRandom) {
                 fg.setDebugRandom(true);
             }
@@ -1021,7 +1022,7 @@ public class FlaConverter extends AbstractConverter {
                     fg.write(0x00, 0x00);
                 }
 
-                TimelineConverter pageGenerator = new TimelineConverter(flaFormatVersion);
+                TimelineConverter pageGenerator = new TimelineConverter(flaFormatVersion, "Page " + pageCount);
                 pageGenerator.setDebugRandom(debugRandom);
                 try (OutputStream pos = outputDir.getOutputStream(pageName)) {
                     pageGenerator.convert(domTimeline, document, pos);

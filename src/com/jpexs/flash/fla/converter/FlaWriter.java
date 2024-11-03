@@ -118,7 +118,15 @@ public class FlaWriter {
     private final FlaFormatVersion flaFormatVersion;
     
     private long pos = 0;
+    
+    private String title = "";
 
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    
+    
     public void setDebugRandom(boolean debugRandom) {
         this.debugRandom = debugRandom;
     }
@@ -527,6 +535,9 @@ public class FlaWriter {
     }
 
     public Point2D parsePoint(String pointData) {
+        if (pointData.isEmpty()) {
+            return new Point2D.Double(0, 0);
+        }
         String[] parts = pointData.split(",", -1);
         if (parts.length != 2) {
             return null;
@@ -633,6 +644,13 @@ public class FlaWriter {
         long txLong = (long) Math.round(tx);
         long tyLong = (long) Math.round(ty);
 
+        if (debugRandom) {
+            for (int i = 0; i < 6 * 4; i++) {
+                write('X');
+            }
+            return;
+        }
+        
         write(
                 (int) (aLong & 0xFF), (int) ((aLong >> 8) & 0xFF), (int) ((aLong >> 16) & 0xFF), (int) ((aLong >> 24) & 0xFF),
                 (int) (bLong & 0xFF), (int) ((bLong >> 8) & 0xFF), (int) ((bLong >> 16) & 0xFF), (int) ((bLong >> 24) & 0xFF),
@@ -705,8 +723,8 @@ public class FlaWriter {
                 3,
                 0,
                 0);
-    }
-
+    }   
+    
     public void writeStrokeBegin(Color lineColor,
             double strokeWidth,
             boolean pixelHinting,
@@ -852,10 +870,7 @@ public class FlaWriter {
     }
 
     public void write(int... values) throws IOException {
-        for (int i : values) {      
-            /*if (pos == 28766) {
-                System.out.println("xxx");
-            }*/
+        for (int i : values) {            
             if (i > 255) {
                 throw new IllegalArgumentException("Attempt to write larger value than 255 as byte");
             }
@@ -864,6 +879,15 @@ public class FlaWriter {
         }
     }
 
+    public void writeEncodedUI(int value) throws IOException {
+        if (value >= 0x7FFF) {
+            write(0xFF, 0x7F);
+            writeUI32(value);
+            return;
+        }
+        writeUI16(value);
+    }
+    
     public void writeUI16(int value) throws IOException {
         if (value > 0xFFFF) {
             throw new IllegalArgumentException("Attempt to write larger value than 0xFFFF as UI16");
@@ -921,4 +945,12 @@ public class FlaWriter {
         writePointPart(point.getY());
     }
 
+    public long getPos() {
+        return pos;
+    }       
+    
+    public void writeDebugNote(String note) throws IOException {
+        write('!');
+        write(note.getBytes("UTF-8"));
+    }
 }
