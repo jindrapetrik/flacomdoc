@@ -1,6 +1,7 @@
 package com.jpexs.flash.fla.converter.swatches;
 
 import com.jpexs.flash.fla.converter.GradientEntry;
+import java.util.List;
 
 /**
  *
@@ -10,6 +11,10 @@ public class LinearGradientSwatchItem extends GradientSwatchItem {
 
     public LinearGradientSwatchItem(GradientEntry... entries) {
         super(entries);
+    }
+    
+    public LinearGradientSwatchItem(List<GradientEntry> entries, int spreadMethod, boolean interpolationMethodLinearRGB) {
+        super(entries, spreadMethod, interpolationMethodLinearRGB);
     }
 
     @Override

@@ -11,7 +11,15 @@ import java.util.List;
 public abstract class ExtendedSwatchItem {
 
     public List<GradientEntry> entries;
+    public int spreadMethod;
+    public boolean interpolationMethodLinearRGB;
 
+    public ExtendedSwatchItem(List<GradientEntry> entries, int spreadMethod, boolean interpolationMethodLinearRGB) {
+        this.entries = entries;
+        this.spreadMethod = spreadMethod;
+        this.interpolationMethodLinearRGB = interpolationMethodLinearRGB;
+    }
+    
     public ExtendedSwatchItem(GradientEntry... entries) {
         this.entries = Arrays.asList(entries);
     }

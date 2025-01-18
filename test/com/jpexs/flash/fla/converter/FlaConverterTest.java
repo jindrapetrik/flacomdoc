@@ -23,7 +23,6 @@ import com.jpexs.flash.fla.converter.streams.DirectoryInputStorage;
 import com.jpexs.flash.fla.converter.streams.DirectoryOutputStorage;
 import com.jpexs.flash.fla.extractor.FlaCfbExtractor;
 import com.jpexs.helpers.Reference;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileFilter;
@@ -47,11 +46,13 @@ import org.xml.sax.SAXException;
  */
 public class FlaConverterTest {
 
-    private static final String SOURCE_DIR = "testdata/fla/cs5";
+    private static final String ADD = "";
+    
+    private static final String SOURCE_DIR = "testdata/fla" + ADD + "/cs5";
 
-    private static final String EXPECTED_BASE_DIR = "testdata/fla";
+    private static final String EXPECTED_BASE_DIR = "testdata/fla" + ADD;
 
-    private static final String OUTPUT_BASE_DIR = "out/tests/fla";
+    private static final String OUTPUT_BASE_DIR = "out/tests/fla" + ADD;
 
     private Comparator<File> getFileComparator() {
         return new Comparator<File>() {
@@ -91,6 +92,28 @@ public class FlaConverterTest {
     public Object[][] provideFoldersF5() {
         return provideFolders(FlaFormatVersion.F5);
     }
+    
+    @DataProvider(name = "folders-f4")
+    public Object[][] provideFoldersF4() {
+        return provideFolders(FlaFormatVersion.F4);
+    }
+
+    @DataProvider(name = "folders-f3")
+    public Object[][] provideFoldersF3() {
+        return provideFolders(FlaFormatVersion.F3);
+    }
+    
+    @DataProvider(name = "folders-f2")
+    public Object[][] provideFoldersF2() {
+        return provideFolders(FlaFormatVersion.F2);
+    }
+    
+    @DataProvider(name = "folders-f1")
+    public Object[][] provideFoldersF1() {
+        return provideFolders(FlaFormatVersion.F1);
+    }
+
+
 
     private Object[][] provideFolders(FlaFormatVersion flaFormatVersion) {
         File sourceDir = new File(EXPECTED_BASE_DIR + "/" + flaFormatVersion.name().toLowerCase());
@@ -291,6 +314,21 @@ public class FlaConverterTest {
                 apos += 3 - 1;
                 continue;
             }
+            
+            if (apos + 2 < actualData.length
+                    && actualData[apos] == 'M'
+                    && actualData[apos + 1] == 'M'
+                    && actualData[apos + 2] == 'M') {
+                int numItems = (expectedData[epos] & 0xFF) + ((expectedData[epos+1] & 0xFF) << 8);
+                epos += 2;
+                for (int i = 0; i < numItems; i++) {
+                    epos = readString(expectedData, epos, flaFormatVersion);
+                    epos = readString(expectedData, epos, flaFormatVersion);
+                }
+                epos -= 1;
+                apos += 3 - 1;
+                continue;
+            }
 
             if (apos + 3 < actualData.length && actualData[apos] == 3
                     && actualData[apos + 1] == 'Y'
@@ -346,6 +384,39 @@ public class FlaConverterTest {
         assertEquals(epos, expectedData.length, "The file " + actualFile + " is shorter than expected file");
 
     }
+    
+    private int readString(byte[] data, int pos, FlaFormatVersion flaFormatVersion) {        
+        if (flaFormatVersion.isUnicode()) {
+            pos += 3;
+        }
+        int len = data[pos] & 0xFF;
+        pos++;
+        if (len == 0xFF) {
+            len = (data[pos] & 0xFF) + ((data[pos + 1] & 0xFF) << 8);
+            pos += 2;
+        }
+        if (len == 0xFFFF) {
+            len = (data[pos] & 0xFF) + ((data[pos + 1] & 0xFF) << 8)+ ((data[pos + 2] & 0xFF) << 16) + ((data[pos + 3] & 0xFF) << 24);
+            pos += 4;
+        }      
+        
+        if (flaFormatVersion.isUnicode()) {
+            len *= 2;
+        }
+        /*byte[] subdata = Arrays.copyOfRange(data, pos, pos + len);
+        if (flaFormatVersion.isUnicode()) {
+            try {
+                System.out.println("STR: \"" + new String(subdata, "UTF-16LE") +"\"");
+            } catch (UnsupportedEncodingException ex) {
+                Logger.getLogger(FlaConverterTest.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else {
+            System.out.println("STR: \"" + new String(subdata) +"\"");
+        }*/
+        
+        pos += len;
+        return pos;
+    }
 
     @Test(dataProvider = "folders-cs4")
     public void testConvertCs4(String folder) throws Exception {
@@ -376,6 +447,28 @@ public class FlaConverterTest {
     public void testConvertF5(String folder) throws Exception {
         convert(folder, FlaFormatVersion.F5);
     }
+    
+    /*@Test(dataProvider = "folders-f4")
+    public void testConvertF4(String folder) throws Exception {
+        convert(folder, FlaFormatVersion.F4);
+    }
+
+    @Test(dataProvider = "folders-f3")
+    public void testConvertF3(String folder) throws Exception {
+        convert(folder, FlaFormatVersion.F3);
+    }
+    
+    @Test(dataProvider = "folders-f2")
+    public void testConvertF2(String folder) throws Exception {
+        convert(folder, FlaFormatVersion.F2);
+    }
+    
+    @Test(dataProvider = "folders-f1")
+    public void testConvertF1(String folder) throws Exception {
+        convert(folder, FlaFormatVersion.F1);
+    }
+*/
+
 
     //@Test
     public void singleTest() throws Exception {

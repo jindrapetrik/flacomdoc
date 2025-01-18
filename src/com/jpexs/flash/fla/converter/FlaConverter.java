@@ -78,6 +78,9 @@ public class FlaConverter extends AbstractConverter {
 
     public FlaConverter(FlaFormatVersion flaFormatVersion) {
         super(flaFormatVersion);
+        if (flaFormatVersion.ordinal() < FlaFormatVersion.F5.ordinal()) {
+            throw new UnsupportedOperationException("Version " + flaFormatVersion + " is not supported yet");
+        }
     }
 
     private void writeTime(FlaWriter fg, long time) throws IOException {
@@ -158,7 +161,7 @@ public class FlaConverter extends AbstractConverter {
         return sb.toString();
     }
 
-    protected List<SolidSwatchItem> solidSwatches = Arrays.asList(
+    protected List<SolidSwatchItem> defaultSolidSwatches = Arrays.asList(
             new SolidSwatchItem(0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
             new SolidSwatchItem(0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
             new SolidSwatchItem(0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
@@ -413,7 +416,7 @@ public class FlaConverter extends AbstractConverter {
             new SolidSwatchItem(0xFF, 0xFF, 0xFF, 0x00, 0x00, 0xF0)
     );
 
-    protected List<ExtendedSwatchItem> extendedSwatches = Arrays.asList(
+    protected List<ExtendedSwatchItem> defaultExtendedSwatches = Arrays.asList(
             new LinearGradientSwatchItem(new GradientEntry(new Color(0xFF, 0xFF, 0xFF), 0), new GradientEntry(1)),
             new RadialGradientSwatchItem(new GradientEntry(new Color(0xFF, 0xFF, 0xFF), 0), new GradientEntry(1)),
             new RadialGradientSwatchItem(new GradientEntry(new Color(0xFF, 0x00, 0x00), 0), new GradientEntry(1)),
@@ -659,21 +662,24 @@ public class FlaConverter extends AbstractConverter {
                 fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x01);
             } else {
                 fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
-                        0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-                        flaFormatVersion.getSpriteVersionC());
+                        0x01, 0x00, 0x00, 0x00, 
+                        0x01, 0x00, 0x00, 0x00,
+                        flaFormatVersion.getSpriteVersionC()); //getDocumentPageVersionC
+                fg.write(0x00, 0x00, 0x00);
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
                     fg.write(0x00);
                 }
-                fg.write(0x00, 0x00, 0x00);
                 fg.writeBomString("");
                 fg.writeBomString("");
                 fg.writeBomString("");
 
-                fg.write(0x00, flaFormatVersion.getSpriteVersionF(), 0x00, 0x00, 0x00);
+                fg.write(0x00, 
+                        flaFormatVersion.getSpriteVersionF(), 
+                        0x00, 0x00, 0x00);
                 fg.writeBomString("");
                 fg.writeBomString("");
-                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                        0x01, 0x00,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0xFF, 0xFF, 0xFF, 0xFF);
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
@@ -683,8 +689,9 @@ public class FlaConverter extends AbstractConverter {
                         fg.writeBomString("");
                     }
                     fg.write(
-                            flaFormatVersion.getSpriteVersionD(),
-                            0x00, 0x00, 0x00, 0x00);
+                            flaFormatVersion.getSpriteVersionD(), //getDocumentPageVersionD
+                            0x00, 
+                            0x00, 0x00, 0x00);
                     fg.writeBomString("");
                     fg.write(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
                             0x00, 0x00, 0x00, 0x00);
@@ -798,8 +805,8 @@ public class FlaConverter extends AbstractConverter {
                 "points",
                 "centimeters",
                 "millimeters",
-                "pixels"
-        ), "pixels");
+                "pixels" // not in F1
+        ), "pixels"); //F1 defaults to "inches"
 
         float frameRate = 24;
         if (document.hasAttribute("frameRate")) {
@@ -818,9 +825,19 @@ public class FlaConverter extends AbstractConverter {
                 fg.setDebugRandom(true);
             }
             fg.write(flaFormatVersion.getContentsVersion());
-            fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00
-            );
+            fg.write(flaFormatVersion.getContentsVersionB());
+            
+            fg.write(0x00, 0x00, 0x00);
+            
+            if (flaFormatVersion.ordinal() >= flaFormatVersion.F3.ordinal()) {
+                fg.write(0x00);
+            }
+            if (flaFormatVersion.ordinal() >= flaFormatVersion.F4.ordinal()) {
+                fg.write(0x00);
+            }
+            if (flaFormatVersion.ordinal() >= flaFormatVersion.F5.ordinal()) {
+                fg.write(0x00, 0x00, 0x00, 0x00);
+            }                                                
 
             if (flaFormatVersion.ordinal() >= flaFormatVersion.MX.ordinal()) {
                 fg.write(0x00, 0x00, 0x00, 0x00);
@@ -861,163 +878,163 @@ public class FlaConverter extends AbstractConverter {
 
                 String pageName = "P " + pageCount + " " + getTimeCreatedAsString();
 
-                String debugPageName = "P X " + getTimeCreatedAsString();
+                String debugPageName = "YYY"; //"P X " + getTimeCreatedAsString();
 
                 fg.writeString(debugRandom ? debugPageName : pageName);
                 fg.writeBomString(sceneName);
-                fg.write(
-                        0x00, 0x00,
-                        0x00, 0x00, 0x00);
-                fg.writeBomString("");
-                fg.write(0x01, 0x00, 0x00, 0x00, flaFormatVersion.getDocumentPageVersionE(),
-                        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
-                        0x00, 0x00, 0x00);
+                fg.write(0x00, 0x00); //symbolId:UI16. FIXME? Is it 32 bit?
+                fg.write(0x00, 0x00);                
+                fg.write(0x00); //symbolType
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
+                    fg.writeBomString("");                
+                    fg.write(0x01, 0x00, 0x00, 0x00, flaFormatVersion.getDocumentPageVersionE(),
+                            0x00, 
+                            0x00, 0x00, 
+                            0x01, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //parent folder id
+                            0x01, 0x00, 0x00, 0x00);
 
-                String pageItemID = generateItemID(generatedItemIdOrder);
+                    String pageItemID = generateItemID(generatedItemIdOrder);
 
-                fg.writeItemID(pageItemID);
-
-                if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
+                    fg.writeItemID(pageItemID);
+                    //begin AsLinkage
+                    fg.write(0x00, 0x00, 0x00, 0x00);
+                }
+                
+                if (flaFormatVersion.ordinal() == FlaFormatVersion.F5.ordinal()) {
                     fg.write(0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00,
                             0x00, 0x00, 0x00);
-                } else {
-                    fg.write(0x00, 0x00, 0x00, 0x00, flaFormatVersion.getDocumentPageVersionB(),
-                            0x00, 0x00, 0x00, 0x00);
-                    fg.writeBomString("");
-                    fg.writeBomString("");
-                    fg.writeBomString("");
+                }
+                if (flaFormatVersion.ordinal() >= flaFormatVersion.MX.ordinal()) {
+                    fg.write(flaFormatVersion.getDocumentPageVersionB(), //getAsLinkageVersion
+                            0x00, //linkageExportForAS | linkageImportForRS
+                            0x00, 0x00, 0x00);
+                    fg.writeBomString(""); //linkageIdentifier
+                    fg.writeBomString(""); //linkageURL
+                    
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                        fg.writeBomString(""); //linkageClassName
+                    }
+
+                    fg.write(debugRandom ? 'X' : 0); //linkageFlags
 
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                        fg.write(0x00, 0x02);
+                        fg.write(0x02); //getAsLinkageVersionB
                     } else {
-                        fg.write(0x01);
+                        fg.write(0x01); //getAsLinkageVersionB
                     }
 
                     fg.write(0x00, 0x00, 0x00);
                     fg.writeBomString("");
-                    fg.writeBomString("");
+                    fg.writeBomString(""); //sourceLibraryItemHRef
 
-                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00, 0x00,
-                            0xFF, 0xFF, 0xFF, 0xFF);
+                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                             0x01, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00, 0x00,
+                             0xFF, 0xFF, 0xFF, 0xFF);
                 }
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
                     fg.write(0x00);
                 }
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-                    fg.writeBomString("");
+                    fg.writeBomString(""); //linkageBaseClass
                     fg.write(0x00);
                 }
+                //end of AsLinkage
+                
                 writeTimeCreated(fg);
                 fg.writeBomString("");
                 fg.writeBomString("");
 
                 if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
-                    fg.write(0x01, 0x00, 0x00, 0x00);
-                    fg.write(0x00, 0x01, 0x00, 0x00);
-                    fg.write(0x00, 0x00, 0x00, 0x00);
-                    fg.write(0x00, 0x00, 0x00, 0x00);
+                    fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x01);
                 } else {
-                    fg.write(
-                            0x02, 0x00, 0x00, 0x00, 0x00,
-                            0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-                            flaFormatVersion.getDocumentPageVersionC(), 0x00, 0x00, 0x00, 0x00);
+                    fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
+                            debugRandom ? 'U' : 0x01, //NEW - different from sprite
+                            0x00, 0x00, 0x00, 
+                            0x01, 0x00, 0x00, 0x00,
+                            flaFormatVersion.getSpriteVersionC()); //getDocumentPageVersionC
+                    fg.write(0x00, 0x00, 0x00);
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                        fg.write(0x00);
+                    }
                     fg.writeBomString("");
                     fg.writeBomString("");
                     fg.writeBomString("");
 
-                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                        fg.write(0x00, 0x02);
-                    } else {
-                        fg.write(0x01);
-                    }
-                    fg.write(0x00, 0x00, 0x00);
+                    fg.write(0x00, 
+                            flaFormatVersion.getSpriteVersionF(), 
+                            0x00, 0x00, 0x00);
                     fg.writeBomString("");
                     fg.writeBomString("");
-                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
-                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                            0x01, 0x00,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                             0xFF, 0xFF, 0xFF, 0xFF);
 
-                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-                        fg.write(0x00);
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+
+                        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                            fg.write(0x00);
+                            fg.writeBomString("");
+                        }
+                        fg.write(
+                                flaFormatVersion.getSpriteVersionD(), //getDocumentPageVersionD
+                                0x00, 
+                                0x00, 0x00, 0x00);
                         fg.writeBomString("");
-                    }
-                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                        fg.write(flaFormatVersion.getDocumentPageVersionD(), 0x00);
-                    } else {
-                        fg.write(0x00, 0x02);
-                    }
-                    fg.write(0x00, 0x00, 0x00);
-                    fg.writeBomString("");
-                    fg.write(0x00, 0x00, 0x00, 0x00);
-                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                        fg.write(0x01, 0x00);
-                    } else {
-                        fg.write(0x00, 0x02);
-                    }
-                    fg.write(0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00);
-                    fg.writeBomString("");
-                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                        fg.write(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+                                0x00, 0x00, 0x00, 0x00);
+                        fg.writeBomString("");
                         fg.write(0x03);
                         fg.writeBomString("");
+                        fg.write(0x00, 0x00, 0x00,
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x03);
+                        fg.writeBomString("");
+                        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                0x00, 0x00, 0x03);
+                        fg.writeBomString("");
+                    } else {
+                        fg.write(0x00, flaFormatVersion.getSpriteVersionD());
                     }
-                    fg.write(0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00, 0x00);
-                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                        fg.write(0x03);
-                    }
+                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
                     fg.writeBomString("");
-                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-                }
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                    fg.write(0x02, 0x00, 0x00, 0x00, 0x00);
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                        fg.write(debugRandom ? 'U' : 0x01, //NEW - different from sprite
+                                0x00);
+                    }
                     fg.write(0x00, 0x00);
-                    fg.write(0x03);
                     fg.writeBomString("");
-                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-                    fg.writeBomString("");
-
-                    fg.write(0x02, 0x00, 0x00, 0x00);
-                    fg.write(0x00, 0x01, 0x00,
-                            0x00, 0x00);
-                    fg.writeBomString("");
-                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0x00);
+                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00);
                 }
+                fg.write(0x00, 0x00, 0x00);
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
                     fg.write(0x00, 0x00, 0x00, 0x00);
                 }
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
-                    fg.write(
-                            0x01, 0x00, 0x00, 0x00);
+                    fg.write(0x01, 0x00, 0x00, 0x00);
                     fg.writeBomString("");
                     fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
                 }
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                    fg.writeBomString("");
-                    fg.writeBomString("");
 
-                    fg.write(debugRandom ? 'U' : 0x00, 0x00, 0x00, 0x00);
-                    fg.writeBomString("");
-                }
+                fg.writeBomString("");
+                fg.writeBomString("");
+                fg.write(0x00, 0x00, 0x00, 0x00);
+                fg.writeBomString("");
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-                    fg.write(0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x80,
-                            0x00, 0x00, 0x00, 0x80,
-                            0x00, 0x00, 0x00, 0x80,
-                            0x00, 0x00, 0x00, 0x80);
+                    fg.write(0x00, 0x00, 0x00, 0x00, //scaleGrid toggle
+                                0x00, 0x00, 0x00, 0x80, //scaleGridRight
+                                0x00, 0x00, 0x00, 0x80, //scaleGridLeft
+                                0x00, 0x00, 0x00, 0x80, //scaleGridBottom
+                                0x00, 0x00, 0x00, 0x80); //scaleGridTop
+                }
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+                    fg.write(0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
                 }
 
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
-                    fg.write(0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00,
-                            0x00);
-                }
                 if (flaFormatVersion == FlaFormatVersion.CS4) {
                     fg.write(0x00, 0x00);
                 }
@@ -1143,15 +1160,17 @@ public class FlaConverter extends AbstractConverter {
             }
 
             fg.write(
-                    rulerUnitType,
-                    0x00, gridVisible ? 3 : 0, 0x00,
-                    0x00, 0x00, 0x00);
+                    rulerUnitType, //in F1 always 1
+                    0x00, 
+                    gridVisible ? 3 : 0, 
+                    0x00, 0x00, 0x00, 0x00
+            );
 
             fg.writeUI16(width * 20);
-            fg.write(0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00);
+            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
             fg.writeUI16(height * 20);
-
+            fg.write(0x00, 0x00, 0x00, 0x00);
+            
             boolean rulerVisible = false;
             if (document.hasAttribute("rulerVisible")) {
                 rulerVisible = "true".equals(document.getAttribute("rulerVisible"));
@@ -1161,18 +1180,79 @@ public class FlaConverter extends AbstractConverter {
             if (document.hasAttribute("gridColor")) {
                 gridColor = parseColor(document.getAttribute("gridColor"));
             }
-
-            fg.write(0x00, 0x00, 0x00, 0x00);
+            
             fg.writeUI16(gridSpacingX * 20);
 
-            fg.write(0x03, rulerVisible ? 1 : 0,
-                    0 //?? sometimes 1. magic
+            boolean pageTabsVisible = false; //"View/Page tabs"
+                       
+            int previewMode = getAttributeAsInt(document, "previewMode", Arrays.asList(
+                "outlines",
+                "fast",
+                "anti alias",
+                "anti alias text",
+                "full"
+            ), "anti alias text");
+            
+            fg.write(                                    
+                    previewMode, 
+                    rulerVisible ? 1 : 0,
+                    pageTabsVisible ? 1 : 0
             );
-            if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
-                fg.write(0x85);
-            } else {
-                fg.write(0x8D);
+            
+            
+            //NO EFFECT:
+            //"View/Toolbars..."
+            //"View/Symbol palette"
+            //"View/100%, Show Page, Show All", zooming in general
+            //"Tools/Snap"
+            //"Tools/Assistant"
+            //"Tools/Options"
+            //"Frame view" dropdown menu
+            //"Anchor onion marks" button
+            //"Onion skin" button
+            
+            
+            //"View/Timeline and Layers" = +1       viewOptionsAnimationControlVisible
+            //"Play/Buttons active" = +2            viewOptionsButtonsActive
+            //"View/Show work area" = +4            viewOptionsPasteBoardView
+            //"Control/Enable live preview" = +8    viewOptionsLivePreview
+            //"Play/Loop" = +0x10                   playOptionsPlayLoop
+            //"Play/Play all pages" = +0x20         playOptionsPlayPages
+            //"Play/Do frame actions" = +0x40       playOptionsPlayFrameActions
+            //"Play/Play sounds" = +0x80            playOptionsPlaySounds
+                                    
+            int viewOptions = 0;
+            
+            if (!document.getAttribute("viewOptionsAnimationControlVisible").equals("false")) {
+                viewOptions += 1;
             }
+            if (document.getAttribute("viewOptionsButtonsActive").equals("true")) {
+                viewOptions += 2;
+            }
+            if (!document.getAttribute("viewOptionsPasteBoardView").equals("false")) {
+                viewOptions += 4;
+            }
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal() 
+                    && !document.getAttribute("viewOptionsLivePreview").equals("false")) {
+                viewOptions += 8;
+            }
+            
+            int playOptions = 0;
+            if (!document.getAttribute("playOptionsPlayLoop").equals("false")) {
+                playOptions += 1;
+            }
+            if (!document.getAttribute("playOptionsPlayPages").equals("false")) {
+                playOptions += 2;
+            }
+            if (!document.getAttribute("playOptionsPlayFrameActions").equals("false")) {
+                playOptions += 4;
+            }
+            if (!document.getAttribute("playOptionsPlaySounds").equals("false")) {
+                playOptions += 8;
+            }
+            
+            fg.write((playOptions << 4) + viewOptions);
+                       
             fg.write(0x00, 0x68,
                     0x01, 0x00, 0x00, 0x68, 0x01, 0x00, 0x00, 0x68,
                     0x01, 0x00, 0x00, 0x68, 0x01, 0x00, 0x00, 0x01,
@@ -1256,8 +1336,8 @@ public class FlaConverter extends AbstractConverter {
             fg.write(0xFF, 0xFF, 0xFF, 0xFF);
             fg.writeBomString("");
             fg.writeBomString("");
-            fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFC, 0x00);
-            writeColorDef(fg, flaFormatVersion, definedClasses, objectsCount);
+            fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00);
+            writeColorDef(document, fg, flaFormatVersion, definedClasses, objectsCount);
 
             Element foldersElement = getSubElementByName(document, "folders");
             List<Element> domFolderItems = new ArrayList<>();
@@ -2091,24 +2171,112 @@ public class FlaConverter extends AbstractConverter {
 
     }
 
-    protected void writeColorDef(FlaWriter dw, FlaFormatVersion flaFormatVersion, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws IOException {
+    protected void writeColorDef(Element document, FlaWriter dw, FlaFormatVersion flaFormatVersion, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws IOException {
+        
+        List<SolidSwatchItem> solidSwatches = new ArrayList<>();        
+        List<ExtendedSwatchItem> extendedSwatches = new ArrayList<>();
+        
+        Element swatchListsElement = getSubElementByName(document, "swatchLists");
+        if (swatchListsElement != null) {
+            List<Element> swatchLists = getAllSubElementsByName(swatchListsElement, "swatchList");
+            for (Element swatchListElement : swatchLists) {
+                Element swatchesElement = getSubElementByName(swatchListElement, "swatches");
+                if (swatchesElement != null) {
+                    List<Element> solidSwatchItems = getAllSubElementsByName(swatchesElement, "SolidSwatchItem");
+                    for (Element solidSwatchItem : solidSwatchItems) {
+                        Color color = parseColorWithAlpha(solidSwatchItem);
+                        String hueStr = solidSwatchItem.getAttribute("hue");
+                        if (hueStr.equals("")) {
+                            hueStr = "0";
+                        }
+                        String saturationStr = solidSwatchItem.getAttribute("saturation");
+                        if (saturationStr.equals("")) {
+                            saturationStr = "0";
+                        }
+                        String brightnessStr = solidSwatchItem.getAttribute("brightness");
+                        if (brightnessStr.equals("")) {
+                            brightnessStr = "0";
+                        }
+                        int hue = Integer.parseInt(hueStr);
+                        int saturation = Integer.parseInt(saturationStr);
+                        int brightness = Integer.parseInt(brightnessStr);
+                        
+                        solidSwatches.add(new SolidSwatchItem(color.getRed(),color.getGreen(),color.getBlue(),color.getAlpha(),hue,saturation,brightness));
+                    }
+                }
+            }
+        }    
+        
+        Element extendedSwatchListsElement = getSubElementByName(document, "extendedSwatchLists");
+        if (extendedSwatchListsElement != null) {
+            List<Element> swatchLists = getAllSubElementsByName(extendedSwatchListsElement, "swatchList");
+            for (Element swatchListElement : swatchLists) {
+                Element swatchesElement = getSubElementByName(swatchListElement, "swatches");
+                if (swatchesElement != null) {
+                    List<Element> swatches = getAllSubElements(swatchesElement);
+                    for (Element swatch : swatches) {
+                        List<GradientEntry> gradientEntries = new ArrayList<>();
+                    
+                        switch (swatch.getNodeName()) {
+                            case "LinearGradientSwatchItem":
+                            case "RadialGradientSwatchItem":
+                                List<Element> gradientEntryElements = getAllSubElementsByName(swatch, "GradientEntry");
+                                for (Element gradientEntry: gradientEntryElements) {
+                                    Color gradColor = parseColorWithAlpha(gradientEntry);
+                                    float ratio = 0;
+                                    if (gradientEntry.hasAttribute("ratio")) {
+                                        ratio = Float.parseFloat(gradientEntry.getAttribute("ratio"));
+                                    }
+                                    gradientEntries.add(new GradientEntry(gradColor, ratio));
+                                }
+                                break;
+                        }
+                        
+                        boolean linearRGB = swatch.getAttribute("interpolationMethod").equals("linearRGB");
 
-        //254 swatches        
+                        int spreadMethod = FlaWriter.FLOW_EXTEND;
+                        switch(swatch.getAttribute("spreadMethod")) {
+                            case "reflect":
+                                spreadMethod = FlaWriter.FLOW_REFLECT;
+                                break;
+                            case "repeat":
+                                spreadMethod = FlaWriter.FLOW_REPEAT;
+                                break;
+                        }
+                
+                        switch (swatch.getNodeName()) {
+                            case "LinearGradientSwatchItem":
+                                extendedSwatches.add(new LinearGradientSwatchItem(gradientEntries, spreadMethod, linearRGB));
+                                break;
+                            case "RadialGradientSwatchItem":
+                                extendedSwatches.add(new RadialGradientSwatchItem(gradientEntries, spreadMethod, linearRGB));
+                                break;
+                        }
+                    }                    
+                }
+            }
+        }
+
+        if (solidSwatches.isEmpty() && extendedSwatches.isEmpty()) {
+            solidSwatches.addAll(defaultSolidSwatches);           
+            extendedSwatches.addAll(defaultExtendedSwatches);            
+        }
+       
+                
+        dw.writeUI16(solidSwatches.size());
         for (int s = 0; s < solidSwatches.size(); s++) {
             useClass("CColorDef", 0x00, dw, definedClasses, objectsCount);
             dw.write(flaFormatVersion.getColorDefVersion());
             SolidSwatchItem sw = solidSwatches.get(s);
-            dw.write(sw.red, sw.green, sw.blue, 0xFF, 0x00, 0x00, sw.hue, 0x00, sw.saturation, 0x00, sw.brightness);
-            dw.write(0x00);
+            dw.write(sw.red, sw.green, sw.blue, sw.alpha, 0x00, 0x00, sw.hue, 0x00, sw.saturation, 0x00, sw.brightness, 0x00);
         }
 
         if (flaFormatVersion == FlaFormatVersion.CS4) {
             dw.write(0x01);
         }
-
-        dw.write(0x00, extendedSwatches.size());
         dw.write(0x00);
-
+        dw.writeUI16(extendedSwatches.size());
+        
         for (int x = 0; x < extendedSwatches.size(); x++) {
             ExtendedSwatchItem ex = extendedSwatches.get(x);
             useClass("CColorDef", 0x00, dw, definedClasses, objectsCount);
@@ -2126,13 +2294,16 @@ public class FlaConverter extends AbstractConverter {
             }
             //}
             dw.write(0xFF, ex.getType(), 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, ex.entries.size());
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                    ex.entries.size());
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-                dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-            }
+                dw.write(0x00,//focalRatio
+                        0x00, 0x00, 0x00, 
+                        ex.spreadMethod + (ex.interpolationMethodLinearRGB ? 1 : 0), 0x00, 0x00, 0x00);
+            }            
             for (GradientEntry en : ex.entries) {
                 int r = (int) Math.round(en.ratio * 255);
-                dw.write(r, en.color.getRed(), en.color.getGreen(), en.color.getBlue(), 0xFF);
+                dw.write(r, en.color.getRed(), en.color.getGreen(), en.color.getBlue(), en.color.getAlpha());
             }
             dw.write(0x00, 0x00);
             /*if (x == 5) { //WTF are these?
@@ -2187,6 +2358,10 @@ public class FlaConverter extends AbstractConverter {
     }
 
     protected void writeMap(FlaWriter dw, Map<String, String> map) throws IOException {
+        if (debugRandom) {
+            //dw.write('M', 'M', 'M');
+            //return;
+        }
         dw.writeUI16(map.size());
         for (String key : map.keySet()) {
             String val = map.get(key);

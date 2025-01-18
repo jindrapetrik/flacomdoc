@@ -23,14 +23,22 @@ package com.jpexs.flash.fla.converter;
  * @author JPEXS
  */
 public enum FlaFormatVersion {
-    F5(0x20, 0x0C, 3, 3, 5, 5, 3, 1, 1, 0x15, 0, 1, 0x08, 1, 0, 3, 2, 5, 1, 3, 5, 0x08, 2, 1, 3, 1, 5, 5, 5, 5, 1, 1, 1, 1, 5, 3, 5, 5, 7, 5, 5, 3, 5, 1, 0, 1, 0, 3, 5, 1, 1, 0, 0, false),
-    MX(0x29, 0x11, 3, 3, 5, 5, 3, 1, 1, 0x16, 1, 1, 0x0A, 1, 1, 3, 2, 5, 1, 6, 8, 0x0A, 2, 1, 3, 1, 7, 5, 9, 7, 1, 1, 1, 1, 5, 3, 5, 5, 8, 5, 5, 3, 5, 1, 3, 1, 3, 3, 5, 1, 1, 0, 0, false),
-    MX2004(0x38, 0x16, 5, 5, 5, 6, 3, 2, 2, 0x17, 4, 2, 0x0B, 2, 4, 5, 5, 6, 2, 8, 0xB, 0x0E, 2, 2, 4, 2, 0xA, 6, 0xC, 0xA, 2, 2, 2, 2, 6, 3, 6, 6, 9, 6, 6, 5, 6, 2, 5, 2, 5, 4, 6, 2, 2, 0, 0, true),
-    F8(0x3F, 0x17, 7, 7, 6, 6, 4, 4, 4, 0x18, 4, 4, 0x0B, 4, 4, 7, 6, 6, 2, 8, 0xB, 0x13, 3, 2, 4, 2, 0xC, 6, 0xD, 0xC, 4, 4, 4, 4, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 9, 494, true),
-    CS3(0x43, 0x18, 7, 7, 7, 6, 4, 5, 5, 0x1A, 5, 5, 0x0B, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x13, 6, 2, 4, 2, 0xC, 6, 0xD, 0xC, 5, 5, 5, 5, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 10, 544, true),
-    CS4(0x47, 0x19, 7, 7, 7, 6, 4, 5, 5, 0x1D, 5, 5, 0x0D, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x16, 6, 2, 4, 3, 0xF, 6, 0xE, 0xF, 5, 5, 5, 5, 7, 4, 6, 7, 0xA, 6, 7, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 11, 485, true);
+    //F1-F4 Work in progress
+    F1(0x10, 0, 3, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
+    F2(0x11, 0, 3, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
+    F3(0x14, 0, 4, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
+    F4(0x1B, 0, 8, -1, -1, -1, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
+    
+    //Already working:
+    F5(0x20, 1, 0x0C, 3, 3, 5, 5, 3, 1, 1, 0x15, 0, 1, 0x08, 1, 0, 3, 2, 5, 1, 3, 5, 0x08, 2, 1, 3, 1, 5, 5, 5, 5, 1, 1, 1, 1, 5, 3, 5, 5, 7, 5, 5, 3, 5, 1, 0, 1, 0, 3, 5, 1, 1, 0, 0, false),
+    MX(0x29, 1, 0x11, 3, 3, 5, 5, 3, 1, 1, 0x16, 1, 1, 0x0A, 1, 1, 3, 2, 5, 1, 6, 8, 0x0A, 2, 1, 3, 1, 7, 5, 9, 7, 1, 1, 1, 1, 5, 3, 5, 5, 8, 5, 5, 3, 5, 1, 3, 1, 3, 3, 5, 1, 1, 0, 0, false),
+    MX2004(0x38, 1, 0x16, 5, 5, 5, 6, 3, 2, 2, 0x17, 4, 2, 0x0B, 2, 4, 5, 5, 6, 2, 8, 0xB, 0x0E, 2, 2, 4, 2, 0xA, 6, 0xC, 0xA, 2, 2, 2, 2, 6, 3, 6, 6, 9, 6, 6, 5, 6, 2, 5, 2, 5, 4, 6, 2, 2, 0, 0, true),
+    F8(0x3F, 1, 0x17, 7, 7, 6, 6, 4, 4, 4, 0x18, 4, 4, 0x0B, 4, 4, 7, 6, 6, 2, 8, 0xB, 0x13, 3, 2, 4, 2, 0xC, 6, 0xD, 0xC, 4, 4, 4, 4, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 9, 494, true),
+    CS3(0x43, 1, 0x18, 7, 7, 7, 6, 4, 5, 5, 0x1A, 5, 5, 0x0B, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x13, 6, 2, 4, 2, 0xC, 6, 0xD, 0xC, 5, 5, 5, 5, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 10, 544, true),
+    CS4(0x47, 1, 0x19, 7, 7, 7, 6, 4, 5, 5, 0x1D, 5, 5, 0x0D, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x16, 6, 2, 4, 3, 0xF, 6, 0xE, 0xF, 5, 5, 5, 5, 7, 4, 6, 7, 0xA, 6, 7, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 11, 485, true);
 
     private final int contentsVersion;
+    private final int contentsVersionB;
     private final int documentPageVersion;
     private final int documentPageVersionB;
     private final int documentPageVersionC;
@@ -88,6 +96,7 @@ public enum FlaFormatVersion {
 
     FlaFormatVersion(
             int contentsVersion,
+            int contentsVersionB,
             int documentPageVersion,
             int documentPageVersionB,
             int documentPageVersionC,
@@ -143,6 +152,7 @@ public enum FlaFormatVersion {
             boolean unicode
     ) {
         this.contentsVersion = contentsVersion;
+        this.contentsVersionB = contentsVersionB;
         this.documentPageVersion = documentPageVersion;
         this.documentPageVersionB = documentPageVersionB;
         this.documentPageVersionC = documentPageVersionC;
@@ -200,6 +210,10 @@ public enum FlaFormatVersion {
 
     public int getContentsVersion() {
         return contentsVersion;
+    }
+
+    public int getContentsVersionB() {
+        return contentsVersionB;
     }
 
     public int getDocumentPageVersion() {

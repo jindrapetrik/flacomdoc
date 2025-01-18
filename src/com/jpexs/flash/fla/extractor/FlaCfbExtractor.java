@@ -60,13 +60,13 @@ public class FlaCfbExtractor {
         for (File file : new File(inputDir).listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
-                return name.endsWith(".fla");
+                return name.endsWith(".fla") || name.endsWith(".spa");
             }
 
         })) {
             System.out.println("========== Extracting " + file);
             CompoundFileBinary cfb = new CompoundFileBinary(file);
-            String outDir = inputDir + "/" + file.getName().replace(".fla", "") + "/";
+            String outDir = inputDir + "/" + file.getName().replace(".fla", "").replace(".spa", "") + "/";
             new File(outDir).mkdir();
             for (DirectoryEntry de : cfb.getDirectoryEntries()) {
                 System.out.println("" + de);

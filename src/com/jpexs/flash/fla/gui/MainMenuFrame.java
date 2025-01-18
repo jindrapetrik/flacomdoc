@@ -217,12 +217,12 @@ public class MainMenuFrame extends JFrame {
                     return true;
                 }
                 String n = f.getName().toLowerCase();
-                return n.endsWith(".fla");
+                return n.endsWith(".fla") || n.endsWith(".spa");
             }
 
             @Override
             public String getDescription() {
-                return "FLA ComDoc documents - CS4 and lower (*.fla)";
+                return "FLA ComDoc documents - CS4 and lower (*.fla,*.spa)";
             }
 
         });
