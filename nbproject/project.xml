@@ -208,6 +208,9 @@ auxiliary.show.customizer.message=<message>
                         <location>CHANGELOG.md</location>
                     </source-file>
                     <source-file>
+                        <location>SWF_VERSION_DIFF.md</location>
+                    </source-file>
+                    <source-file>
                         <location>.gitignore</location>
                     </source-file>
                     <source-file>
