@@ -124,7 +124,18 @@ public class Main {
                 System.out.println(" OR ");
                 System.out.println("java -jar flacomdoc.jar extract inputfile.fla outputdir");
                 System.out.println();
-                System.out.println("Available formats for --format: CS3, CS4");
+                System.out.print("Available formats for --format: ");
+                boolean first = true;
+                for (FlaFormatVersion v : FlaFormatVersion.values()) {
+                    if (v.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                        if (!first) {
+                            System.out.print(", ");
+                        }
+                        first = false;
+                        System.out.print(v.toString());
+                    }
+                }
+                System.out.println();
                 break;
             case "convert": {
 
