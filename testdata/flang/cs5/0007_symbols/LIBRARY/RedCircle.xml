@@ -1,0 +1,39 @@
+<DOMSymbolItem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://ns.adobe.com/xfl/2008/" name="RedCircle" itemID="6783d06d-00000017" symbolType="graphic" lastModified="1736691821">
+  <timeline>
+    <DOMTimeline name="RedCircle">
+      <layers>
+        <DOMLayer name="Layer 1" color="#FF0000" current="true" isSelected="true" autoNamed="false">
+          <frames>
+            <DOMFrame index="0" keyMode="9728">
+              <elements>
+                <DOMShape selected="true" isFloating="true">
+                  <matrix>
+                    <Matrix tx="-317.65" ty="-149.6"/>
+                  </matrix>
+                  <fills>
+                    <FillStyle index="1">
+                      <SolidColor color="#FF0000"/>
+                    </FillStyle>
+                  </fills>
+                  <strokes>
+                    <StrokeStyle index="1">
+                      <SolidStroke scaleMode="normal">
+                        <fill>
+                          <SolidColor/>
+                        </fill>
+                      </SolidStroke>
+                    </StrokeStyle>
+                  </strokes>
+                  <edges>
+                    <Edge fillStyle1="1" strokeStyle="1" edges="!6825 3464S6[6630 3660 6353 3660!6353 3660[6076 3660 5880 3464!5880 3464[5685 3269 5685 2992!5685 2992[5685 2715 5880 2519!5880 2519[6076 2324 6353 2324!6353 2324[6630 2324 6825 2519!6825 2519[7021 2715 7021 2992!7021 2992[7021 3269 6825
+ 3464"/>
+                  </edges>
+                </DOMShape>
+              </elements>
+            </DOMFrame>
+          </frames>
+        </DOMLayer>
+      </layers>
+    </DOMTimeline>
+  </timeline>
+</DOMSymbolItem>
