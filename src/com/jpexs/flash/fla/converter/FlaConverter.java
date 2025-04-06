@@ -486,13 +486,16 @@ public class FlaConverter extends AbstractConverter {
         }
 
         dw.write(0x00, 0x00,
-                0x00, 0x00, flaFormatVersion.getAsLinkageVersion());
+                0x00, 0x00);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+            dw.write(flaFormatVersion.getAsLinkageVersion());
 
-        dw.write((linkageExportForAS ? 1 : 0) + (linkageImportForRS ? 2 : 0));
-        dw.write(0x00, 0x00, 0x00
-        );
-        dw.writeBomString(linkageIdentifier);
-        dw.writeBomString(linkageURL);
+            dw.write((linkageExportForAS ? 1 : 0) + (linkageImportForRS ? 2 : 0));
+            dw.write(0x00, 0x00, 0x00
+            );
+            dw.writeBomString(linkageIdentifier);
+            dw.writeBomString(linkageURL);
+        }
 
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
             dw.writeBomString(linkageClassName);
@@ -589,8 +592,8 @@ public class FlaConverter extends AbstractConverter {
             String symbolName = "Symbol " + symbolId;
             if (domTimelineElement.hasAttribute("name")) {
                 symbolName = domTimelineElement.getAttribute("name");
-            }          
-            
+            }
+
             String symbolFullName = symbolElement.getAttribute("name");
             String parentFolderItemId = getParentFolderItemID(document, symbolFullName);
 
@@ -635,34 +638,38 @@ public class FlaConverter extends AbstractConverter {
             fg.write(0x00, 0x00, symbolType);
             fg.writeBomString("");
 
-            fg.write(0x01, 0x00, 0x00, 0x00, flaFormatVersion.getSpriteVersionE());
-            fg.write(0x00);
-            fg.write(0x00, 0x00,
-                    0x01, 0x00, 0x00, 0x00);
-            if (parentFolderItemId == null) {
-                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-            } else {
-                fg.writeItemID(parentFolderItemId);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
+                fg.write(0x01, 0x00, 0x00, 0x00, flaFormatVersion.getSpriteVersionE());
+                fg.write(0x00);
+                fg.write(0x00, 0x00,
+                        0x01, 0x00, 0x00, 0x00);
+                if (parentFolderItemId == null) {
+                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                } else {
+                    fg.writeItemID(parentFolderItemId);
+                }
+                fg.write(0x01, 0x00, 0x00, 0x00);
+
+                fg.writeItemID(itemID);
+
+                writeAsLinkage(fg, symbolElement);
             }
-            fg.write(0x01, 0x00, 0x00, 0x00);
-
-            fg.writeItemID(itemID);
-
-            writeAsLinkage(fg, symbolElement);
 
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
                 fg.write(0x00);
             }
 
             writeTime(fg, symbolTime);
-            fg.writeBomString("");
-            fg.writeBomString("");
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                fg.writeBomString("");
+                fg.writeBomString("");
+            }
 
-            if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
+            if (flaFormatVersion.ordinal() == FlaFormatVersion.F5.ordinal()) {
                 fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x01);
             } else {
                 fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
-                        0x01, 0x00, 0x00, 0x00, 
+                        0x01, 0x00, 0x00, 0x00,
                         0x01, 0x00, 0x00, 0x00,
                         flaFormatVersion.getSpriteVersionC()); //getDocumentPageVersionC
                 fg.write(0x00, 0x00, 0x00);
@@ -673,13 +680,13 @@ public class FlaConverter extends AbstractConverter {
                 fg.writeBomString("");
                 fg.writeBomString("");
 
-                fg.write(0x00, 
-                        flaFormatVersion.getSpriteVersionF(), 
+                fg.write(0x00,
+                        flaFormatVersion.getSpriteVersionF(),
                         0x00, 0x00, 0x00);
                 fg.writeBomString("");
                 fg.writeBomString("");
-                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-                        0x01, 0x00,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                         0xFF, 0xFF, 0xFF, 0xFF);
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
@@ -690,7 +697,7 @@ public class FlaConverter extends AbstractConverter {
                     }
                     fg.write(
                             flaFormatVersion.getSpriteVersionD(), //getDocumentPageVersionD
-                            0x00, 
+                            0x00,
                             0x00, 0x00, 0x00);
                     fg.writeBomString("");
                     fg.write(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -717,7 +724,9 @@ public class FlaConverter extends AbstractConverter {
                 fg.writeBomString("");
                 fg.write(0x00, 0x00, 0x00, 0x00, 0x00);
             }
-            fg.write(0x00, 0x00, 0x00);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                fg.write(0x00, 0x00, 0x00);
+            }
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
                 fg.write(0x00, 0x00, 0x00, 0x00);
             }
@@ -728,10 +737,12 @@ public class FlaConverter extends AbstractConverter {
                 fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
             }
 
-            fg.writeBomString("");
-            fg.writeBomString("");
-            fg.write(0x00, 0x00, 0x00, 0x00);
-            fg.writeBomString("");
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                fg.writeBomString("");
+                fg.writeBomString("");
+                fg.write(0x00, 0x00, 0x00, 0x00);
+                fg.writeBomString("");
+            }
 
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
                 if (scaleGridLeft != 0f || scaleGridRight != 0f || scaleGridTop != 0f || scaleGridBottom != 0f) {
@@ -799,15 +810,6 @@ public class FlaConverter extends AbstractConverter {
             height = Integer.parseInt(document.getAttribute("height"));
         }
 
-        int rulerUnitType = getAttributeAsInt(document, "rulerUnitType", Arrays.asList(
-                "inches",
-                "decimal inches",
-                "points",
-                "centimeters",
-                "millimeters",
-                "pixels" // not in F1
-        ), "pixels"); //F1 defaults to "inches"
-
         float frameRate = 24;
         if (document.hasAttribute("frameRate")) {
             frameRate = Float.parseFloat(document.getAttribute("frameRate"));
@@ -826,9 +828,9 @@ public class FlaConverter extends AbstractConverter {
             }
             fg.write(flaFormatVersion.getContentsVersion());
             fg.write(flaFormatVersion.getContentsVersionB());
-            
+
             fg.write(0x00, 0x00, 0x00);
-            
+
             if (flaFormatVersion.ordinal() >= flaFormatVersion.F3.ordinal()) {
                 fg.write(0x00);
             }
@@ -837,7 +839,7 @@ public class FlaConverter extends AbstractConverter {
             }
             if (flaFormatVersion.ordinal() >= flaFormatVersion.F5.ordinal()) {
                 fg.write(0x00, 0x00, 0x00, 0x00);
-            }                                                
+            }
 
             if (flaFormatVersion.ordinal() >= flaFormatVersion.MX.ordinal()) {
                 fg.write(0x00, 0x00, 0x00, 0x00);
@@ -883,13 +885,14 @@ public class FlaConverter extends AbstractConverter {
                 fg.writeString(debugRandom ? debugPageName : pageName);
                 fg.writeBomString(sceneName);
                 fg.write(0x00, 0x00); //symbolId:UI16. FIXME? Is it 32 bit?
-                fg.write(0x00, 0x00);                
+                fg.write(0x00, 0x00);
                 fg.write(0x00); //symbolType
+
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
-                    fg.writeBomString("");                
+                    fg.writeBomString("");
                     fg.write(0x01, 0x00, 0x00, 0x00, flaFormatVersion.getDocumentPageVersionE(),
-                            0x00, 
-                            0x00, 0x00, 
+                            0x00,
+                            0x00, 0x00,
                             0x01, 0x00, 0x00, 0x00,
                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //parent folder id
                             0x01, 0x00, 0x00, 0x00);
@@ -900,37 +903,30 @@ public class FlaConverter extends AbstractConverter {
                     //begin AsLinkage
                     fg.write(0x00, 0x00, 0x00, 0x00);
                 }
-                
-                if (flaFormatVersion.ordinal() == FlaFormatVersion.F5.ordinal()) {
-                    fg.write(0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00);
-                }
-                if (flaFormatVersion.ordinal() >= flaFormatVersion.MX.ordinal()) {
-                    fg.write(flaFormatVersion.getDocumentPageVersionB(), //getAsLinkageVersion
+
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                    fg.write(flaFormatVersion.getAsLinkageVersion(), //getAsLinkageVersion
                             0x00, //linkageExportForAS | linkageImportForRS
                             0x00, 0x00, 0x00);
                     fg.writeBomString(""); //linkageIdentifier
                     fg.writeBomString(""); //linkageURL
-                    
+                }
+                if (flaFormatVersion.ordinal() >= flaFormatVersion.MX.ordinal()) {
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
                         fg.writeBomString(""); //linkageClassName
                     }
 
                     fg.write(debugRandom ? 'X' : 0); //linkageFlags
 
-                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                        fg.write(0x02); //getAsLinkageVersionB
-                    } else {
-                        fg.write(0x01); //getAsLinkageVersionB
-                    }
+                    fg.write(flaFormatVersion.getAsLinkageVersionB());
 
                     fg.write(0x00, 0x00, 0x00);
                     fg.writeBomString("");
                     fg.writeBomString(""); //sourceLibraryItemHRef
 
                     fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                             0x01, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00, 0x00,
-                             0xFF, 0xFF, 0xFF, 0xFF);
+                            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0xFF, 0xFF, 0xFF, 0xFF);
                 }
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
                     fg.write(0x00);
@@ -941,17 +937,21 @@ public class FlaConverter extends AbstractConverter {
                     fg.write(0x00);
                 }
                 //end of AsLinkage
-                
-                writeTimeCreated(fg);
-                fg.writeBomString("");
-                fg.writeBomString("");
 
-                if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
+                    writeTimeCreated(fg);
+                }
+
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                    fg.writeBomString("");
+                    fg.writeBomString("");
+                }
+                if (flaFormatVersion.ordinal() == FlaFormatVersion.F5.ordinal()) {
                     fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x01);
                 } else {
                     fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
                             debugRandom ? 'U' : 0x01, //NEW - different from sprite
-                            0x00, 0x00, 0x00, 
+                            0x00, 0x00, 0x00,
                             0x01, 0x00, 0x00, 0x00,
                             flaFormatVersion.getSpriteVersionC()); //getDocumentPageVersionC
                     fg.write(0x00, 0x00, 0x00);
@@ -962,13 +962,13 @@ public class FlaConverter extends AbstractConverter {
                     fg.writeBomString("");
                     fg.writeBomString("");
 
-                    fg.write(0x00, 
-                            flaFormatVersion.getSpriteVersionF(), 
+                    fg.write(0x00,
+                            flaFormatVersion.getSpriteVersionF(),
                             0x00, 0x00, 0x00);
                     fg.writeBomString("");
                     fg.writeBomString("");
-                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-                            0x01, 0x00,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                             0xFF, 0xFF, 0xFF, 0xFF);
 
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
@@ -979,7 +979,7 @@ public class FlaConverter extends AbstractConverter {
                         }
                         fg.write(
                                 flaFormatVersion.getSpriteVersionD(), //getDocumentPageVersionD
-                                0x00, 
+                                0x00,
                                 0x00, 0x00, 0x00);
                         fg.writeBomString("");
                         fg.write(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -1007,7 +1007,10 @@ public class FlaConverter extends AbstractConverter {
                     fg.writeBomString("");
                     fg.write(0x00, 0x00, 0x00, 0x00, 0x00);
                 }
-                fg.write(0x00, 0x00, 0x00);
+
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                    fg.write(0x00, 0x00, 0x00);
+                }
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
                     fg.write(0x00, 0x00, 0x00, 0x00);
                 }
@@ -1018,17 +1021,19 @@ public class FlaConverter extends AbstractConverter {
                     fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
                 }
 
-                fg.writeBomString("");
-                fg.writeBomString("");
-                fg.write(0x00, 0x00, 0x00, 0x00);
-                fg.writeBomString("");
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                    fg.writeBomString("");
+                    fg.writeBomString("");
+                    fg.write(0x00, 0x00, 0x00, 0x00);
+                    fg.writeBomString("");
+                }
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
                     fg.write(0x00, 0x00, 0x00, 0x00, //scaleGrid toggle
-                                0x00, 0x00, 0x00, 0x80, //scaleGridRight
-                                0x00, 0x00, 0x00, 0x80, //scaleGridLeft
-                                0x00, 0x00, 0x00, 0x80, //scaleGridBottom
-                                0x00, 0x00, 0x00, 0x80); //scaleGridTop
+                            0x00, 0x00, 0x00, 0x80, //scaleGridRight
+                            0x00, 0x00, 0x00, 0x80, //scaleGridLeft
+                            0x00, 0x00, 0x00, 0x80, //scaleGridBottom
+                            0x00, 0x00, 0x00, 0x80); //scaleGridTop
                 }
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
                     fg.write(0x00,
@@ -1080,16 +1085,40 @@ public class FlaConverter extends AbstractConverter {
             int mediaCount = writeMedia(fg, document, generatedItemIdOrder, definedClasses, objectsCount, outputDir, sourceDir);
 
             fg.write(0x00, 0x00);
-            if (debugRandom) {
-                fg.write('X', 'X');
-            } else {
-                fg.writeUI16(1 + mediaCount); //?
+
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F2.ordinal()) {
+                if (debugRandom) {
+                    fg.write('X', 'X');
+                } else {
+                    fg.writeUI16(1 + mediaCount); //?
+                }
+
+                int rulerUnitType = getAttributeAsInt(document, "rulerUnitType", Arrays.asList(
+                        "inches",
+                        "decimal inches",
+                        "points",
+                        "centimeters",
+                        "millimeters",
+                        "pixels"
+                ), "pixels");
+
+                boolean gridVisible = false;
+                if (document.hasAttribute("gridVisible")) {
+                    gridVisible = !"false".equals(document.getAttribute("gridVisible"));
+                }
+
+                fg.write(
+                        rulerUnitType,
+                        0x00,
+                        gridVisible ? 3 : 0,
+                        0x00);
             }
-                    
-            boolean gridVisible = false;
-            if (document.hasAttribute("gridVisible")) {
-                gridVisible = !"false".equals(document.getAttribute("gridVisible"));
-            }
+            fg.write(0x00, 0x00, 0x00);
+
+            fg.writeUI16(width * 20);
+            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+            fg.writeUI16(height * 20);
+            fg.write(0x00, 0x00, 0x00, 0x00);
 
             boolean gridSnapTo = false;
             if (document.hasAttribute("gridSnapTo")) {
@@ -1159,18 +1188,6 @@ public class FlaConverter extends AbstractConverter {
                 snapAlignVerticalCenter = "true".equals(document.getAttribute("snapAlignVerticalCenter"));
             }
 
-            fg.write(
-                    rulerUnitType, //in F1 always 1
-                    0x00, 
-                    gridVisible ? 3 : 0, 
-                    0x00, 0x00, 0x00, 0x00
-            );
-
-            fg.writeUI16(width * 20);
-            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-            fg.writeUI16(height * 20);
-            fg.write(0x00, 0x00, 0x00, 0x00);
-            
             boolean rulerVisible = false;
             if (document.hasAttribute("rulerVisible")) {
                 rulerVisible = "true".equals(document.getAttribute("rulerVisible"));
@@ -1180,26 +1197,25 @@ public class FlaConverter extends AbstractConverter {
             if (document.hasAttribute("gridColor")) {
                 gridColor = parseColor(document.getAttribute("gridColor"));
             }
-            
+
             fg.writeUI16(gridSpacingX * 20);
 
             boolean pageTabsVisible = false; //"View/Page tabs"
-                       
+
             int previewMode = getAttributeAsInt(document, "previewMode", Arrays.asList(
-                "outlines",
-                "fast",
-                "anti alias",
-                "anti alias text",
-                "full"
+                    "outlines",
+                    "fast",
+                    "anti alias",
+                    "anti alias text",
+                    "full"
             ), "anti alias text");
-            
-            fg.write(                                    
-                    previewMode, 
+
+            fg.write(
+                    previewMode,
                     rulerVisible ? 1 : 0,
                     pageTabsVisible ? 1 : 0
             );
-            
-            
+
             //NO EFFECT:
             //"View/Toolbars..."
             //"View/Symbol palette"
@@ -1210,8 +1226,6 @@ public class FlaConverter extends AbstractConverter {
             //"Frame view" dropdown menu
             //"Anchor onion marks" button
             //"Onion skin" button
-            
-            
             //"View/Timeline and Layers" = +1       viewOptionsAnimationControlVisible
             //"Play/Buttons active" = +2            viewOptionsButtonsActive
             //"View/Show work area" = +4            viewOptionsPasteBoardView
@@ -1220,9 +1234,8 @@ public class FlaConverter extends AbstractConverter {
             //"Play/Play all pages" = +0x20         playOptionsPlayPages
             //"Play/Do frame actions" = +0x40       playOptionsPlayFrameActions
             //"Play/Play sounds" = +0x80            playOptionsPlaySounds
-                                    
             int viewOptions = 0;
-            
+
             if (!document.getAttribute("viewOptionsAnimationControlVisible").equals("false")) {
                 viewOptions += 1;
             }
@@ -1232,11 +1245,11 @@ public class FlaConverter extends AbstractConverter {
             if (!document.getAttribute("viewOptionsPasteBoardView").equals("false")) {
                 viewOptions += 4;
             }
-            if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal() 
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()
                     && !document.getAttribute("viewOptionsLivePreview").equals("false")) {
                 viewOptions += 8;
             }
-            
+
             int playOptions = 0;
             if (!document.getAttribute("playOptionsPlayLoop").equals("false")) {
                 playOptions += 1;
@@ -1247,12 +1260,12 @@ public class FlaConverter extends AbstractConverter {
             if (!document.getAttribute("playOptionsPlayFrameActions").equals("false")) {
                 playOptions += 4;
             }
-            if (!document.getAttribute("playOptionsPlaySounds").equals("false")) {
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F2.ordinal() && !document.getAttribute("playOptionsPlaySounds").equals("false")) {
                 playOptions += 8;
             }
-            
+
             fg.write((playOptions << 4) + viewOptions);
-                       
+
             fg.write(0x00, 0x68,
                     0x01, 0x00, 0x00, 0x68, 0x01, 0x00, 0x00, 0x68,
                     0x01, 0x00, 0x00, 0x68, 0x01, 0x00, 0x00, 0x01,
@@ -1261,226 +1274,240 @@ public class FlaConverter extends AbstractConverter {
                     gridColor.getRed(), gridColor.getGreen(), gridColor.getBlue(),
                     0xFF, 0x00, (int) Math.round((frameRate - Math.floor(frameRate)) * 256), (int) Math.floor(frameRate), 0x00, 0x00,
                     0x00, 0x03, 0xb4, 0x00, 0x00, 0x00);
-            if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                writeMap(fg, getLegacyProperties());
-            }
 
-            if (publishSettings == null) {
-                fg.writeUI32(1);
-                writeMap(fg, getProperties("Untitled-1", width, height, flaFormatVersion));
-            } else {
-                List<Element> flashProfiles = getAllSubElementsByName(publishSettings.getDocumentElement(), "flash_profile");
-
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                    fg.writeUI32(flashProfiles.size()); //?
-                }
-                for (Element flashProfile : flashProfiles) {
-                    Map<String, String> properties = getProperties("Untitled-1", width, height, flaFormatVersion);
-                    for (Element propertiesSet : getAllSubElements(flashProfile)) {
-                        String namespace = propertiesSet.getTagName();
-                        if ("PublishFlashProperties".equals(namespace)) {
-                            namespace = "Vector";
-                        }
-                        for (Element property : getAllSubElements(propertiesSet)) {
-                            String key = property.getTagName();
-                            String value = property.getTextContent();
-                            if ("Vector".equals(namespace)
-                                    && ("LibraryPath".equals(key)
-                                    || "LibraryVersions".equals(key))) {
-                                continue;
-                            }
-                            String nsKey = namespace + "::" + key;
-                            if (!properties.containsKey(nsKey)) {
-                                continue;
-                            }
-                            if (nsKey.equals("Vector::RSLPreloaderMethod")) {
-                                switch (value) {
-                                    case "wrap":
-                                        value = "0";
-                                        break;
-                                    case "event":
-                                        value = "1";
-                                        break;
-                                }
-                            }
-                            if (nsKey.equals("Vector::DefaultLibraryLinkage")) {
-                                switch (value) {
-                                    case "rsl":
-                                        value = "0";
-                                        break;
-                                    case "merge":
-                                        value = "1";
-                                        break;
-                                }
-                            }
-                            if (nsKey.equals("PublishRNWKProperties::flashBitRate")) {
-                                value = "1200";
-                            }
-                            properties.put(nsKey, value);
-                        }
-                    }
-
-                    if (debugRandom) {
-                        for (String key : properties.keySet()) {
-                            properties.put(key, "YYY");
-                        }
-                    }
-
-                    writeMap(fg, properties);
-
-                    if (flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
-                        break; //only single properties
-                    }
-                }
-            }
-            fg.write(0xFF, 0xFF, 0xFF, 0xFF);
-            fg.writeBomString("");
-            fg.writeBomString("");
-            fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00);
-            writeColorDef(document, fg, flaFormatVersion, definedClasses, objectsCount);
-
-            Element foldersElement = getSubElementByName(document, "folders");
-            List<Element> domFolderItems = new ArrayList<>();
-            if (foldersElement != null) {
-                domFolderItems = getAllSubElementsByName(foldersElement, "DOMFolderItem");
-            }
-
-            fg.writeUI32(domFolderItems.size());
-
-            for (Element domFolderItem : domFolderItems) {
-                fg.write(flaFormatVersion.getLibraryFolderVersionB(), 0x00, 0x00, 0x00);
-                String folderFullName = domFolderItem.getAttribute("name");
-                String folderName = folderFullName;
-                String parentFolder = "";
-                if (folderFullName.contains("/")) {
-                    folderName = folderFullName.substring(folderFullName.lastIndexOf("/") + 1);
-                    parentFolder = folderFullName.substring(0, folderFullName.lastIndexOf("/"));
-                }
-                fg.writeBomString(folderName);
-                fg.write(flaFormatVersion.getLibraryFolderVersionC(), 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
-
-                if (parentFolder.isEmpty()) {
-                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
+                if (flaFormatVersion == FlaFormatVersion.F3) {
+                    writeMap(fg, new HashMap<>()); // 0x00, 0x00
                 } else {
-                    boolean parentFound = false;
-                    for (Element domFolderItem2 : domFolderItems) {
-                        if (domFolderItem2.getAttribute("name").equals(parentFolder)) {
-                            String parentItemID = domFolderItem2.getAttribute("itemID");
-                            fg.writeItemID(parentItemID);
-                            parentFound = true;
-                            break;
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                        writeMap(fg, getLegacyProperties());
+                    }
+
+                    if (publishSettings == null) {
+                        if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                            fg.writeUI32(1);
+                        }
+                        writeMap(fg, getProperties("Untitled-1", width, height, flaFormatVersion));
+                    } else {
+                        List<Element> flashProfiles = getAllSubElementsByName(publishSettings.getDocumentElement(), "flash_profile");
+
+                        if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                            fg.writeUI32(flashProfiles.size()); //?
+                        }
+                        for (Element flashProfile : flashProfiles) {
+                            Map<String, String> properties = getProperties("Untitled-1", width, height, flaFormatVersion);
+                            for (Element propertiesSet : getAllSubElements(flashProfile)) {
+                                String namespace = propertiesSet.getTagName();
+                                if ("PublishFlashProperties".equals(namespace)) {
+                                    namespace = "Vector";
+                                }
+                                for (Element property : getAllSubElements(propertiesSet)) {
+                                    String key = property.getTagName();
+                                    String value = property.getTextContent();
+                                    if ("Vector".equals(namespace)
+                                            && ("LibraryPath".equals(key)
+                                            || "LibraryVersions".equals(key))) {
+                                        continue;
+                                    }
+                                    String nsKey = namespace + "::" + key;
+                                    if (!properties.containsKey(nsKey)) {
+                                        continue;
+                                    }
+                                    if (nsKey.equals("Vector::RSLPreloaderMethod")) {
+                                        switch (value) {
+                                            case "wrap":
+                                                value = "0";
+                                                break;
+                                            case "event":
+                                                value = "1";
+                                                break;
+                                        }
+                                    }
+                                    if (nsKey.equals("Vector::DefaultLibraryLinkage")) {
+                                        switch (value) {
+                                            case "rsl":
+                                                value = "0";
+                                                break;
+                                            case "merge":
+                                                value = "1";
+                                                break;
+                                        }
+                                    }
+                                    if (nsKey.equals("PublishRNWKProperties::flashBitRate")) {
+                                        value = "1200";
+                                    }
+                                    properties.put(nsKey, value);
+                                }
+                            }
+
+                            if (debugRandom) {
+                                for (String key : properties.keySet()) {
+                                    properties.put(key, "YYY");
+                                }
+                            }
+
+                            writeMap(fg, properties);
+
+                            if (flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
+                                break; //only single properties
+                            }
                         }
                     }
-                    if (!parentFound) {
+                }
+                fg.write(0xFF, 0xFF, 0xFF, 0xFF);
+                fg.writeBomString("");
+                fg.writeBomString("");
+                fg.write(0x01, 0x00, 0x00, 0x00);
+            }
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
+                fg.write(0x00, 0x00);
+                writeColorDef(document, fg, flaFormatVersion, definedClasses, objectsCount);
+
+                Element foldersElement = getSubElementByName(document, "folders");
+                List<Element> domFolderItems = new ArrayList<>();
+                if (foldersElement != null) {
+                    domFolderItems = getAllSubElementsByName(foldersElement, "DOMFolderItem");
+                }
+
+                fg.writeUI32(domFolderItems.size());
+
+                for (Element domFolderItem : domFolderItems) {
+                    fg.write(flaFormatVersion.getLibraryFolderVersionB(), 0x00, 0x00, 0x00);
+                    String folderFullName = domFolderItem.getAttribute("name");
+                    String folderName = folderFullName;
+                    String parentFolder = "";
+                    if (folderFullName.contains("/")) {
+                        folderName = folderFullName.substring(folderFullName.lastIndexOf("/") + 1);
+                        parentFolder = folderFullName.substring(0, folderFullName.lastIndexOf("/"));
+                    }
+                    fg.writeBomString(folderName);
+                    fg.write(flaFormatVersion.getLibraryFolderVersionC(), 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+
+                    if (parentFolder.isEmpty()) {
                         fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                    } else {
+                        boolean parentFound = false;
+                        for (Element domFolderItem2 : domFolderItems) {
+                            if (domFolderItem2.getAttribute("name").equals(parentFolder)) {
+                                String parentItemID = domFolderItem2.getAttribute("itemID");
+                                fg.writeItemID(parentItemID);
+                                parentFound = true;
+                                break;
+                            }
+                        }
+                        if (!parentFound) {
+                            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                        }
+                    }
+
+                    fg.write(0x01, 0x00, 0x00, 0x00);
+                    String itemID = generateItemID(generatedItemIdOrder);
+                    if (domFolderItem.hasAttribute("itemID")) {
+                        itemID = domFolderItem.getAttribute("itemID");
+                    }
+                    fg.writeItemID(itemID);
+
+                    boolean isExpanded = false;
+                    if (domFolderItem.hasAttribute("isExpanded")) {
+                        isExpanded = "true".equals(domFolderItem.getAttribute("isExpanded"));
+                    }
+
+                    fg.write(isExpanded ? 1 : 0, 0x00,
+                            0x00, 0x00);
+
+                    fg.write(flaFormatVersion.getLibraryFolderVersion(), 0x00, 0x00, 0x00, 0x00);
+                    fg.writeBomString("");
+                    fg.writeBomString("");
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
+                        fg.writeBomString("");
+                    }
+
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                        fg.write(0x00);
+                    }
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
+                        fg.write(flaFormatVersion.getLibraryFolderVersionD(), 0x00, 0x00, 0x00);
+                        fg.writeBomString("");
+                        fg.writeBomString("");
+                        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                0xFF, 0xFF, 0xFF, 0xFF
+                        );
+                    }
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                        fg.write(0x00);
+                    }
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+                        fg.writeBomString("");
+                        fg.write(0x00);
                     }
                 }
 
-                fg.write(0x01, 0x00, 0x00, 0x00);
-                String itemID = generateItemID(generatedItemIdOrder);
-                if (domFolderItem.hasAttribute("itemID")) {
-                    itemID = domFolderItem.getAttribute("itemID");
-                }
-                fg.writeItemID(itemID);
-
-                boolean isExpanded = false;
-                if (domFolderItem.hasAttribute("isExpanded")) {
-                    isExpanded = "true".equals(domFolderItem.getAttribute("isExpanded"));
-                }
-
-                fg.write(isExpanded ? 1 : 0, 0x00,
-                        0x00, 0x00);
-
-                fg.write(flaFormatVersion.getLibraryFolderVersion(), 0x00, 0x00, 0x00, 0x00);
-                fg.writeBomString("");
-                fg.writeBomString("");
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
-                    fg.writeBomString("");
-                }
-
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                    fg.write(0x00);
+                    fg.write(0x00, 0x00);
                 }
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
-                    fg.write(flaFormatVersion.getLibraryFolderVersionD(), 0x00, 0x00, 0x00);
-                    fg.writeBomString("");
-                    fg.writeBomString("");
-                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0xFF, 0xFF, 0xFF, 0xFF
-                    );
+                fg.write(0x01);
+                fg.write(0x00);
+                fg.writeBomString("PublishQTProperties::QTSndSettings");
+                writeQTAudioSettings(fg);
+                fg.write(0x01, 0x00);
+            }
+
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+
+                boolean guidesLocked = false;
+                if (document.hasAttribute("guidesLocked")) {
+                    guidesLocked = "true".equals(document.getAttribute("guidesLocked"));
                 }
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                    fg.write(0x00);
+
+                boolean guidesVisible = true;
+                if (document.hasAttribute("guidesVisible")) {
+                    guidesVisible = !"false".equals(document.getAttribute("guidesVisible"));
                 }
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-                    fg.writeBomString("");
-                    fg.write(0x00);
+
+                boolean guidesSnapTo = true;
+                if (document.hasAttribute("guidesSnapTo")) {
+                    guidesSnapTo = !"false".equals(document.getAttribute("guidesSnapTo"));
                 }
-            }
 
-            if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                fg.write(0x00, 0x00);
-            }
-            fg.write(0x01);
-
-            fg.write(0x00);
-            fg.writeBomString("PublishQTProperties::QTSndSettings");
-            fg.write(0xFF, 0xFF, 0x01, 0x00);
-            writeQTAudioSettings(fg, true);
-
-            boolean guidesLocked = false;
-            if (document.hasAttribute("guidesLocked")) {
-                guidesLocked = "true".equals(document.getAttribute("guidesLocked"));
-            }
-
-            boolean guidesVisible = true;
-            if (document.hasAttribute("guidesVisible")) {
-                guidesVisible = !"false".equals(document.getAttribute("guidesVisible"));
-            }
-
-            boolean guidesSnapTo = true;
-            if (document.hasAttribute("guidesSnapTo")) {
-                guidesSnapTo = !"false".equals(document.getAttribute("guidesSnapTo"));
-            }
-
-            Color guidesColor = new Color(0x58, 0xFF, 0xFF);
-            if (document.hasAttribute("guidesColor")) {
-                guidesColor = parseColor(document.getAttribute("guidesColor"));
-            }
-
-            fg.write(guidesColor.getRed(), guidesColor.getGreen(), guidesColor.getBlue());
-            fg.write(0xFF);
-            fg.write(
-                    guidesVisible ? 1 : 0,
-                    guidesLocked ? 1 : 0,
-                    guidesSnapTo ? 1 : 0,
-                    0x00, 0x00, 0x00, 0x00);
-
-            int fontCount = writeFonts(fg, document, generatedItemIdOrder);
-
-            String sharedLibraryURL = "";
-            if (document.hasAttribute("sharedLibraryURL")) {
-                sharedLibraryURL = document.getAttribute("sharedLibraryURL");
-            }
-
-            fg.writeBomString(sharedLibraryURL);
-            fg.write(gridSnapTo ? 1 : 0, objectsSnapTo ? 1 : 0, gridSnapAccuracy, 0x00, 0x00, 0x00);
-
-            int guidesSnapAccuracy = 1;
-            if (document.hasAttribute("guidesSnapAccuracy")) {
-                switch (document.getAttribute("guidesSnapAccuracy")) {
-                    case "Must be close":
-                        guidesSnapAccuracy = 0;
-                        break;
-                    case "Can be distant":
-                        guidesSnapAccuracy = 2;
-                        break;
+                Color guidesColor = new Color(0x58, 0xFF, 0xFF);
+                if (document.hasAttribute("guidesColor")) {
+                    guidesColor = parseColor(document.getAttribute("guidesColor"));
                 }
-            }
 
-            fg.write(guidesSnapAccuracy,
-                    0x00, 0x00, 0x00, 0x00, 0x00);
-            fg.writeUI16(gridSpacingY * 20);
+                fg.write(guidesColor.getRed(), guidesColor.getGreen(), guidesColor.getBlue());
+                fg.write(0xFF);
+                fg.write(
+                        guidesVisible ? 1 : 0,
+                        guidesLocked ? 1 : 0,
+                        guidesSnapTo ? 1 : 0,
+                        0x00, 0x00, 0x00, 0x00);
+
+                int fontCount = writeFonts(fg, document, generatedItemIdOrder);
+
+                String sharedLibraryURL = "";
+                if (document.hasAttribute("sharedLibraryURL")) {
+                    sharedLibraryURL = document.getAttribute("sharedLibraryURL");
+                }
+
+                fg.writeBomString(sharedLibraryURL);
+                fg.write(gridSnapTo ? 1 : 0, objectsSnapTo ? 1 : 0, gridSnapAccuracy, 0x00, 0x00, 0x00);
+
+                int guidesSnapAccuracy = 1;
+                if (document.hasAttribute("guidesSnapAccuracy")) {
+                    switch (document.getAttribute("guidesSnapAccuracy")) {
+                        case "Must be close":
+                            guidesSnapAccuracy = 0;
+                            break;
+                        case "Can be distant":
+                            guidesSnapAccuracy = 2;
+                            break;
+                    }
+                }
+
+                fg.write(guidesSnapAccuracy,
+                        0x00, 0x00, 0x00, 0x00, 0x00);
+                fg.writeUI16(gridSpacingY * 20);
+            }
 
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
                 fg.writeBomString("");
@@ -2021,7 +2048,7 @@ public class FlaConverter extends AbstractConverter {
         if (flaFormatVersion.ordinal() <= FlaFormatVersion.CS3.ordinal()) {
             Collections.reverse(domFontItems);
         }
-        
+
         int fontCount = 0;
         for (Element domFontItem : domFontItems) {
             fontCount++;
@@ -2086,8 +2113,8 @@ public class FlaConverter extends AbstractConverter {
             }
             dw.write(debugRandom ? 'U' : 0x12); //something magic, see TimelineConverter for details
             dw.write(0x00);
-            dw.write(debugRandom ? 'X': (bold ? 1 : 0));
-            dw.write(debugRandom ? 'X': (italic ? 1 : 0));
+            dw.write(debugRandom ? 'X' : (bold ? 1 : 0));
+            dw.write(debugRandom ? 'X' : (italic ? 1 : 0));
             dw.write(0x00,
                     debugRandom ? 'U' : 0x00, //maybe unused = not used in any text???
                     0x00,
@@ -2162,20 +2189,20 @@ public class FlaConverter extends AbstractConverter {
         return fontCount;
     }
 
-    protected void writeQTAudioSettings(FlaWriter dw, boolean cs4) throws IOException {
+    protected void writeQTAudioSettings(FlaWriter dw) throws IOException {
+        dw.write(0xFF, 0xFF, 0x01, 0x00);
         String CQTAudioSettings = "CQTAudioSettings";
         dw.write(CQTAudioSettings.length(),
                 0x00);
         dw.write(CQTAudioSettings.getBytes());
-        dw.write(0x00, 0x00, 0x00, 0x00, 0x01, 0x00);
-
+        dw.write(0x00, 0x00, 0x00, 0x00);
     }
 
     protected void writeColorDef(Element document, FlaWriter dw, FlaFormatVersion flaFormatVersion, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws IOException {
-        
-        List<SolidSwatchItem> solidSwatches = new ArrayList<>();        
+
+        List<SolidSwatchItem> solidSwatches = new ArrayList<>();
         List<ExtendedSwatchItem> extendedSwatches = new ArrayList<>();
-        
+
         Element swatchListsElement = getSubElementByName(document, "swatchLists");
         if (swatchListsElement != null) {
             List<Element> swatchLists = getAllSubElementsByName(swatchListsElement, "swatchList");
@@ -2200,13 +2227,13 @@ public class FlaConverter extends AbstractConverter {
                         int hue = Integer.parseInt(hueStr);
                         int saturation = Integer.parseInt(saturationStr);
                         int brightness = Integer.parseInt(brightnessStr);
-                        
-                        solidSwatches.add(new SolidSwatchItem(color.getRed(),color.getGreen(),color.getBlue(),color.getAlpha(),hue,saturation,brightness));
+
+                        solidSwatches.add(new SolidSwatchItem(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha(), hue, saturation, brightness));
                     }
                 }
             }
-        }    
-        
+        }
+
         Element extendedSwatchListsElement = getSubElementByName(document, "extendedSwatchLists");
         if (extendedSwatchListsElement != null) {
             List<Element> swatchLists = getAllSubElementsByName(extendedSwatchListsElement, "swatchList");
@@ -2216,12 +2243,12 @@ public class FlaConverter extends AbstractConverter {
                     List<Element> swatches = getAllSubElements(swatchesElement);
                     for (Element swatch : swatches) {
                         List<GradientEntry> gradientEntries = new ArrayList<>();
-                    
+
                         switch (swatch.getNodeName()) {
                             case "LinearGradientSwatchItem":
                             case "RadialGradientSwatchItem":
                                 List<Element> gradientEntryElements = getAllSubElementsByName(swatch, "GradientEntry");
-                                for (Element gradientEntry: gradientEntryElements) {
+                                for (Element gradientEntry : gradientEntryElements) {
                                     Color gradColor = parseColorWithAlpha(gradientEntry);
                                     float ratio = 0;
                                     if (gradientEntry.hasAttribute("ratio")) {
@@ -2231,11 +2258,11 @@ public class FlaConverter extends AbstractConverter {
                                 }
                                 break;
                         }
-                        
+
                         boolean linearRGB = swatch.getAttribute("interpolationMethod").equals("linearRGB");
 
                         int spreadMethod = FlaWriter.FLOW_EXTEND;
-                        switch(swatch.getAttribute("spreadMethod")) {
+                        switch (swatch.getAttribute("spreadMethod")) {
                             case "reflect":
                                 spreadMethod = FlaWriter.FLOW_REFLECT;
                                 break;
@@ -2243,7 +2270,7 @@ public class FlaConverter extends AbstractConverter {
                                 spreadMethod = FlaWriter.FLOW_REPEAT;
                                 break;
                         }
-                
+
                         switch (swatch.getNodeName()) {
                             case "LinearGradientSwatchItem":
                                 extendedSwatches.add(new LinearGradientSwatchItem(gradientEntries, spreadMethod, linearRGB));
@@ -2252,17 +2279,16 @@ public class FlaConverter extends AbstractConverter {
                                 extendedSwatches.add(new RadialGradientSwatchItem(gradientEntries, spreadMethod, linearRGB));
                                 break;
                         }
-                    }                    
+                    }
                 }
             }
         }
 
         if (solidSwatches.isEmpty() && extendedSwatches.isEmpty()) {
-            solidSwatches.addAll(defaultSolidSwatches);           
-            extendedSwatches.addAll(defaultExtendedSwatches);            
+            solidSwatches.addAll(defaultSolidSwatches);
+            extendedSwatches.addAll(defaultExtendedSwatches);
         }
-       
-                
+
         dw.writeUI16(solidSwatches.size());
         for (int s = 0; s < solidSwatches.size(); s++) {
             useClass("CColorDef", 0x00, dw, definedClasses, objectsCount);
@@ -2276,7 +2302,7 @@ public class FlaConverter extends AbstractConverter {
         }
         dw.write(0x00);
         dw.writeUI16(extendedSwatches.size());
-        
+
         for (int x = 0; x < extendedSwatches.size(); x++) {
             ExtendedSwatchItem ex = extendedSwatches.get(x);
             useClass("CColorDef", 0x00, dw, definedClasses, objectsCount);
@@ -2294,13 +2320,13 @@ public class FlaConverter extends AbstractConverter {
             }
             //}
             dw.write(0xFF, ex.getType(), 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                     ex.entries.size());
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
                 dw.write(0x00,//focalRatio
-                        0x00, 0x00, 0x00, 
+                        0x00, 0x00, 0x00,
                         ex.spreadMethod + (ex.interpolationMethodLinearRGB ? 1 : 0), 0x00, 0x00, 0x00);
-            }            
+            }
             for (GradientEntry en : ex.entries) {
                 int r = (int) Math.round(en.ratio * 255);
                 dw.write(r, en.color.getRed(), en.color.getGreen(), en.color.getBlue(), en.color.getAlpha());
@@ -2353,7 +2379,8 @@ public class FlaConverter extends AbstractConverter {
                     0x01,
                     0x00, 0x00, 0x00, 0x00);
         }*/
-        dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00);
     }
 
@@ -3568,5 +3595,5 @@ public class FlaConverter extends AbstractConverter {
                 + "                                                                                                    \n"
                 + "                           \n"
                 + "<?xpacket end=\"w\"?>";*/
-    }   
+    }
 }

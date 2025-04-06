@@ -2643,7 +2643,10 @@ public class TimelineConverter extends AbstractConverter {
                 } else {
 
                 }
-                fg.write(flaFormatVersion.getFrameVersionC(), 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+                fg.write(flaFormatVersion.getFrameVersionC(), 0x00, 0x00, 0x00, 
+                        0x01, 
+                        0x00, 
+                        0x00,
                         0x00);
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
                     fg.write(((frameId >> 8) & 0xFF), (frameId & 0xFF));
