@@ -26,11 +26,11 @@ And graphics user interface (GUI) will show up where you can do the conversion a
 
 To convert CS5+ FLA/XFL to lower:
 ```
-java -jar flacomdoc.jar convert [--format <format>] inputfile.fla/xfl outputfile.fla
+java -jar flacomdoc.jar convert [--format <format>] [--charset <charset>] inputfile.fla/xfl outputfile.fla
 ```
 
 For `--format` option you can choose: `CS4`, `CS3`, `F8`, `MX2004`, `MX` or `F5`.
-
+Charset setting is applicable for `MX` and lower formats and defaults to `WINDOWS-1252`.
 
 To extract CS4 and lower FLA (ComDoc format):
 
