@@ -159,7 +159,7 @@ public class FlaConverterTest {
         if (!actualDir.exists()) {
             actualDir.mkdirs();
         }
-        FlaConverter contentsGenerator = new FlaConverter(flaFormatVersion);
+        FlaConverter contentsGenerator = new FlaConverter(flaFormatVersion, "WINDOWS-1250");
         contentsGenerator.setDebugRandom(true);
 
         contentsGenerator.convert(new DirectoryInputStorage(new File(SOURCE_DIR + "/" + folderName)),
@@ -476,7 +476,7 @@ public class FlaConverterTest {
     }
 
     private void compareSpecific(FlaFormatVersion flaFormatVersion, String folderName, String actualFilename, String expectedFileName) throws IOException, SAXException, ParserConfigurationException {
-        FlaConverter contentsGenerator = new FlaConverter(flaFormatVersion);
+        FlaConverter contentsGenerator = new FlaConverter(flaFormatVersion, "WINDOWS-1250");
         contentsGenerator.setDebugRandom(true);
 
         String outputDirParent = OUTPUT_BASE_DIR + "/" + flaFormatVersion.name().toLowerCase();

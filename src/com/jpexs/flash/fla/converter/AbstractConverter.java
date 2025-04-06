@@ -52,9 +52,11 @@ public abstract class AbstractConverter {
         }
     }
     protected final FlaFormatVersion flaFormatVersion;
+    protected final String charset;
 
-    public AbstractConverter(FlaFormatVersion flaFormatVersion) {
+    public AbstractConverter(FlaFormatVersion flaFormatVersion, String charset) {
         this.flaFormatVersion = flaFormatVersion;
+        this.charset = charset;
     }
 
     public void setDebugRandom(boolean debugRandom) {
@@ -265,7 +267,7 @@ public abstract class AbstractConverter {
             }
         } else {
             os.write(0xFF, 0xFF, defineNum, 0x00);
-            byte[] sbytes = className.getBytes();
+            byte[] sbytes = className.getBytes("WINDOWS-1250");
             os.write(sbytes.length);
             os.write(0);
             os.write(sbytes);

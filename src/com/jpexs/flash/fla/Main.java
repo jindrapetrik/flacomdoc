@@ -29,6 +29,7 @@ import com.jpexs.flash.fla.converter.streams.ZippedInputStorage;
 import com.jpexs.flash.fla.gui.Gui;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -120,7 +121,7 @@ public class Main {
             case "--help":
             case "help":
                 System.out.println("Usage:");
-                System.out.println("java -jar flacomdoc.jar convert [--format <format>] inputfile.fla/xfl outputfile.fla");
+                System.out.println("java -jar flacomdoc.jar convert [--format <format>] [--charset <charset>] inputfile.fla/xfl outputfile.fla");
                 System.out.println(" OR ");
                 System.out.println("java -jar flacomdoc.jar extract inputfile.fla outputdir");
                 System.out.println();
@@ -142,7 +143,7 @@ public class Main {
                 int pos = 1;
                 Map<String, String> options = new HashMap<>();
                 try {
-                    pos = parseOptions(args, "f:", Arrays.asList("format:"), options);
+                    pos = parseOptions(args, "f:c:", Arrays.asList("format:", "charset:"), options);
                 } catch (IllegalArgumentException iex) {
                     System.err.println(iex.getMessage());
                     System.exit(1);
@@ -151,8 +152,24 @@ public class Main {
                     System.err.println("Cannot combine --format and -f options");
                     System.exit(1);
                 }
+                if (options.containsKey("charset") && options.containsKey("c")) {
+                    System.err.println("Cannot combine --charset and -c options");
+                    System.exit(1);
+                }
                 if (options.containsKey("f")) {
                     options.put("format", options.get("f"));
+                }
+                if (options.containsKey("c")) {
+                    options.put("charset", options.get("c"));
+                }
+
+                String charset = "WINDOWS-1252";
+                if (options.containsKey("charset")) {
+                    charset = options.get("charset");
+                    if (!Charset.isSupported(charset)) {
+                        System.err.println("The charset " + charset +" is NOT supported by Java");
+                        System.exit(1);
+                    }
                 }
 
                 FlaFormatVersion flaFormatVersion = FlaFormatVersion.CS4;
@@ -191,7 +208,7 @@ public class Main {
                     }
                     OutputStorageInterface outputStorage = new CfbOutputStorage(outputFile);
 
-                    FlaConverter contentsGenerator = new FlaConverter(flaFormatVersion);
+                    FlaConverter contentsGenerator = new FlaConverter(flaFormatVersion, charset);
                     contentsGenerator.convert(inputStorage, outputStorage);
                     inputStorage.close();
                     outputStorage.close();

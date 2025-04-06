@@ -78,8 +78,8 @@ public class TimelineConverter extends AbstractConverter {
     private static final Pattern CUBICS_XY_PATTERN = Pattern.compile("(?<letter>[QqPp]?) *(?<x>[0-9]+) +(?<y>[0-9]+)");
     private final String title;
 
-    public TimelineConverter(FlaFormatVersion flaFormatVersion, String title) {
-        super(flaFormatVersion);
+    public TimelineConverter(FlaFormatVersion flaFormatVersion, String charset, String title) {
+        super(flaFormatVersion, charset);
         this.title = title;
     }
 
@@ -1838,7 +1838,7 @@ public class TimelineConverter extends AbstractConverter {
                 if (flaFormatVersion.isUnicode()) {
                     fg.write(characters.getBytes("UTF-16LE"));
                 } else {
-                    fg.write(characters.getBytes());
+                    fg.write(characters.getBytes(charset));
                 }
             }
 
@@ -3280,7 +3280,7 @@ public class TimelineConverter extends AbstractConverter {
     }
 
     public void convert(Element domTimeLine, Element document, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
-        FlaWriter fg = new FlaWriter(os, flaFormatVersion);
+        FlaWriter fg = new FlaWriter(os, flaFormatVersion, charset);
         fg.setTitle(getTitle());
         fg.setDebugRandom(debugRandom);
         Map<String, Integer> definedClasses = new HashMap<>();

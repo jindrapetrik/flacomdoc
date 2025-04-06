@@ -76,8 +76,8 @@ public class FlaConverter extends AbstractConverter {
 
     private static final SecureRandom random = new SecureRandom();
 
-    public FlaConverter(FlaFormatVersion flaFormatVersion) {
-        super(flaFormatVersion);
+    public FlaConverter(FlaFormatVersion flaFormatVersion, String charset) {
+        super(flaFormatVersion, charset);
         if (flaFormatVersion.ordinal() < FlaFormatVersion.F5.ordinal()) {
             throw new UnsupportedOperationException("Version " + flaFormatVersion + " is not supported yet");
         }
@@ -767,7 +767,7 @@ public class FlaConverter extends AbstractConverter {
             if (flaFormatVersion == FlaFormatVersion.CS4) {
                 fg.write(0x00, 0x00);
             }
-            TimelineConverter symbolPageGenerator = new TimelineConverter(flaFormatVersion, symbolName);
+            TimelineConverter symbolPageGenerator = new TimelineConverter(flaFormatVersion, charset, symbolName);
             symbolPageGenerator.setDebugRandom(debugRandom);
             try (OutputStream sos = outputDir.getOutputStream(symbolFile)) {
                 symbolPageGenerator.convert(domTimelineElement, document, sos);
@@ -821,7 +821,7 @@ public class FlaConverter extends AbstractConverter {
         Reference<Integer> objectsCount = new Reference<>(0);
 
         try (OutputStream os = outputDir.getOutputStream("Contents")) {
-            FlaWriter fg = new FlaWriter(os, flaFormatVersion);
+            FlaWriter fg = new FlaWriter(os, flaFormatVersion, charset);
             fg.setTitle("Contents");
             if (debugRandom) {
                 fg.setDebugRandom(true);
@@ -1044,7 +1044,7 @@ public class FlaConverter extends AbstractConverter {
                     fg.write(0x00, 0x00);
                 }
 
-                TimelineConverter pageGenerator = new TimelineConverter(flaFormatVersion, "Page " + pageCount);
+                TimelineConverter pageGenerator = new TimelineConverter(flaFormatVersion, charset, "Page " + pageCount);
                 pageGenerator.setDebugRandom(debugRandom);
                 try (OutputStream pos = outputDir.getOutputStream(pageName)) {
                     pageGenerator.convert(domTimeline, document, pos);

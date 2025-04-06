@@ -120,6 +120,7 @@ public class FlaWriter {
     private long pos = 0;
 
     private String title = "";
+    private final String charset;
 
     public void setTitle(String title) {
         this.title = title;
@@ -133,9 +134,10 @@ public class FlaWriter {
         return debugRandom;
     }
 
-    public FlaWriter(OutputStream os, FlaFormatVersion flaFormatVersion) {
+    public FlaWriter(OutputStream os, FlaFormatVersion flaFormatVersion, String charset) {
         this.os = os;
         this.flaFormatVersion = flaFormatVersion;
+        this.charset = charset;
     }
 
     public void writeFloat(float val) throws IOException {
@@ -837,7 +839,7 @@ public class FlaWriter {
     }
 
     public void writeString(String s) throws IOException {
-        byte[] b = s.getBytes();
+        byte[] b = s.getBytes(charset);
         int len = flaFormatVersion.isUnicode() ? s.length() : b.length;
         if (len < 0xFF) {
             write(len);

@@ -193,7 +193,9 @@ public class MainMenuFrame extends JFrame {
             }
             OutputStorageInterface outputStorage = new CfbOutputStorage(outputFile);
 
-            FlaConverter contentsGenerator = new FlaConverter(flaFormatVersion);
+            FlaConverter contentsGenerator = new FlaConverter(flaFormatVersion, 
+                    "WINDOWS-1250" //TODO: Create some GUI to select charset
+            );
             contentsGenerator.convert(inputStorage, outputStorage);
 
             inputStorage.close();
