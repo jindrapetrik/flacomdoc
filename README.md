@@ -30,6 +30,7 @@ java -jar flacomdoc.jar convert [--format <format>] [--charset <charset>] inputf
 ```
 
 For `--format` option you can choose: `CS4`, `CS3`, `F8`, `MX2004`, `MX` or `F5`.
+
 Charset setting is applicable for `MX` and lower formats and defaults to `WINDOWS-1252`.
 
 To extract CS4 and lower FLA (ComDoc format):
