@@ -10,8 +10,14 @@ This project has following goals:
 ## Requirements
 The app requires Java 8 or newer to run.
 
-## How to compile
-The directory contains Netbeans project which you can open and then build here.
+## Building from source code
+Source code is available on GitHub, you can get it via following command
+
+```
+git clone https://github.com/jindrapetrik/flacomdoc.git
+```
+
+The source directory contains Netbeans project which you can open and then build here.
 Alternatively you can use `ant` command from commandline.
 
 ## GUI usage
