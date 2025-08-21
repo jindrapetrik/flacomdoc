@@ -275,7 +275,10 @@
 
 ### Tags
 - SymbolClass (76)
-- DoABC (82)
+- DoABC (72)
+- DoABC2 (82)
+    - flags
+    - name    
 - DefineFontName (88)
 - StartSound2 (89)
     - play sound by classname
@@ -285,6 +288,7 @@
 
 ## SWF 10
 - Adobe Flash Professional CS4 (10)
+- Adobe Flash Professional CS5 (11)
 
 ### Tags
 - DefineBitsJPEG4 (90)
@@ -293,9 +297,15 @@
     - fonts in CFF format
 
 ## SWF 11
-- Adobe Flash Professional CS5 (11)
 - Adobe Flash Professional CS5.5 (11.5)
 
 ### Tags
 - opaque background to PlaceObject3
 - visible flag to PlaceObject3
+
+## SWF 11 - FP 11.6
+- Adobe Flash Professional CS6 (12)
+
+### Tags
+- PlaceObject4 (94)
+    - AMF metadata
