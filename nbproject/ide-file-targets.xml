@@ -91,8 +91,7 @@
                 <fileset dir="${test.lib.dir}" includes="**/*.jar"/>
             </classpath>
             <jvmarg value="-noverify"/>
-            <jvmarg value="-Xdebug"/>
-            <jvmarg value="-Xrunjdwp:transport=dt_socket,address=${jpda.address}"/>
+            <jvmarg value="-agentlib:jdwp=transport=dt_socket,address=${jpda.address}"/>
             <classfileset dir="${compile.test.dir}" includes="${debug.file}"/>
         </testng>
     </target>
@@ -124,8 +123,7 @@
                 <fileset dir="${test.lib.dir}" includes="**/*.jar"/>
             </classpath>
             <jvmarg value="-noverify"/>
-            <jvmarg value="-Xdebug"/>
-            <jvmarg value="-Xrunjdwp:transport=dt_socket,address=${jpda.address}"/>
+            <jvmarg value="-agentlib:jdwp=transport=dt_socket,address=${jpda.address}"/>
             <classfileset dir="${compile.test.dir}" includes="${debug.file}"/>
         </testng>
     </target>
@@ -150,8 +148,7 @@
                 <fileset dir="${lib.dir}" includes="**/*.jar"/>
                 <fileset dir="${test.lib.dir}" includes="**/*.jar"/>
             </classpath>
-            <jvmarg value="-Xdebug"/>
-            <jvmarg value="-Xrunjdwp:transport=dt_socket,address=${jpda.address}"/>
+            <jvmarg value="-agentlib:jdwp=transport=dt_socket,address=${jpda.address}"/>
         </java>
     </target>
     <target depends="compile" name="debug-selected-file-in-src">
@@ -168,8 +165,7 @@
                 <fileset dir="${basedir}" includes="lib/**/*.jar"/>
                 <pathelement location="build/classes"/>
             </classpath>
-            <jvmarg value="-Xdebug"/>
-            <jvmarg value="-Xrunjdwp:transport=dt_socket,address=${jpda.address}"/>
+            <jvmarg value="-agentlib:jdwp=transport=dt_socket,address=${jpda.address}"/>
         </java>
     </target>
     <target name="-profile-check">
