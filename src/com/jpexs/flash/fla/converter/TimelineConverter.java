@@ -74,8 +74,8 @@ import org.w3c.dom.NodeList;
 public class TimelineConverter extends AbstractConverter {
 
     //https://stackoverflow.com/questions/4077200/whats-the-meaning-of-the-non-numerical-values-in-the-xfls-edge-definition
-    private static final Pattern CUBICS_PATTERN = Pattern.compile("^!(?<mx>[0-9]+) +(?<my>[0-9]+) *\\(((?<pBCPx>[0-9]+) *, *(?<pBCPy>[0-9]+))? *; *(?<x1>[0-9]+),(?<y1>[0-9]+) +(?<x2>[0-9]+),(?<y2>[0-9]+) +(?<ex>[0-9]+),(?<ey>[0-9]+) *(?<xy>([QqPp]? *[0-9]+ +[0-9]+)+) *\\)((?<nBCPx>[0-9]+) *, *(?<nBCPy>[0-9]+))? *; *$");
-    private static final Pattern CUBICS_XY_PATTERN = Pattern.compile("(?<letter>[QqPp]?) *(?<x>[0-9]+) +(?<y>[0-9]+)");
+    private static final Pattern CUBICS_PATTERN = Pattern.compile("^!(?<mx>-?[0-9]+) +(?<my>-?[0-9]+) *\\(((?<pBCPx>-?[0-9]+) *, *(?<pBCPy>-?[0-9]+))? *; *(?<x1>-?[0-9]+),(?<y1>-?[0-9]+) +(?<x2>-?[0-9]+),(?<y2>-?[0-9]+) +(?<ex>-?[0-9]+),(?<ey>-?[0-9]+) *(?<xy>-?([QqPp]? *-?[0-9]+ +-?[0-9]+)+) *\\)((?<nBCPx>-?[0-9]+) *, *(?<nBCPy>-?[0-9]+))? *; *$");
+    private static final Pattern CUBICS_XY_PATTERN = Pattern.compile("(?<letter>[QqPp]?) *(?<x>-?[0-9]+) +(?<y>-?[0-9]+)");
     private final String title;
 
     public TimelineConverter(FlaFormatVersion flaFormatVersion, String charset, String title) {
