@@ -24,84 +24,78 @@ package com.jpexs.flash.fla.converter;
  */
 public enum FlaFormatVersion {
     //F1-F4 TODO - stubs - not yet fully working
-    F1(0x10, 0, 3, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
-    F2(0x11, 0, 3, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
-    F3(0x14, 0, 4, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
-    F4(0x1B, 0, 8, -1, -1, -1, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
+    F1   (0x10, 0, 3, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
+    F2   (0x11, 0, 3, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
+    F3   (0x14, 0, 4, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
+    F4   (0x1B, 0, 8, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
     
     //Already working:
-    F5(0x20, 1, 0x0C, 0, 3, 5, 5, 3, 1, 1, 0x15, 0, 1, 0x08, 1, 0, 3, 2, 5, 1, 3, 5, 0x08, 2, 1, 3, 1, 5, 5, 5, 5, 1, 1, 1, 1, 5, 3, 5, 5, 7, 5, 5, 3, 5, 1, 0, 0, 0, 3, 5, 1, 1, 0, 0, false),
-    MX(0x29, 1, 0x11, 3, 3, 5, 5, 3, 1, 1, 0x16, 1, 1, 0x0A, 1, 1, 3, 2, 5, 1, 6, 8, 0x0A, 2, 1, 3, 1, 7, 5, 9, 7, 1, 1, 1, 1, 5, 3, 5, 5, 8, 5, 5, 3, 5, 1, 3, 1, 3, 3, 5, 1, 1, 0, 0, false),
-    MX2004(0x38, 1, 0x16, 5, 5, 5, 6, 3, 2, 2, 0x17, 4, 2, 0x0B, 2, 4, 5, 5, 6, 2, 8, 0xB, 0x0E, 2, 2, 4, 2, 0xA, 6, 0xC, 0xA, 2, 2, 2, 2, 6, 3, 6, 6, 9, 6, 6, 5, 6, 2, 5, 2, 5, 4, 6, 2, 2, 0, 0, true),
-    F8(0x3F, 1, 0x17, 7, 7, 6, 6, 4, 4, 4, 0x18, 4, 4, 0x0B, 4, 4, 7, 6, 6, 2, 8, 0xB, 0x13, 3, 2, 4, 2, 0xC, 6, 0xD, 0xC, 4, 4, 4, 4, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 9, 494, true),
-    CS3(0x43, 1, 0x18, 7, 7, 7, 6, 4, 5, 5, 0x1A, 5, 5, 0x0B, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x13, 6, 2, 4, 2, 0xC, 6, 0xD, 0xC, 5, 5, 5, 5, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 10, 544, true),
-    CS4(0x47, 1, 0x19, 7, 7, 7, 6, 4, 5, 5, 0x1D, 5, 5, 0x0D, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x16, 6, 2, 4, 3, 0xF, 6, 0xE, 0xF, 5, 5, 5, 5, 7, 4, 6, 7, 0xA, 6, 7, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 11, 485, true);
+    F5    (0x20, 1, 0x0C, 5, 3, 1, 1, 0x15, 0, 1, 0x08, 1, 0, 3, 2, 5, 1, 3,   5,    8, 2, 1, 3, 1,   5, 5,   5,   5, 1, 1, 1, 1, 5, 3, 5, 5,   7, 5, 5, 3, 5, 1, 0, 0, 0, 3, 5, 1, 1,  0,   0, false),
+    MX    (0x29, 1, 0x11, 5, 3, 1, 1, 0x16, 1, 1, 0x0A, 1, 1, 3, 2, 5, 1, 6,   8, 0x0A, 2, 1, 3, 1,   7, 5,   9,   7, 1, 1, 1, 1, 5, 3, 5, 5,   8, 5, 5, 3, 5, 1, 3, 1, 3, 3, 5, 1, 1,  0,   0, false),
+    MX2004(0x38, 1, 0x16, 6, 3, 2, 2, 0x17, 4, 2, 0x0B, 2, 4, 5, 5, 6, 2, 8, 0xB, 0x0E, 2, 2, 4, 2, 0xA, 6, 0xC, 0xA, 2, 2, 2, 2, 6, 3, 6, 6,   9, 6, 6, 5, 6, 2, 5, 2, 5, 4, 6, 2, 2,  0,   0, true),
+    F8    (0x3F, 1, 0x17, 6, 4, 4, 4, 0x18, 4, 4, 0x0B, 4, 4, 7, 6, 6, 2, 8, 0xB, 0x13, 3, 2, 4, 2, 0xC, 6, 0xD, 0xC, 4, 4, 4, 4, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2,  9, 494, true),
+    CS3   (0x43, 1, 0x18, 6, 4, 5, 5, 0x1A, 5, 5, 0x0B, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x13, 6, 2, 4, 2, 0xC, 6, 0xD, 0xC, 5, 5, 5, 5, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 10, 544, true),
+    CS4   (0x47, 1, 0x19, 6, 4, 5, 5, 0x1D, 5, 5, 0x0D, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x16, 6, 2, 4, 3, 0xF, 6, 0xE, 0xF, 5, 5, 5, 5, 7, 4, 6, 7, 0xA, 6, 7, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 11, 485, true);
 
-    private final int contentsVersion;
-    private final int contentsVersionB;
-    private final int documentPageVersion;
-    private final int documentPageVersionB;
-    private final int documentPageVersionC;
-    private final int documentPageVersionD;
-    private final int documentPageVersionE;
-    private final int colorDefVersion;
-    private final int pageVersion;
-    private final int frameVersion;
-    private final int frameVersionB;
-    private final int frameVersionC;
-    private final int layerVersion;
-    private final int layerVersionB;
-    private final int spriteVersion;
-    private final int spriteVersionB;
-    private final int spriteVersionC;
-    private final int spriteVersionD;
-    private final int spriteVersionE;
-    private final int spriteVersionF;
-    private final int spriteVersionG;
-    private final int buttonVersion;
-    private final int symbolType;
-    private final int shapeType;
-    private final int bitmapType;
-    private final int videoType;
-    private final int fontVersion;
-    private final int fontVersionB;
-    private final int fontVersionC;
-    private final int textVersion;
-    private final int textVersionB;
-    private final int textVersionC;
-    private final int bitmapVersion;
-    private final int videoStreamVersion;
-    private final int groupVersion;
-    private final int mediaBitsVersion;
-    private final int mediaBitsVersionB;
-    private final int mediaBitsVersionC;
-    private final int mediaSoundVersion;
-    private final int mediaSoundVersionB;
-    private final int mediaSoundVersionC;
-    private final int mediaVideoVersion;
-    private final int mediaVideoVersionB;
-    private final int mediaVideoVersionC;
-    private final int mediaVideoVersionD;
-    private final int asLinkageVersion;
-    private final int asLinkageVersionB;
-    private final int libraryFolderVersion;
-    private final int libraryFolderVersionC;
-    private final int libraryFolderVersionD;
-    private final int accessibilityVersion;
+    public final int contentsVersion;
+    public final int contentsVersionB;
+    public final int documentPageVersion;
+    public final int documentPageVersionB;
+    public final int colorDefVersion;
+    public final int pageVersion;
+    public final int frameVersion;
+    public final int frameVersionB;
+    public final int frameVersionC;
+    public final int layerVersion;
+    public final int layerVersionB;
+    public final int spriteVersion;
+    public final int spriteVersionB;
+    public final int spriteVersionC;
+    public final int spriteVersionD;
+    public final int spriteVersionE;
+    public final int spriteVersionF;
+    public final int spriteVersionG;
+    public final int buttonVersion;
+    public final int symbolType;
+    public final int shapeType;
+    public final int bitmapType;
+    public final int videoType;
+    public final int fontVersion;
+    public final int fontVersionB;
+    public final int fontVersionC;
+    public final int textVersion;
+    public final int textVersionB;
+    public final int textVersionC;
+    public final int bitmapVersion;
+    public final int videoStreamVersion;
+    public final int groupVersion;
+    public final int mediaBitsVersion;
+    public final int mediaBitsVersionB;
+    public final int mediaBitsVersionC;
+    public final int mediaSoundVersion;
+    public final int mediaSoundVersionB;
+    public final int mediaSoundVersionC;
+    public final int mediaVideoVersion;
+    public final int mediaVideoVersionB;
+    public final int mediaVideoVersionC;
+    public final int mediaVideoVersionD;
+    public final int asLinkageVersion;
+    public final int asLinkageVersionB;
+    public final int libraryFolderVersion;
+    public final int libraryFolderVersionC;
+    public final int libraryFolderVersionD;
+    public final int accessibilityVersion;
     //this is actually one version up since we exported the FLA from newer version to older
-    private final int generatorVersion;
-    private final int generatorBuild;
-    private final boolean unicode;
-    private final int libraryFolderVersionB;
+    public final int generatorVersion;
+    public final int generatorBuild;
+    public final boolean unicode;
+    public final int libraryFolderVersionB;
 
     FlaFormatVersion(
             int contentsVersion,
             int contentsVersionB,
             int documentPageVersion,
             int documentPageVersionB,
-            int documentPageVersionC,
-            int documentPageVersionD,
-            int documentPageVersionE,
             int colorDefVersion,
             int pageVersion,
             int frameVersion,
@@ -155,9 +149,6 @@ public enum FlaFormatVersion {
         this.contentsVersionB = contentsVersionB;
         this.documentPageVersion = documentPageVersion;
         this.documentPageVersionB = documentPageVersionB;
-        this.documentPageVersionC = documentPageVersionC;
-        this.documentPageVersionD = documentPageVersionD;
-        this.documentPageVersionE = documentPageVersionE;
         this.colorDefVersion = colorDefVersion;
         this.pageVersion = pageVersion;
         this.frameVersion = frameVersion;
@@ -206,226 +197,5 @@ public enum FlaFormatVersion {
         this.generatorBuild = generatorBuild;
         this.textVersionC = textVersionC;
         this.unicode = unicode;
-    }
-
-    public int getContentsVersion() {
-        return contentsVersion;
-    }
-
-    public int getContentsVersionB() {
-        return contentsVersionB;
-    }
-
-    public int getDocumentPageVersion() {
-        return documentPageVersion;
-    }
-
-    public int getDocumentPageVersionB() {
-        return documentPageVersionB;
-    }
-
-    public int getDocumentPageVersionC() {
-        return documentPageVersionC;
-    }
-
-    public int getDocumentPageVersionD() {
-        return documentPageVersionD;
-    }
-
-    public int getDocumentPageVersionE() {
-        return documentPageVersionE;
-    }
-
-    public int getColorDefVersion() {
-        return colorDefVersion;
-    }
-
-    public int getPageVersion() {
-        return pageVersion;
-    }
-
-    public int getFrameVersion() {
-        return frameVersion;
-    }
-
-    public int getFrameVersionB() {
-        return frameVersionB;
-    }
-
-    public int getFrameVersionC() {
-        return frameVersionC;
-    }
-
-    public int getLayerVersion() {
-        return layerVersion;
-    }
-
-    public int getLayerVersionB() {
-        return layerVersionB;
-    }
-
-    public int getSpriteVersion() {
-        return spriteVersion;
-    }
-
-    public int getSpriteVersionB() {
-        return spriteVersionB;
-    }
-
-    public int getSpriteVersionC() {
-        return spriteVersionC;
-    }
-
-    public int getSpriteVersionD() {
-        return spriteVersionD;
-    }
-
-    public int getSpriteVersionE() {
-        return spriteVersionE;
-    }
-
-    public int getSpriteVersionF() {
-        return spriteVersionF;
-    }
-
-    public int getSpriteVersionG() {
-        return spriteVersionG;
-    }
-
-    public int getButtonVersion() {
-        return buttonVersion;
-    }
-
-    public int getSymbolType() {
-        return symbolType;
-    }
-
-    public int getShapeType() {
-        return shapeType;
-    }
-
-    public int getBitmapType() {
-        return bitmapType;
-    }
-
-    public int getVideoType() {
-        return videoType;
-    }
-
-    public int getFontVersion() {
-        return fontVersion;
-    }
-
-    public int getFontVersionB() {
-        return fontVersionB;
-    }
-
-    public int getFontVersionC() {
-        return fontVersionC;
-    }
-
-    public int getTextVersion() {
-        return textVersion;
-    }
-
-    public int getTextVersionB() {
-        return textVersionB;
-    }
-
-    public int getTextVersionC() {
-        return textVersionC;
-    }
-
-    public int getBitmapVersion() {
-        return bitmapVersion;
-    }
-
-    public int getVideoStreamVersion() {
-        return videoStreamVersion;
-    }
-
-    public int getGroupVersion() {
-        return groupVersion;
-    }
-
-    public int getMediaBitsVersion() {
-        return mediaBitsVersion;
-    }
-
-    public int getMediaBitsVersionB() {
-        return mediaBitsVersionB;
-    }
-
-    public int getMediaBitsVersionC() {
-        return mediaBitsVersionC;
-    }
-
-    public int getMediaSoundVersion() {
-        return mediaSoundVersion;
-    }
-
-    public int getMediaSoundVersionB() {
-        return mediaSoundVersionB;
-    }
-
-    public int getMediaSoundVersionC() {
-        return mediaSoundVersionC;
-    }
-
-    public int getMediaVideoVersion() {
-        return mediaVideoVersion;
-    }
-
-    public int getMediaVideoVersionB() {
-        return mediaVideoVersionB;
-    }
-
-    public int getMediaVideoVersionC() {
-        return mediaVideoVersionC;
-    }
-
-    public int getMediaVideoVersionD() {
-        return mediaVideoVersionD;
-    }
-
-    public int getAsLinkageVersion() {
-        return asLinkageVersion;
-    }
-
-    public int getAsLinkageVersionB() {
-        return asLinkageVersionB;
-    }
-
-    public int getLibraryFolderVersion() {
-        return libraryFolderVersion;
-    }
-
-    public int getLibraryFolderVersionB() {
-        return libraryFolderVersionB;
-    }
-
-    public int getLibraryFolderVersionC() {
-        return libraryFolderVersionC;
-    }
-
-    public int getLibraryFolderVersionD() {
-        return libraryFolderVersionD;
-    }
-
-    public int getAccessibilityVersion() {
-        return accessibilityVersion;
-    }
-
-    public int getGeneratorVersion() {
-        return generatorVersion;
-    }
-
-    public int getGeneratorBuild() {
-        return generatorBuild;
-    }
-
-    public boolean isUnicode() {
-        return unicode;
-    }
-
+    }      
 }

@@ -255,8 +255,8 @@ public class TimelineConverter extends AbstractConverter {
             Map<String, Integer> definedClasses,
             Reference<Integer> totalObjectCount) throws IOException {
         useClass("CPicVideoStream", fg, definedClasses, totalObjectCount);
-        fg.write(flaFormatVersion.getVideoStreamVersion());
-        instanceHeader(videoInstance, fg, flaFormatVersion.getVideoType(), true);
+        fg.write(flaFormatVersion.videoStreamVersion);
+        instanceHeader(videoInstance, fg, flaFormatVersion.videoType, true);
 
         long frameLeft = 0;
         if (videoInstance.hasAttribute("frameLeft")) {
@@ -333,8 +333,8 @@ public class TimelineConverter extends AbstractConverter {
         }
 
         useClass("CPicBitmap", fg, definedClasses, totalObjectCount);
-        fg.write(flaFormatVersion.getBitmapVersion());
-        instanceHeader(bitmapInstance, fg, flaFormatVersion.getBitmapType(), true);
+        fg.write(flaFormatVersion.bitmapVersion);
+        instanceHeader(bitmapInstance, fg, flaFormatVersion.bitmapType, true);
         fg.writeUI16(bitmapId);
 
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
@@ -354,7 +354,7 @@ public class TimelineConverter extends AbstractConverter {
         if (membersElement != null) {
             List<Element> members = getAllSubElements(membersElement);
             useClass("CPicShape", fg, definedClasses, totalObjectCount);
-            fg.write(flaFormatVersion.getGroupVersion());
+            fg.write(flaFormatVersion.groupVersion);
             boolean selected = false;
             if (element.hasAttribute("selected")) {
                 selected = "true".equals(element.getAttribute("selected"));
@@ -409,7 +409,7 @@ public class TimelineConverter extends AbstractConverter {
             if ("DOMShape".equals(element.getNodeName())) {
                 if (element.getAttribute("isFloating").equals("true")) {
                     useClass("CPicShape", fg, definedClasses, totalObjectCount);
-                    fg.write(flaFormatVersion.getGroupVersion());
+                    fg.write(flaFormatVersion.groupVersion);
                     boolean selected = false;
                     if (element.hasAttribute("selected")) {
                         selected = "true".equals(element.getAttribute("selected"));
@@ -429,7 +429,7 @@ public class TimelineConverter extends AbstractConverter {
         }
 
         if (!hasShape || isFloating) {
-            instanceHeader(shapeElement, fg, flaFormatVersion.getShapeType(), false);
+            instanceHeader(shapeElement, fg, flaFormatVersion.shapeType, false);
             fg.write(0x05);
             fg.writeUI32(0); //totalEdgeCount
             fg.write(0x00, 0x00); //fillStyleCount
@@ -894,8 +894,8 @@ public class TimelineConverter extends AbstractConverter {
         long centerPoint3DYLong = Math.round(centerPoint3DY * 20);
         long centerPoint3DZLong = Math.round(centerPoint3DZ * 20);
 
-        fg.write(flaFormatVersion.getSpriteVersion());
-        instanceHeader(symbolInstance, fg, flaFormatVersion.getSymbolType(), true);
+        fg.write(flaFormatVersion.spriteVersion);
+        instanceHeader(symbolInstance, fg, flaFormatVersion.symbolType, true);
 
         fg.write((firstFrame & 0xFF), ((firstFrame >> 8) & 0xFF));
         switch (symbolType) {
@@ -1043,8 +1043,8 @@ public class TimelineConverter extends AbstractConverter {
             return;
         }
 
-        fg.write((symbolType == FlaWriter.SYMBOLTYPE_BUTTON ? flaFormatVersion.getButtonVersion() : flaFormatVersion.getSpriteVersionG()),
-                flaFormatVersion.getSpriteVersionB(),
+        fg.write((symbolType == FlaWriter.SYMBOLTYPE_BUTTON ? flaFormatVersion.buttonVersion : flaFormatVersion.spriteVersionG),
+                flaFormatVersion.spriteVersionB,
                 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00);
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
@@ -1351,8 +1351,8 @@ public class TimelineConverter extends AbstractConverter {
 
             //orientation="vertical right to left", "vertical left to right"
             //fontRenderingMode="device" , "bitmap", "standard", "customThicknessSharpness"
-            fg.write(flaFormatVersion.getTextVersionC());
-            instanceHeader(element, fg, flaFormatVersion.getTextVersion(), true);
+            fg.write(flaFormatVersion.textVersionC);
+            instanceHeader(element, fg, flaFormatVersion.textVersion, true);
             fg.writeUI32((int) Math.round(left * 20));
             if (debugRandom) {
                 //width can change
@@ -1736,7 +1736,7 @@ public class TimelineConverter extends AbstractConverter {
                 if (!characters.isEmpty()) { //??
                     fg.writeUI16(characters.length());
                 }
-                fg.write(flaFormatVersion.getTextVersionB());
+                fg.write(flaFormatVersion.textVersionB);
                 fg.writeUI16(bitmapSize);
                 if (flaFormatVersion == FlaFormatVersion.CS4) {
                     fg.writeBomString(fontFamily);
@@ -1835,7 +1835,7 @@ public class TimelineConverter extends AbstractConverter {
                         fg.writeString(url);
                     }
                 }
-                if (flaFormatVersion.isUnicode()) {
+                if (flaFormatVersion.unicode) {
                     fg.write(characters.getBytes("UTF-16LE"));
                 } else {
                     fg.write(characters.getBytes(charset));
@@ -1991,7 +1991,7 @@ public class TimelineConverter extends AbstractConverter {
     }
 
     private void handleShape(Element element, Element document, FlaWriter fg, boolean inGroup, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
-        instanceHeader(element, fg, flaFormatVersion.getShapeType(), false);
+        instanceHeader(element, fg, flaFormatVersion.shapeType, false);
         fg.write(0x05);
         Node fillsNode = getSubElementByName(element, "fills");
         List<Element> fillStyles = new ArrayList<>();
@@ -2386,7 +2386,7 @@ public class TimelineConverter extends AbstractConverter {
             Integer overrideLayerType
     ) throws IOException {
         useClass("CPicLayer", fg, definedClasses, totalObjectCount);
-        fg.write(flaFormatVersion.getLayerVersion());
+        fg.write(flaFormatVersion.layerVersion);
         fg.write(0x00);
 
         int layerType = FlaWriter.LAYERTYPE_LAYER;
@@ -2420,7 +2420,7 @@ public class TimelineConverter extends AbstractConverter {
             String prevTweenType = "";
             for (int f = 0; f < frames.size(); f++) {
                 useClass("CPicFrame", fg, definedClasses, totalObjectCount);
-                fg.write(flaFormatVersion.getFrameVersion());
+                fg.write(flaFormatVersion.frameVersion);
                 fg.write(0x00);
                 totalFramesCountRef.setVal(totalFramesCountRef.getVal() + 1);
                 Element frame = frames.get(f);
@@ -2511,7 +2511,7 @@ public class TimelineConverter extends AbstractConverter {
                 //atributes are part of the keymode
                 int frameId = fg.generateRandomId();
 
-                fg.write(flaFormatVersion.getFrameVersionB());
+                fg.write(flaFormatVersion.frameVersionB);
                 fg.writeUI16(duration);
 
                 /*
@@ -2643,7 +2643,7 @@ public class TimelineConverter extends AbstractConverter {
                 } else {
 
                 }
-                fg.write(flaFormatVersion.getFrameVersionC(), 0x00, 0x00, 0x00, 
+                fg.write(flaFormatVersion.frameVersionC, 0x00, 0x00, 0x00, 
                         0x01, 
                         0x00, 
                         0x00,
@@ -3020,7 +3020,7 @@ public class TimelineConverter extends AbstractConverter {
                 fg.write(0x00, 0x00);
             }
 
-            fg.write(flaFormatVersion.getLayerVersionB());
+            fg.write(flaFormatVersion.layerVersionB);
 
             fg.writeBomString(layerName);
             fg.write(isSelected ? 1 : 0);
@@ -3288,7 +3288,7 @@ public class TimelineConverter extends AbstractConverter {
 
         fg.write(0x01);
         useClass("CPicPage", fg, definedClasses, totalObjectCount);
-        fg.write(flaFormatVersion.getPageVersion());
+        fg.write(flaFormatVersion.pageVersion);
         fg.write(0x00);
 
         int nextLayerId = 1;

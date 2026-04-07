@@ -235,7 +235,7 @@ public abstract class AbstractConverter {
         if (element.hasAttribute("autoLabeling")) {
             autoLabeling = !"false".equals(element.getAttribute("autoLabeling"));
         }
-        fg.write(flaFormatVersion.getAccessibilityVersion(), 0x00);
+        fg.write(flaFormatVersion.accessibilityVersion, 0x00);
         fg.write(0x00, 0x00, silent ? 1 : 0, 0x00, 0x00, 0x00);
         fg.writeBomString(accName);
         fg.writeBomString(description);

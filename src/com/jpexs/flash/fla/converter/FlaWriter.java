@@ -832,7 +832,7 @@ public class FlaWriter {
     }
 
     public void writeBomString(String s) throws IOException {
-        if (flaFormatVersion.isUnicode()) {
+        if (flaFormatVersion.unicode) {
             write(0xFF, 0xFE, 0xFF);
         }
         writeString(s);
@@ -840,7 +840,7 @@ public class FlaWriter {
 
     public void writeString(String s) throws IOException {
         byte[] b = s.getBytes(charset);
-        int len = flaFormatVersion.isUnicode() ? s.length() : b.length;
+        int len = flaFormatVersion.unicode ? s.length() : b.length;
         if (len < 0xFF) {
             write(len);
         } else if (len < 0xFFFF) {
@@ -852,7 +852,7 @@ public class FlaWriter {
             write(0xFF);
             writeUI32(len);
         }
-        if (flaFormatVersion.isUnicode()) {
+        if (flaFormatVersion.unicode) {
             write(s.getBytes("UTF-16LE"));
         } else {
             write(b);
