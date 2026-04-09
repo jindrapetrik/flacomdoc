@@ -78,9 +78,6 @@ public class FlaConverter extends AbstractConverter {
 
     public FlaConverter(FlaFormatVersion flaFormatVersion, String charset) {
         super(flaFormatVersion, charset);
-        if (flaFormatVersion.ordinal() < FlaFormatVersion.F5.ordinal()) {
-            throw new UnsupportedOperationException("Version " + flaFormatVersion + " is not supported yet");
-        }
     }
 
     private void writeTime(FlaWriter fg, long time) throws IOException {
@@ -948,7 +945,7 @@ public class FlaConverter extends AbstractConverter {
                 }
                 if (flaFormatVersion.ordinal() == FlaFormatVersion.F5.ordinal()) {
                     fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x01);
-                } else {
+                } else if (flaFormatVersion.ordinal() > flaFormatVersion.F5.ordinal()) {
                     fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
                             debugRandom ? 'U' : 0x01, //NEW - different from sprite
                             0x00, 0x00, 0x00,
@@ -1065,7 +1062,7 @@ public class FlaConverter extends AbstractConverter {
             fg.write(0x00, 0x00);
             if (debugRandom) {
                 fg.write('U');
-            } else if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+            } else if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal() || flaFormatVersion.ordinal() <= flaFormatVersion.F5.ordinal()) {
                 fg.write(0x02);
             } else {
                 fg.write(0x03);
@@ -1296,6 +1293,9 @@ public class FlaConverter extends AbstractConverter {
                         }
                         for (Element flashProfile : flashProfiles) {
                             Map<String, String> properties = getProperties("Untitled-1", width, height, flaFormatVersion);
+                            if (properties == null) {
+                                continue;
+                            }
                             for (Element propertiesSet : getAllSubElements(flashProfile)) {
                                 String namespace = propertiesSet.getTagName();
                                 if ("PublishFlashProperties".equals(namespace)) {
@@ -1361,15 +1361,15 @@ public class FlaConverter extends AbstractConverter {
             }
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
                 fg.write(0x00, 0x00);
-                writeColorDef(document, fg, flaFormatVersion, definedClasses, objectsCount);
-
+                writeColorDef(document, fg, flaFormatVersion, definedClasses, objectsCount);                                          
+                
                 Element foldersElement = getSubElementByName(document, "folders");
                 List<Element> domFolderItems = new ArrayList<>();
                 if (foldersElement != null) {
                     domFolderItems = getAllSubElementsByName(foldersElement, "DOMFolderItem");
                 }
 
-                fg.writeUI32(domFolderItems.size());
+                fg.writeUI32(domFolderItems.size());                
 
                 for (Element domFolderItem : domFolderItems) {
                     fg.write(flaFormatVersion.libraryFolderVersionB, 0x00, 0x00, 0x00);
@@ -1415,9 +1415,11 @@ public class FlaConverter extends AbstractConverter {
                     fg.write(isExpanded ? 1 : 0, 0x00,
                             0x00, 0x00);
 
-                    fg.write(flaFormatVersion.libraryFolderVersion, 0x00, 0x00, 0x00, 0x00);
-                    fg.writeBomString("");
-                    fg.writeBomString("");
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                        fg.write(flaFormatVersion.libraryFolderVersion, 0x00, 0x00, 0x00, 0x00);
+                        fg.writeBomString("");
+                        fg.writeBomString("");
+                    }
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
                         fg.writeBomString("");
                     }
@@ -1441,14 +1443,18 @@ public class FlaConverter extends AbstractConverter {
                         fg.write(0x00);
                     }
                 }
-
+                    
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
                     fg.write(0x00, 0x00);
                 }
-                fg.write(0x01);
-                fg.write(0x00);
-                fg.writeBomString("PublishQTProperties::QTSndSettings");
-                writeQTAudioSettings(fg);
+                if (flaFormatVersion.ordinal() >= flaFormatVersion.F5.ordinal()) {
+                    fg.write(0x01);
+                    fg.write(0x00);
+                    fg.writeBomString("PublishQTProperties::QTSndSettings");
+                    writeQTAudioSettings(fg);
+                    fg.write(0x00, 0x00);
+                }
+                fg.write(0x00, 0x00);                
                 fg.write(0x01, 0x00);
             }
 
@@ -2194,8 +2200,7 @@ public class FlaConverter extends AbstractConverter {
         String CQTAudioSettings = "CQTAudioSettings";
         dw.write(CQTAudioSettings.length(),
                 0x00);
-        dw.write(CQTAudioSettings.getBytes());
-        dw.write(0x00, 0x00, 0x00, 0x00);
+        dw.write(CQTAudioSettings.getBytes());        
     }
 
     protected void writeColorDef(Element document, FlaWriter dw, FlaFormatVersion flaFormatVersion, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws IOException {
@@ -2417,6 +2422,8 @@ public class FlaConverter extends AbstractConverter {
                 return getPropertiesMx(basePublishName, width, height);
             case F5:
                 return getPropertiesF5(basePublishName, width, height);
+            case F4:
+                return getPropertiesF4();
         }
         return null;
     }
@@ -2588,6 +2595,15 @@ public class FlaConverter extends AbstractConverter {
         propertiesMap.put("PublishFormatProperties::projectorWin", "0");
         propertiesMap.put("PublishFormatProperties::defaultNames", "1");
 
+        return propertiesMap;
+    }
+    
+    private Map<String, String> getPropertiesF4() {
+        Map<String, String> propertiesMap = new LinkedHashMap<>();
+        propertiesMap.put("PublishFlashProperties::Version", "4");
+        propertiesMap.put("Vector::Template", "");
+        propertiesMap.put("PublishFormatProperties::generator", "");
+        propertiesMap.put("Vector::Version", "4");
         return propertiesMap;
     }
 

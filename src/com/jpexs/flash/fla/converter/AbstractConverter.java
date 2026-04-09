@@ -35,7 +35,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
- * Converter - class with common methods for FlaConverter nd TimelineConverter.
+ * Converter - class with common methods for FlaConverter and TimelineConverter.
  * @author JPEXS
  */
 public abstract class AbstractConverter {

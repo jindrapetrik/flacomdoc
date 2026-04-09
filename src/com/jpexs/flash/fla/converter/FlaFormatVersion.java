@@ -22,20 +22,19 @@ package com.jpexs.flash.fla.converter;
  *
  * @author JPEXS
  */
-public enum FlaFormatVersion {
-    //F1-F4 TODO - stubs - not yet fully working
-    F1   (0x10, 0, 3, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
-    F2   (0x11, 0, 3, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
-    F3   (0x14, 0, 4, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
-    F4   (0x1B, 0, 8, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, false),
+public enum FlaFormatVersion {      
     
-    //Already working:
-    F5    (0x20, 1, 0x0C, 5, 3, 1, 1, 0x15, 0, 1, 0x08, 1, 0, 3, 2, 5, 1, 3,   5,    8, 2, 1, 3, 1,   5, 5,   5,   5, 1, 1, 1, 1, 5, 3, 5, 5,   7, 5, 5, 3, 5, 1, 0, 0, 0, 3, 5, 1, 1,  0,   0, false),
-    MX    (0x29, 1, 0x11, 5, 3, 1, 1, 0x16, 1, 1, 0x0A, 1, 1, 3, 2, 5, 1, 6,   8, 0x0A, 2, 1, 3, 1,   7, 5,   9,   7, 1, 1, 1, 1, 5, 3, 5, 5,   8, 5, 5, 3, 5, 1, 3, 1, 3, 3, 5, 1, 1,  0,   0, false),
-    MX2004(0x38, 1, 0x16, 6, 3, 2, 2, 0x17, 4, 2, 0x0B, 2, 4, 5, 5, 6, 2, 8, 0xB, 0x0E, 2, 2, 4, 2, 0xA, 6, 0xC, 0xA, 2, 2, 2, 2, 6, 3, 6, 6,   9, 6, 6, 5, 6, 2, 5, 2, 5, 4, 6, 2, 2,  0,   0, true),
-    F8    (0x3F, 1, 0x17, 6, 4, 4, 4, 0x18, 4, 4, 0x0B, 4, 4, 7, 6, 6, 2, 8, 0xB, 0x13, 3, 2, 4, 2, 0xC, 6, 0xD, 0xC, 4, 4, 4, 4, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2,  9, 494, true),
-    CS3   (0x43, 1, 0x18, 6, 4, 5, 5, 0x1A, 5, 5, 0x0B, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x13, 6, 2, 4, 2, 0xC, 6, 0xD, 0xC, 5, 5, 5, 5, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 10, 544, true),
-    CS4   (0x47, 1, 0x19, 6, 4, 5, 5, 0x1D, 5, 5, 0x0D, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x16, 6, 2, 4, 3, 0xF, 6, 0xE, 0xF, 5, 5, 5, 5, 7, 4, 6, 7, 0xA, 6, 7, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 11, 485, true);
+    //F1-F4 TODO - stubs - not yet fully working (filled with -1)
+    F1    (0x10, 0,    3, 0, 0, 1, 1, 1,    4,-1, 1,    2,-1,-1,-1,-1,-1,-1,-1,  -1,   -1, 1,-1,-1,-1,  -1,-1,  -1,  -1,-1,-1,-1,-1,-1,-1,-1,-1,  -1,-1,-1,-1,-1,-1,-1,-1, 0, 0, 0, 0,-1, 3,  0,   0, false),
+    F2    (0x11, 0,    3, 0, 0, 1, 1, 1,    8,-1, 1,    2,-1,-1,-1,-1,-1,-1,-1,  -1,   -1, 1,-1,-1,-1,  -1,-1,  -1,  -1,-1,-1,-1,-1,-1,-1,-1,-1,  -1,-1,-1,-1,-1,-1,-1,-1, 0, 0, 0, 0,-1, 3,  0,   0, false),
+    F3    (0x14, 0,    4, 0, 0, 1, 1, 1, 0x10, 0, 1,    3,-1,-1,-1,-1,-1,-1,-1,  -1,   -1, 2,-1,-1,-1,  -1,-1,  -1,  -1,-1,-1,-1,-1,-1,-1,-1,-1,  -1,-1,-1,-1,-1,-1,-1,-1, 0, 0, 0, 0,-1, 4,  0,   0, false),
+    F4    (0x1B, 0,    8, 4, 3, 1, 2, 1, 0x12, 0, 1,    8,-1,-1,-1,-1,-1,-1,-1,  -1,   -1, 2,-1,-1,-1,  -1,-1,  -1,  -1,-1,-1,-1,-1,-1,-1,-1,-1,  -1,-1,-1,-1,-1,-1,-1,-1, 0, 3, 4, 0,-1, 4,  0,   0, false),
+    F5    (0x20, 1, 0x0C, 5, 3, 1, 3, 1, 0x15, 0, 1,    8, 1, 0, 3, 2, 5, 1, 3,   5,    8, 2, 1, 3, 1,   5, 5,   5,   5, 1, 1, 1, 1, 5, 3, 5, 5,   7, 5, 5, 3, 5, 1, 0, 0, 0, 3, 5, 1, 1, 5,  0,   0, false),
+    MX    (0x29, 1, 0x11, 5, 3, 1, 3, 1, 0x16, 1, 1, 0x0A, 1, 1, 3, 2, 5, 1, 6,   8, 0x0A, 2, 1, 3, 1,   7, 5,   9,   7, 1, 1, 1, 1, 5, 3, 5, 5,   8, 5, 5, 3, 5, 1, 3, 1, 3, 3, 5, 1, 1, 5,  0,   0, false),
+    MX2004(0x38, 1, 0x16, 6, 3, 2, 5, 2, 0x17, 4, 2, 0x0B, 2, 4, 5, 5, 6, 2, 8, 0xB, 0x0E, 2, 2, 4, 2, 0xA, 6, 0xC, 0xA, 2, 2, 2, 2, 6, 3, 6, 6,   9, 6, 6, 5, 6, 2, 5, 2, 5, 4, 6, 2, 2, 5,  0,   0, true),
+    F8    (0x3F, 1, 0x17, 6, 4, 4, 7, 4, 0x18, 4, 4, 0x0B, 4, 4, 7, 6, 6, 2, 8, 0xB, 0x13, 3, 2, 4, 2, 0xC, 6, 0xD, 0xC, 4, 4, 4, 4, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 5,  9, 494, true),
+    CS3   (0x43, 1, 0x18, 6, 4, 5, 7, 5, 0x1A, 5, 5, 0x0B, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x13, 6, 2, 4, 2, 0xC, 6, 0xD, 0xC, 5, 5, 5, 5, 6, 3, 6, 6, 0xA, 6, 6, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 5, 10, 544, true),
+    CS4   (0x47, 1, 0x19, 6, 4, 5, 7, 5, 0x1D, 5, 5, 0x0D, 5, 5, 7, 7, 6, 2, 8, 0xB, 0x16, 6, 2, 4, 3, 0xF, 6, 0xE, 0xF, 5, 5, 5, 5, 7, 4, 6, 7, 0xA, 6, 7, 7, 6, 2, 7, 2, 7, 4, 6, 2, 2, 5, 11, 485, true);
 
     public final int contentsVersion;
     public final int contentsVersionB;
@@ -43,6 +42,7 @@ public enum FlaFormatVersion {
     public final int documentPageVersionB;
     public final int colorDefVersion;
     public final int pageVersion;
+    public final int pageVersionB;
     public final int frameVersion;
     public final int frameVersionB;
     public final int frameVersionC;
@@ -81,15 +81,16 @@ public enum FlaFormatVersion {
     public final int mediaVideoVersionD;
     public final int asLinkageVersion;
     public final int asLinkageVersionB;
-    public final int libraryFolderVersion;
+    public final int libraryFolderVersion;    
+    public final int libraryFolderVersionB;
     public final int libraryFolderVersionC;
     public final int libraryFolderVersionD;
     public final int accessibilityVersion;
+    public final int shapeVersion;
     //this is actually one version up since we exported the FLA from newer version to older
     public final int generatorVersion;
     public final int generatorBuild;
     public final boolean unicode;
-    public final int libraryFolderVersionB;
 
     FlaFormatVersion(
             int contentsVersion,
@@ -98,6 +99,7 @@ public enum FlaFormatVersion {
             int documentPageVersionB,
             int colorDefVersion,
             int pageVersion,
+            int pageVersionB,
             int frameVersion,
             int frameVersionB,
             int frameVersionC,
@@ -141,8 +143,9 @@ public enum FlaFormatVersion {
             int libraryFolderVersionC,
             int libraryFolderVersionD,
             int accessibilityVersion,
+            int shapeVersion,
             int generatorVersion,
-            int generatorBuild,
+            int generatorBuild,            
             boolean unicode
     ) {
         this.contentsVersion = contentsVersion;
@@ -151,6 +154,7 @@ public enum FlaFormatVersion {
         this.documentPageVersionB = documentPageVersionB;
         this.colorDefVersion = colorDefVersion;
         this.pageVersion = pageVersion;
+        this.pageVersionB = pageVersionB;
         this.frameVersion = frameVersion;
         this.frameVersionB = frameVersionB;
         this.frameVersionC = frameVersionC;
@@ -193,6 +197,7 @@ public enum FlaFormatVersion {
         this.libraryFolderVersionC = libraryFolderVersionC;
         this.libraryFolderVersionD = libraryFolderVersionD;
         this.accessibilityVersion = accessibilityVersion;
+        this.shapeVersion = shapeVersion;
         this.generatorVersion = generatorVersion;
         this.generatorBuild = generatorBuild;
         this.textVersionC = textVersionC;

@@ -430,12 +430,14 @@ public class TimelineConverter extends AbstractConverter {
 
         if (!hasShape || isFloating) {
             instanceHeader(shapeElement, fg, flaFormatVersion.shapeType, false);
-            fg.write(0x05);
+            fg.write(flaFormatVersion.shapeVersion);
             fg.writeUI32(0); //totalEdgeCount
             fg.write(0x00, 0x00); //fillStyleCount
             fg.write(0x00, 0x00); //strokeStyleCount
             fg.write(0x00); //??
-            fg.writeUI32(0); //totalCubicsCount                                    
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                fg.writeUI32(0); //totalCubicsCount                               
+            }
         }
     }
 
@@ -1992,7 +1994,7 @@ public class TimelineConverter extends AbstractConverter {
 
     private void handleShape(Element element, Element document, FlaWriter fg, boolean inGroup, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
         instanceHeader(element, fg, flaFormatVersion.shapeType, false);
-        fg.write(0x05);
+        fg.write(flaFormatVersion.shapeVersion);
         Node fillsNode = getSubElementByName(element, "fills");
         List<Element> fillStyles = new ArrayList<>();
         if (fillsNode != null) {
@@ -2236,111 +2238,113 @@ public class TimelineConverter extends AbstractConverter {
 
         fg.write(0x00); //?
 
-        int totalCubicsCount = 0;
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+            int totalCubicsCount = 0;
 
-        for (Element edge : edges) {
-            if (edge.hasAttribute("cubics")) {
-                totalCubicsCount++;
+            for (Element edge : edges) {
+                if (edge.hasAttribute("cubics")) {
+                    totalCubicsCount++;
+                }
             }
-        }
 
-        fg.writeUI32(totalCubicsCount);
-        for (Element edge : edges) {
-            if (edge.hasAttribute("cubics")) {
-                String cubics = edge.getAttribute("cubics");
-                Matcher cubicsMatcher = CUBICS_PATTERN.matcher(cubics);
-                if (!cubicsMatcher.matches()) {
-                    Logger.getLogger(TimelineConverter.class.getName()).warning("Cubics pattern does not match for input string " + cubics);
-                    continue;
-                }
-                int mx = Integer.parseInt(cubicsMatcher.group("mx"));
-                int my = Integer.parseInt(cubicsMatcher.group("my"));
-                int x1 = Integer.parseInt(cubicsMatcher.group("x1"));
-                int y1 = Integer.parseInt(cubicsMatcher.group("y1"));
-                int x2 = Integer.parseInt(cubicsMatcher.group("x2"));
-                int y2 = Integer.parseInt(cubicsMatcher.group("y2"));
-                int ex = Integer.parseInt(cubicsMatcher.group("ex"));
-                int ey = Integer.parseInt(cubicsMatcher.group("ey"));
-
-                Integer pBCPx = null;
-                if (cubicsMatcher.group("pBCPx") != null) {
-                    pBCPx = Integer.parseInt(cubicsMatcher.group("pBCPx"));
-                }
-                Integer pBCPy = null;
-                if (cubicsMatcher.group("pBCPy") != null) {
-                    pBCPy = Integer.parseInt(cubicsMatcher.group("pBCPy"));
-                }
-                Integer nBCPx = null;
-                if (cubicsMatcher.group("nBCPx") != null) {
-                    nBCPx = Integer.parseInt(cubicsMatcher.group("nBCPx"));
-                }
-                Integer nBCPy = null;
-                if (cubicsMatcher.group("nBCPy") != null) {
-                    nBCPy = Integer.parseInt(cubicsMatcher.group("nBCPy"));
-                }
-
-                String xy = cubicsMatcher.group("xy");
-                Matcher m2 = CUBICS_XY_PATTERN.matcher(xy);
-                List<String> letterList = new ArrayList<>();
-                List<Integer> xList = new ArrayList<>();
-                List<Integer> yList = new ArrayList<>();
-                String lastLetter = "q";
-                while (m2.find()) {
-                    xList.add(Integer.parseInt(m2.group("x")));
-                    yList.add(Integer.parseInt(m2.group("y")));
-                    String letter = m2.group("letter");
-                    if (letter == null || letter.isEmpty()) {
-                        letter = lastLetter;
+            fg.writeUI32(totalCubicsCount);
+            for (Element edge : edges) {
+                if (edge.hasAttribute("cubics")) {
+                    String cubics = edge.getAttribute("cubics");
+                    Matcher cubicsMatcher = CUBICS_PATTERN.matcher(cubics);
+                    if (!cubicsMatcher.matches()) {
+                        Logger.getLogger(TimelineConverter.class.getName()).warning("Cubics pattern does not match for input string " + cubics);
+                        continue;
                     }
-                    lastLetter = letter;
-                    letterList.add(letter);
-                }
+                    int mx = Integer.parseInt(cubicsMatcher.group("mx"));
+                    int my = Integer.parseInt(cubicsMatcher.group("my"));
+                    int x1 = Integer.parseInt(cubicsMatcher.group("x1"));
+                    int y1 = Integer.parseInt(cubicsMatcher.group("y1"));
+                    int x2 = Integer.parseInt(cubicsMatcher.group("x2"));
+                    int y2 = Integer.parseInt(cubicsMatcher.group("y2"));
+                    int ex = Integer.parseInt(cubicsMatcher.group("ex"));
+                    int ey = Integer.parseInt(cubicsMatcher.group("ey"));
 
-                fg.writeUI32(mx);
-                fg.writeUI32(my);
-                fg.writeUI32(x1);
-                fg.writeUI32(y1);
-                fg.writeUI32(x2);
-                fg.writeUI32(y2);
-                fg.writeUI32(ex);
-                fg.writeUI32(ey);
+                    Integer pBCPx = null;
+                    if (cubicsMatcher.group("pBCPx") != null) {
+                        pBCPx = Integer.parseInt(cubicsMatcher.group("pBCPx"));
+                    }
+                    Integer pBCPy = null;
+                    if (cubicsMatcher.group("pBCPy") != null) {
+                        pBCPy = Integer.parseInt(cubicsMatcher.group("pBCPy"));
+                    }
+                    Integer nBCPx = null;
+                    if (cubicsMatcher.group("nBCPx") != null) {
+                        nBCPx = Integer.parseInt(cubicsMatcher.group("nBCPx"));
+                    }
+                    Integer nBCPy = null;
+                    if (cubicsMatcher.group("nBCPy") != null) {
+                        nBCPy = Integer.parseInt(cubicsMatcher.group("nBCPy"));
+                    }
 
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
-                    fg.write(letterList.size());
-                    for (int i = 0; i < letterList.size(); i++) {
-                        fg.writeUI32(xList.get(i));
-                        fg.writeUI32(yList.get(i));
-                        switch (letterList.get(i)) {
-                            case "Q":
-                                fg.write(0x01, 0x00);
-                                break;
-                            case "q":
-                                fg.write(0x00, 0x00);
-                                break;
-                            case "P":
-                                fg.write(0x01, 0x01);
-                                break;
-                            case "p":
-                                fg.write(0x00, 0x01);
-                                break;
+                    String xy = cubicsMatcher.group("xy");
+                    Matcher m2 = CUBICS_XY_PATTERN.matcher(xy);
+                    List<String> letterList = new ArrayList<>();
+                    List<Integer> xList = new ArrayList<>();
+                    List<Integer> yList = new ArrayList<>();
+                    String lastLetter = "q";
+                    while (m2.find()) {
+                        xList.add(Integer.parseInt(m2.group("x")));
+                        yList.add(Integer.parseInt(m2.group("y")));
+                        String letter = m2.group("letter");
+                        if (letter == null || letter.isEmpty()) {
+                            letter = lastLetter;
                         }
+                        lastLetter = letter;
+                        letterList.add(letter);
                     }
 
-                    int pnFlags = 0;
-                    if (pBCPx != null) {
-                        pnFlags |= 1;
-                    }
-                    if (nBCPx != null) {
-                        pnFlags |= 2;
-                    }
-                    fg.write(pnFlags);
-                    if (pBCPx != null) {
-                        fg.writeUI32(pBCPx);
-                        fg.writeUI32(pBCPy);
-                    }
-                    if (nBCPx != null) {
-                        fg.writeUI32(nBCPx);
-                        fg.writeUI32(nBCPy);
+                    fg.writeUI32(mx);
+                    fg.writeUI32(my);
+                    fg.writeUI32(x1);
+                    fg.writeUI32(y1);
+                    fg.writeUI32(x2);
+                    fg.writeUI32(y2);
+                    fg.writeUI32(ex);
+                    fg.writeUI32(ey);
+
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+                        fg.write(letterList.size());
+                        for (int i = 0; i < letterList.size(); i++) {
+                            fg.writeUI32(xList.get(i));
+                            fg.writeUI32(yList.get(i));
+                            switch (letterList.get(i)) {
+                                case "Q":
+                                    fg.write(0x01, 0x00);
+                                    break;
+                                case "q":
+                                    fg.write(0x00, 0x00);
+                                    break;
+                                case "P":
+                                    fg.write(0x01, 0x01);
+                                    break;
+                                case "p":
+                                    fg.write(0x00, 0x01);
+                                    break;
+                            }
+                        }
+
+                        int pnFlags = 0;
+                        if (pBCPx != null) {
+                            pnFlags |= 1;
+                        }
+                        if (nBCPx != null) {
+                            pnFlags |= 2;
+                        }
+                        fg.write(pnFlags);
+                        if (pBCPx != null) {
+                            fg.writeUI32(pBCPx);
+                            fg.writeUI32(pBCPy);
+                        }
+                        if (nBCPx != null) {
+                            fg.writeUI32(nBCPx);
+                            fg.writeUI32(nBCPy);
+                        }
                     }
                 }
             }
@@ -2557,97 +2561,122 @@ public class TimelineConverter extends AbstractConverter {
                     }
                 }
 
-                if (soundId > 0) {
-                    fg.writeUI16(soundId);
-
-                    Element soundEnvelope = getSubElementByName(frame, "SoundEnvelope");
-                    if (soundEnvelope == null) {
-                        fg.writeUI16(1);
-                        fg.writeUI32(0);
-                        fg.writeUI16(0x8000);
-                        fg.writeUI16(0x8000);
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F2.ordinal()) {
+                    fg.writeUI16(soundId);               
+                    if (soundId > 0) {
+                        Element soundEnvelope = getSubElementByName(frame, "SoundEnvelope");
+                        if (soundEnvelope == null) {
+                            fg.writeUI16(1);
+                            fg.writeUI32(0);
+                            fg.writeUI16(0x8000);
+                            fg.writeUI16(0x8000);
+                        } else {
+                            List<Element> soundEnvelopePoints = getAllSubElementsByName(soundEnvelope, "SoundEnvelopePoint");
+                            fg.writeUI16(soundEnvelopePoints.size());
+                            for (Element soundEnvelopePoint : soundEnvelopePoints) {
+                                long mark44 = 0;
+                                if (soundEnvelopePoint.hasAttribute("mark44")) {
+                                    mark44 = Long.parseLong(soundEnvelopePoint.getAttribute("mark44"));
+                                }
+                                int level0 = 0;
+                                if (soundEnvelopePoint.hasAttribute("level0")) {
+                                    level0 = Integer.parseInt(soundEnvelopePoint.getAttribute("level0"));
+                                }
+                                int level1 = 0;
+                                if (soundEnvelopePoint.hasAttribute("level1")) {
+                                    level1 = Integer.parseInt(soundEnvelopePoint.getAttribute("level1"));
+                                }
+                                fg.writeUI32(mark44);
+                                fg.writeUI16(level0);
+                                fg.writeUI16(level1);
+                            }
+                        }
                     } else {
-                        List<Element> soundEnvelopePoints = getAllSubElementsByName(soundEnvelope, "SoundEnvelopePoint");
-                        fg.writeUI16(soundEnvelopePoints.size());
-                        for (Element soundEnvelopePoint : soundEnvelopePoints) {
-                            long mark44 = 0;
-                            if (soundEnvelopePoint.hasAttribute("mark44")) {
-                                mark44 = Long.parseLong(soundEnvelopePoint.getAttribute("mark44"));
-                            }
-                            int level0 = 0;
-                            if (soundEnvelopePoint.hasAttribute("level0")) {
-                                level0 = Integer.parseInt(soundEnvelopePoint.getAttribute("level0"));
-                            }
-                            int level1 = 0;
-                            if (soundEnvelopePoint.hasAttribute("level1")) {
-                                level1 = Integer.parseInt(soundEnvelopePoint.getAttribute("level1"));
-                            }
-                            fg.writeUI32(mark44);
-                            fg.writeUI16(level0);
-                            fg.writeUI16(level1);
+                        fg.write(0x00, 0x00);
+                    }
+                    long inPoint44 = 0;
+                    if (soundId > 0 && frame.hasAttribute("inPoint44")) {
+                        inPoint44 = Long.parseLong(frame.getAttribute("inPoint44"));
+                    }
+                    long outPoint44 = 0x3FFFFFFF;
+                    if (soundId > 0 && frame.hasAttribute("outPoint44")) {
+                        outPoint44 = Long.parseLong(frame.getAttribute("outPoint44"));
+                    }
+                    int soundZoomLevel = -1;
+                    if (frame.hasAttribute("soundZoomLevel")) {
+                        soundZoomLevel = Integer.parseInt(frame.getAttribute("soundZoomLevel"));
+                    }
+
+                    int soundSync = 0;
+                    if (frame.hasAttribute("soundSync")) {
+                        switch (frame.getAttribute("soundSync")) {
+                            case "start":
+                                soundSync = 1;
+                                break;
+                            case "stop":
+                                soundSync = 2;
+                                break;
+                            case "stream":
+                                soundSync = 3;
+                                break;
                         }
                     }
-                } else {
-                    fg.write(0x00, 0x00, 0x00, 0x00);
-                }
-                long inPoint44 = 0;
-                if (soundId > 0 && frame.hasAttribute("inPoint44")) {
-                    inPoint44 = Long.parseLong(frame.getAttribute("inPoint44"));
-                }
-                long outPoint44 = 0x3FFFFFFF;
-                if (soundId > 0 && frame.hasAttribute("outPoint44")) {
-                    outPoint44 = Long.parseLong(frame.getAttribute("outPoint44"));
-                }
-                int soundZoomLevel = -1;
-                if (frame.hasAttribute("soundZoomLevel")) {
-                    soundZoomLevel = Integer.parseInt(frame.getAttribute("soundZoomLevel"));
-                }
 
-                int soundSync = 0;
-                if (frame.hasAttribute("soundSync")) {
-                    switch (frame.getAttribute("soundSync")) {
-                        case "start":
-                            soundSync = 1;
-                            break;
-                        case "stop":
-                            soundSync = 2;
-                            break;
-                        case "stream":
-                            soundSync = 3;
-                            break;
+                    int soundLoop = 1;
+                    if (frame.hasAttribute("soundLoop")) {
+                        soundLoop = Integer.parseInt(frame.getAttribute("soundLoop"));
                     }
+                    if (soundId <= 0) {
+                        soundLoop = 0;
+                    }
+
+                    boolean loop = false;
+                    if (frame.hasAttribute("soundLoopMode")) {
+                        loop = "loop".equals(frame.getAttribute("soundLoopMode"));
+                    }
+                    if (loop) {
+                        soundLoop = 32767;
+                    }
+               
+                    fg.writeUI16(soundLoop);
+                    fg.write(soundSync);
+                    fg.writeUI32(inPoint44);
+                    fg.writeUI32(outPoint44);
+                    fg.writeUI16(soundZoomLevel);
                 }
 
-                int soundLoop = 1;
-                if (frame.hasAttribute("soundLoop")) {
-                    soundLoop = Integer.parseInt(frame.getAttribute("soundLoop"));
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {                
+                    fg.writeBomString(name);
+                }
+                if (flaFormatVersion == FlaFormatVersion.F3 || flaFormatVersion == FlaFormatVersion.F4) {
+                    //TODO: actíons
+                    /*int actionCount = 1;
+                    fg.write(actionCount);
+                    
+                    final int ACTION_PLAY = 1;
+                    final int ACTION_STOP = 2;
+                    
+                    //for FLASH4:
+                    for (int i = 0; i < actionCount; i++) {
+                        fg.write(
+                            0x00, 0x00, 0x00, 0x09, ACTION_PLAY, 0x00, 0x00, 0x00, 0x01, 0x00, 0x80, 0xC1, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00 
+                        );
+                    }*/
+                    fg.write(0x00);
+                }                
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                    fg.write(flaFormatVersion.frameVersionC, 0x00, 0x00, 0x00);
+                    fg.write(0x01); //set this to 0 to ommit following 7 bytes for F5
+                    fg.write(0x00, 0x00, 0x00);
                 }
 
-                boolean loop = false;
-                if (frame.hasAttribute("soundLoopMode")) {
-                    loop = "loop".equals(frame.getAttribute("soundLoopMode"));
-                }
-                if (loop) {
-                    soundLoop = 32767;
-                }
-
-                fg.writeUI16(soundLoop);
-                fg.write(soundSync);
-                fg.writeUI32(inPoint44);
-                fg.writeUI32(outPoint44);
-                fg.writeUI16(soundZoomLevel);
-
-                fg.writeBomString(name);
-                if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
-
-                } else {
-
-                }
-                fg.write(flaFormatVersion.frameVersionC, 0x00, 0x00, 0x00, 
-                        0x01, 
-                        0x00, 
-                        0x00,
-                        0x00);
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
                     fg.write(((frameId >> 8) & 0xFF), (frameId & 0xFF));
                     fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
@@ -2655,195 +2684,196 @@ public class TimelineConverter extends AbstractConverter {
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
                     fg.write(0x00, 0x00, 0x00, 0x00);
                 }
-                fg.writeBomString(actionScript);
-                fg.write(motionTweenRotate, 0x00, 0x00, 0x00);
-                fg.writeUI16(motionTweenRotateTimes);
-                fg.write(0x00, 0x00);
-                fg.write(comment ? 1 : 0, 0x00, 0x00, 0x00);
-                Element morphShape = getSubElementByName(frame, "MorphShape");
-                if (morphShape == null) {
-                    fg.write(0x00, 0x00);
-                } else {
-                    useClass("CPicMorphShape", fg, definedClasses, totalObjectCount);
-
-                    fg.write(
-                            0x02, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
-                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
-                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0x00);
-
-                    List<Element> fillStyles1 = new ArrayList<>();
-                    List<Element> fillStyles2 = new ArrayList<>();
-                    List<Element> strokeStyles1 = new ArrayList<>();
-                    List<Element> strokeStyles2 = new ArrayList<>();
-                    if (f + 1 < frames.size()) {
-                        Element nextFrame = frames.get(f + 1);
-                        Element domShape1 = getSubElementByName(elementsNode, "DOMShape");
-                        Element nextFrameElementsNode = getSubElementByName(nextFrame, "elements");
-                        if (domShape1 != null && nextFrameElementsNode != null) {
-                            Element domShape2 = getSubElementByName(nextFrameElementsNode, "DOMShape");
-                            if (domShape2 != null) {
-                                Element fills1 = getSubElementByName(domShape1, "fills");
-                                Element fills2 = getSubElementByName(domShape2, "fills");
-                                Element strokes1 = getSubElementByName(domShape1, "strokes");
-                                Element strokes2 = getSubElementByName(domShape2, "strokes");
-
-                                if (fills1 != null) {
-                                    fillStyles1 = getAllSubElementsByName(fills1, "FillStyle");
-                                }
-                                if (fills2 != null) {
-                                    fillStyles2 = getAllSubElementsByName(fills2, "FillStyle");
-                                }
-
-                                if (strokes1 != null) {
-                                    strokeStyles1 = getAllSubElementsByName(strokes1, "StrokeStyle");
-                                }
-                                if (strokes2 != null) {
-                                    strokeStyles2 = getAllSubElementsByName(strokes2, "StrokeStyle");
-                                }
-                            }
-                        }
-                    }
-
-                    List<Element> fills = new ArrayList<>();
-                    List<Element> strokes = new ArrayList<>();
-
-                    if (!fillStyles1.isEmpty()) {
-
-                        int maxNumFills = Math.max(fillStyles1.size(), fillStyles2.size());
-                        for (int i = 0; i < maxNumFills; i++) {
-                            Element fill1 = fillStyles1.size() > i ? fillStyles1.get(i) : null;
-                            Element fill2 = fillStyles2.size() > i ? fillStyles2.get(i) : null;
-                            fills.add(fill1);
-
-                            if (!areElementsEqual(fill1, fill2, false) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
-                                fills.add(fill2);
-                            }
-                        }
-                    }
-                    if (strokeStyles1.isEmpty() && strokeStyles2.isEmpty()) {
-                        //ignore
-                    } else {
-                        int maxNumStrokes = Math.max(strokeStyles1.size(), strokeStyles2.size());
-                        for (int i = 0; i < maxNumStrokes; i++) {
-                            Element stroke1 = strokeStyles1.size() > i ? strokeStyles1.get(i) : null;
-                            Element stroke2 = strokeStyles2.size() > i ? strokeStyles2.get(i) : null;
-
-                            strokes.add(stroke1);
-
-                            if (!areElementsEqual(stroke1, stroke2, false) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
-                                strokes.add(stroke2);
-                            }
-                        }
-                    }
-
-                    Element morphSegmentsElement = getSubElementByName(morphShape, "morphSegments");
-                    List<Element> morphSegments = getAllSubElementsByName(morphSegmentsElement, "MorphSegment");
-                    fg.writeUI16(morphSegments.size());
-                    for (Element morphSegment : morphSegments) {
-                        useClass("CMorphSegment", fg, definedClasses, totalObjectCount);
-
-                        Point2D startpointA = fg.parsePoint(morphSegment.getAttribute("startPointA"));
-                        Point2D startpointB = fg.parsePoint(morphSegment.getAttribute("startPointB"));
-                        int strokeIndex1 = -1;
-                        if (morphSegment.hasAttribute("strokeIndex1")) {
-                            strokeIndex1 = Integer.parseInt(morphSegment.getAttribute("strokeIndex1"));
-                        }
-                        int strokeIndex2 = -1;
-                        if (morphSegment.hasAttribute("strokeIndex2")) {
-                            strokeIndex2 = Integer.parseInt(morphSegment.getAttribute("strokeIndex2"));
-                        }
-                        int fillIndex1 = -1;
-                        if (morphSegment.hasAttribute("fillIndex1")) {
-                            fillIndex1 = Integer.parseInt(morphSegment.getAttribute("fillIndex1"));
-                        }
-                        int fillIndex2 = -1;
-                        if (morphSegment.hasAttribute("fillIndex2")) {
-                            fillIndex2 = Integer.parseInt(morphSegment.getAttribute("fillIndex2"));
-                        }
-
-                        fg.writeUI32(strokeIndex1);
-                        fg.writeUI32(strokeIndex2);
-                        fg.writeUI32(fillIndex1);
-                        fg.writeUI32(fillIndex2);
-                        fg.writePoint(startpointA);
-                        fg.writePoint(startpointB);
-
-                        List<Element> morphCurvesList = getAllSubElementsByName(morphSegment, "MorphCurves");
-                        fg.writeUI16(morphCurvesList.size());
-                        for (Element morphCurves : morphCurvesList) {
-                            useClass("CMorphCurve", fg, definedClasses, totalObjectCount);
-                            Point2D controlPointA = fg.parsePoint(morphCurves.getAttribute("controlPointA"));
-                            Point2D anchorPointA = fg.parsePoint(morphCurves.getAttribute("anchorPointA"));
-                            Point2D controlPointB = fg.parsePoint(morphCurves.getAttribute("controlPointB"));
-                            Point2D anchorPointB = fg.parsePoint(morphCurves.getAttribute("anchorPointB"));
-                            boolean isLine = false;
-                            if (morphCurves.hasAttribute("isLine")) {
-                                isLine = "true".equals(morphCurves.getAttribute("isLine"));
-                            }
-                            fg.writePoint(controlPointA);
-                            fg.writePoint(anchorPointA);
-                            fg.writePoint(controlPointB);
-                            fg.writePoint(anchorPointB);
-                            fg.write(isLine ? 1 : 0);
-                            fg.write(0x00, 0x00, 0x00);
-                        }
-                    }
-
-                    fg.writeUI16(0);
-
-                    fg.writeUI16(fills.size());
-                    for (Element fill : fills) {
-                        writeMorphFillStylePart(document, fg, fill);
-                    }
-
-                    if (strokeStyles1.isEmpty() && strokeStyles2.isEmpty()) {
-                        if (flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
-                            fg.writeUI16(2);
-
-                            fg.writeUI32(0);
-                            fg.writeUI32(0);
-                            fg.writeUI16(0);
-
-                            fg.writeUI32(0);
-                            fg.writeUI32(0);
-                            fg.writeUI16(0);
-                        } else {
-                            fg.writeUI16(1);
-                            fg.writeUI32(0);
-                            fg.writeUI32(0);
-                            fg.writeUI16(0);
-                        }
-                    } else {
-                        fg.writeUI16(strokes.size());
-                        for (Element stroke : strokes) {
-                            writeMorphStrokeStylePart(fg, stroke);
-                        }
-                    }
+                
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                    fg.writeBomString(actionScript);
                 }
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
+                    fg.write(motionTweenRotate, 0x00, 0x00, 0x00);
+                    fg.writeUI16(motionTweenRotateTimes);
+                    fg.write(0x00, 0x00);
+                    fg.write(comment ? 1 : 0, 0x00, 0x00, 0x00);
 
-                int shapeTweenBlend = 0;
-                if (frame.hasAttribute("shapeTweenBlend")) {
-                    switch (frame.getAttribute("shapeTweenBlend")) {
-                        /*case "distributive":
+                    Element morphShape = getSubElementByName(frame, "MorphShape");
+                    if (morphShape == null) {
+                        fg.write(0x00, 0x00);
+                    } else {
+                        useClass("CPicMorphShape", fg, definedClasses, totalObjectCount);
+
+                        fg.write(
+                                0x02, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                0x00);
+
+                        List<Element> fillStyles1 = new ArrayList<>();
+                        List<Element> fillStyles2 = new ArrayList<>();
+                        List<Element> strokeStyles1 = new ArrayList<>();
+                        List<Element> strokeStyles2 = new ArrayList<>();
+                        if (f + 1 < frames.size()) {
+                            Element nextFrame = frames.get(f + 1);
+                            Element domShape1 = getSubElementByName(elementsNode, "DOMShape");
+                            Element nextFrameElementsNode = getSubElementByName(nextFrame, "elements");
+                            if (domShape1 != null && nextFrameElementsNode != null) {
+                                Element domShape2 = getSubElementByName(nextFrameElementsNode, "DOMShape");
+                                if (domShape2 != null) {
+                                    Element fills1 = getSubElementByName(domShape1, "fills");
+                                    Element fills2 = getSubElementByName(domShape2, "fills");
+                                    Element strokes1 = getSubElementByName(domShape1, "strokes");
+                                    Element strokes2 = getSubElementByName(domShape2, "strokes");
+
+                                    if (fills1 != null) {
+                                        fillStyles1 = getAllSubElementsByName(fills1, "FillStyle");
+                                    }
+                                    if (fills2 != null) {
+                                        fillStyles2 = getAllSubElementsByName(fills2, "FillStyle");
+                                    }
+
+                                    if (strokes1 != null) {
+                                        strokeStyles1 = getAllSubElementsByName(strokes1, "StrokeStyle");
+                                    }
+                                    if (strokes2 != null) {
+                                        strokeStyles2 = getAllSubElementsByName(strokes2, "StrokeStyle");
+                                    }
+                                }
+                            }
+                        }
+
+                        List<Element> fills = new ArrayList<>();
+                        List<Element> strokes = new ArrayList<>();
+
+                        if (!fillStyles1.isEmpty()) {
+
+                            int maxNumFills = Math.max(fillStyles1.size(), fillStyles2.size());
+                            for (int i = 0; i < maxNumFills; i++) {
+                                Element fill1 = fillStyles1.size() > i ? fillStyles1.get(i) : null;
+                                Element fill2 = fillStyles2.size() > i ? fillStyles2.get(i) : null;
+                                fills.add(fill1);
+
+                                if (!areElementsEqual(fill1, fill2, false) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
+                                    fills.add(fill2);
+                                }
+                            }
+                        }
+                        if (strokeStyles1.isEmpty() && strokeStyles2.isEmpty()) {
+                            //ignore
+                        } else {
+                            int maxNumStrokes = Math.max(strokeStyles1.size(), strokeStyles2.size());
+                            for (int i = 0; i < maxNumStrokes; i++) {
+                                Element stroke1 = strokeStyles1.size() > i ? strokeStyles1.get(i) : null;
+                                Element stroke2 = strokeStyles2.size() > i ? strokeStyles2.get(i) : null;
+
+                                strokes.add(stroke1);
+
+                                if (!areElementsEqual(stroke1, stroke2, false) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
+                                    strokes.add(stroke2);
+                                }
+                            }
+                        }
+
+                        Element morphSegmentsElement = getSubElementByName(morphShape, "morphSegments");
+                        List<Element> morphSegments = getAllSubElementsByName(morphSegmentsElement, "MorphSegment");
+                        fg.writeUI16(morphSegments.size());
+                        for (Element morphSegment : morphSegments) {
+                            useClass("CMorphSegment", fg, definedClasses, totalObjectCount);
+
+                            Point2D startpointA = fg.parsePoint(morphSegment.getAttribute("startPointA"));
+                            Point2D startpointB = fg.parsePoint(morphSegment.getAttribute("startPointB"));
+                            int strokeIndex1 = -1;
+                            if (morphSegment.hasAttribute("strokeIndex1")) {
+                                strokeIndex1 = Integer.parseInt(morphSegment.getAttribute("strokeIndex1"));
+                            }
+                            int strokeIndex2 = -1;
+                            if (morphSegment.hasAttribute("strokeIndex2")) {
+                                strokeIndex2 = Integer.parseInt(morphSegment.getAttribute("strokeIndex2"));
+                            }
+                            int fillIndex1 = -1;
+                            if (morphSegment.hasAttribute("fillIndex1")) {
+                                fillIndex1 = Integer.parseInt(morphSegment.getAttribute("fillIndex1"));
+                            }
+                            int fillIndex2 = -1;
+                            if (morphSegment.hasAttribute("fillIndex2")) {
+                                fillIndex2 = Integer.parseInt(morphSegment.getAttribute("fillIndex2"));
+                            }
+
+                            fg.writeUI32(strokeIndex1);
+                            fg.writeUI32(strokeIndex2);
+                            fg.writeUI32(fillIndex1);
+                            fg.writeUI32(fillIndex2);
+                            fg.writePoint(startpointA);
+                            fg.writePoint(startpointB);
+
+                            List<Element> morphCurvesList = getAllSubElementsByName(morphSegment, "MorphCurves");
+                            fg.writeUI16(morphCurvesList.size());
+                            for (Element morphCurves : morphCurvesList) {
+                                useClass("CMorphCurve", fg, definedClasses, totalObjectCount);
+                                Point2D controlPointA = fg.parsePoint(morphCurves.getAttribute("controlPointA"));
+                                Point2D anchorPointA = fg.parsePoint(morphCurves.getAttribute("anchorPointA"));
+                                Point2D controlPointB = fg.parsePoint(morphCurves.getAttribute("controlPointB"));
+                                Point2D anchorPointB = fg.parsePoint(morphCurves.getAttribute("anchorPointB"));
+                                boolean isLine = false;
+                                if (morphCurves.hasAttribute("isLine")) {
+                                    isLine = "true".equals(morphCurves.getAttribute("isLine"));
+                                }
+                                fg.writePoint(controlPointA);
+                                fg.writePoint(anchorPointA);
+                                fg.writePoint(controlPointB);
+                                fg.writePoint(anchorPointB);
+                                fg.write(isLine ? 1 : 0);
+                                fg.write(0x00, 0x00, 0x00);
+                            }
+                        }
+
+                        fg.writeUI16(0);
+
+                        fg.writeUI16(fills.size());
+                        for (Element fill : fills) {
+                            writeMorphFillStylePart(document, fg, fill);
+                        }
+
+                        if (strokeStyles1.isEmpty() && strokeStyles2.isEmpty()) {
+                            if (flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
+                                fg.writeUI16(2);
+
+                                fg.writeUI32(0);
+                                fg.writeUI32(0);
+                                fg.writeUI16(0);
+
+                                fg.writeUI32(0);
+                                fg.writeUI32(0);
+                                fg.writeUI16(0);
+                            } else {
+                                fg.writeUI16(1);
+                                fg.writeUI32(0);
+                                fg.writeUI32(0);
+                                fg.writeUI16(0);
+                            }
+                        } else {
+                            fg.writeUI16(strokes.size());
+                            for (Element stroke : strokes) {
+                                writeMorphStrokeStylePart(fg, stroke);
+                            }
+                        }
+                    }
+
+                    int shapeTweenBlend = 0;
+                    if (frame.hasAttribute("shapeTweenBlend")) {
+                        switch (frame.getAttribute("shapeTweenBlend")) {
+                            /*case "distributive":
                             shapeTweenBlend = 0;
                             break;*/
-                        case "angular":
-                            shapeTweenBlend = 1;
-                            break;
+                            case "angular":
+                                shapeTweenBlend = 1;
+                                break;
+                        }
                     }
-                }
-                fg.write(shapeTweenBlend);
+                    fg.write(shapeTweenBlend);
 
-                boolean useSingleEaseCurve = true;
-                if (frame.hasAttribute("useSingleEaseCurve")) {
-                    useSingleEaseCurve = !"false".equals(frame.getAttribute("useSingleEaseCurve"));
                 }
-
                 int soundEffect = getAttributeAsInt(frame, "soundEffect",
                         Arrays.asList(
                                 "none",
@@ -2856,14 +2886,27 @@ public class TimelineConverter extends AbstractConverter {
                                 "custom"
                         ), "none");
 
-                fg.write(
-                        0x00, 0x00, 0x00, 0x00, 0x00);
-                fg.writeBomString("");
-                fg.write(0x01, 0x00, 0x00, 0x00,
-                        soundEffect,
-                        0x00, 0x00,
-                        0x00
-                );
+                if (flaFormatVersion == FlaFormatVersion.F1) {
+                    fg.write(0x00,0x00,0x00,0x00,0x00,0x01,0x00);
+                } else if (flaFormatVersion.ordinal() == FlaFormatVersion.F2.ordinal()) {
+                    fg.write(0x01);
+                    fg.write(0x00, 0x00, 0x00, 0x00);
+                    fg.write(0x01, 0x00, 0x80, 0xC1); //??
+                } else {
+                    fg.write(0x00);
+                    fg.write(0x00, 0x00, 0x00, 0x00);
+                    fg.writeBomString("");
+                }
+                
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                    fg.write(0x01, 0x00, 0x00, 0x00, soundEffect);
+                }
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {               
+                    fg.write(0x00);
+                }
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) { 
+                    fg.write(0x00, 0x00);
+                }
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
                     fg.write(anchor ? 1 : 0,
@@ -2871,6 +2914,12 @@ public class TimelineConverter extends AbstractConverter {
                 }
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+
+                    boolean useSingleEaseCurve = true;
+                    if (frame.hasAttribute("useSingleEaseCurve")) {
+                        useSingleEaseCurve = !"false".equals(frame.getAttribute("useSingleEaseCurve"));
+                    }
+
                     fg.write(useSingleEaseCurve ? 1 : 0, 0x00, 0x00, 0x00);
 
                     boolean hasCustomEase = false;
@@ -3023,17 +3072,31 @@ public class TimelineConverter extends AbstractConverter {
             fg.write(flaFormatVersion.layerVersionB);
 
             fg.writeBomString(layerName);
-            fg.write(isSelected ? 1 : 0);
-            fg.write(hiddenLayer ? 1 : 0);
-            fg.write(lockedLayer ? 1 : 0);
-            fg.write(0xFF, 0xFF, 0xFF, 0xFF);
-            fg.write(color.getRed());
-            fg.write(color.getGreen());
-            fg.write(color.getBlue());
-            fg.write(0xFF);
-            fg.write(showOutlines ? 1 : 0);
-            fg.write(0x00, 0x00, 0x00, heightMultiplier, 0x00, 0x00, 0x00);
-            fg.write(layerType);
+            if (flaFormatVersion.ordinal() <= FlaFormatVersion.F3.ordinal()) {
+                if (isSelected) {
+                    fg.write(3); //current
+                } else if (lockedLayer) {
+                    fg.write(1);
+                } else if (hiddenLayer) {
+                    fg.write(0);
+                } else {
+                    fg.write(2); //normal                
+                }
+            }
+
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
+                fg.write(isSelected ? 1 : 0);
+                fg.write(hiddenLayer ? 1 : 0);
+                fg.write(lockedLayer ? 1 : 0);
+                fg.write(0xFF, 0xFF, 0xFF, 0xFF);
+                fg.write(color.getRed());
+                fg.write(color.getGreen());
+                fg.write(color.getBlue());
+                fg.write(0xFF);
+                fg.write(showOutlines ? 1 : 0);
+                fg.write(0x00, 0x00, 0x00, heightMultiplier, 0x00, 0x00, 0x00);
+                fg.write(layerType);
+            }
         }
     }
 
@@ -3228,10 +3291,21 @@ public class TimelineConverter extends AbstractConverter {
             if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
                 if (parentLayerType.equals("mask")) {
                     fg.write(0x00);
-                } else if (parentLayerType.equals("guide")) {
-                    fg.write(0x00, 0x00, 0x00);
-                } else if (layerTypeStr.equals("")) {
-                    fg.write(0x00, 0x00, 0x00);
+                } else if (parentLayerType.equals("guide") || layerTypeStr.equals("")) {
+                    fg.write(0x00);
+                    
+                    final int NORMAL_COLOR = 0;
+                    final int RED_OUTLINE = 1;
+                    final int GREEN_OUTLINE = 2;
+                    final int BLUE_OUTLINE = 3;
+                    final int YELLOW_OUTLINE = 4;
+                    final int PURPLE_OUTLINE = 5;
+                    
+                    fg.write(NORMAL_COLOR);
+                                        
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {                    
+                        fg.write(0x00);
+                    }
                 }
             }
         }
@@ -3323,43 +3397,37 @@ public class TimelineConverter extends AbstractConverter {
                 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
                 0x80);
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-            fg.write(0x00, 0x00, 0x07, nextLayerId, 0x00, nextFolderId, 0x00, currentFrame, 0x00, 0x00, 0x00);
-        } else {
-            if (flaFormatVersion == FlaFormatVersion.MX2004) {
-                fg.write(0x05);
-                if (debugRandom) {
-                    fg.write('U', 'U', 'U', 'U');
-                } else {
-                    fg.write(0x02, 0x00, 0x01, 0x00);
+            fg.write(0x00, 0x00);
+        }
+        fg.write(flaFormatVersion.pageVersionB);
+        fg.write(nextLayerId, 0x00);
+        if (flaFormatVersion == FlaFormatVersion.MX2004) {
+            fg.write(nextFolderId, 0x00);
+        }
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
+            fg.write(currentFrame, 0x00, 0x00, 0x00);
+        }
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+            if (domTimeLine.hasAttribute("guides")) {
+                String guidesXml = domTimeLine.getAttribute("guides");
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder docBuilder = factory.newDocumentBuilder();
+                Document guidesDocument = docBuilder.parse(new ByteArrayInputStream(guidesXml.getBytes("UTF-8")));
+                Element guidesRoot = guidesDocument.getDocumentElement();
+                List<Element> guidelines = getAllSubElementsByName(guidesRoot, "guideline");
+                fg.writeUI32(guidelines.size());
+                for (Element guideline : guidelines) {
+                    int direction = 0;
+                    if (guideline.hasAttribute("direction") && "v".equals(guideline.getAttribute("direction"))) {
+                        direction = 1;
+                    }
+                    long value = Long.parseLong(guideline.getTextContent()) * 20;
+                    fg.writeUI32(direction);
+                    fg.writeUI32(value);
                 }
             } else {
-                fg.write(0x03);
-                if (debugRandom) {
-                    fg.write('U', 'U');
-                } else {
-                    fg.write(0x02, 0x00);
-                }
+                fg.write(0x00, 0x00, 0x00, 0x00);
             }
-        }
-        if (domTimeLine.hasAttribute("guides")) {
-            String guidesXml = domTimeLine.getAttribute("guides");
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder docBuilder = factory.newDocumentBuilder();
-            Document guidesDocument = docBuilder.parse(new ByteArrayInputStream(guidesXml.getBytes("UTF-8")));
-            Element guidesRoot = guidesDocument.getDocumentElement();
-            List<Element> guidelines = getAllSubElementsByName(guidesRoot, "guideline");
-            fg.writeUI32(guidelines.size());
-            for (Element guideline : guidelines) {
-                int direction = 0;
-                if (guideline.hasAttribute("direction") && "v".equals(guideline.getAttribute("direction"))) {
-                    direction = 1;
-                }
-                long value = Long.parseLong(guideline.getTextContent()) * 20;
-                fg.writeUI32(direction);
-                fg.writeUI32(value);
-            }
-        } else {
-            fg.write(0x00, 0x00, 0x00, 0x00);
         }
 
     }
