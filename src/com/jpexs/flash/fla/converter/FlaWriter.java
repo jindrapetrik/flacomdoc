@@ -261,6 +261,13 @@ public class FlaWriter {
                 selection = Integer.parseInt(parts[1].substring(parts[1].indexOf("S") + 1));
                 parts[1] = parts[1].substring(0, parts[1].indexOf("S"));
             }
+            
+            if (flaFormatVersion == FlaFormatVersion.F4) {
+                selection = EDGESELECTION_STROKE + EDGESELECTION_FILL1;
+            }
+            if (flaFormatVersion.ordinal() <= FlaFormatVersion.F3.ordinal()) {
+                selection = 0;
+            }
 
             try {
                 moveTo(

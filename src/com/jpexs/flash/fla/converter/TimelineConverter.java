@@ -2563,7 +2563,7 @@ public class TimelineConverter extends AbstractConverter {
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F2.ordinal()) {
                     fg.writeUI16(soundId);               
-                    if (soundId > 0) {
+                    if (soundId > 0 || (flaFormatVersion == FlaFormatVersion.F3 || flaFormatVersion == FlaFormatVersion.F4)) {
                         Element soundEnvelope = getSubElementByName(frame, "SoundEnvelope");
                         if (soundEnvelope == null) {
                             fg.writeUI16(1);
