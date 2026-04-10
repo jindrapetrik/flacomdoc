@@ -427,7 +427,7 @@ public class TimelineConverter extends AbstractConverter {
                 break;
             }
         }
-
+        
         if (!hasShape || isFloating) {
             instanceHeader(shapeElement, fg, flaFormatVersion.shapeType, false);
             fg.write(flaFormatVersion.shapeVersion);
@@ -922,41 +922,56 @@ public class TimelineConverter extends AbstractConverter {
                 break;
         }
 
-        fg.write(0x00, 0x01);
-
-        int redMultiplier = colorEffect.getRedMultiplier();
-        int greenMultiplier = colorEffect.getGreenMultiplier();
-        int blueMultiplier = colorEffect.getBlueMultiplier();
-        int alphaMultiplier = colorEffect.getAlphaMultiplier();
-        int redOffset = colorEffect.getRedOffset();
-        int greenOffset = colorEffect.getGreenOffset();
-        int blueOffset = colorEffect.getBlueOffset();
-        int alphaOffset = colorEffect.getAlphaOffset();
-        Color effectColor = colorEffect.getValueColor();
-
-        fg.write(
-                debugRandom ? 'X' : (alphaMultiplier & 0xFF), ((alphaMultiplier >> 8) & 0xFF), (alphaOffset & 0xFF), ((alphaOffset >> 8) & 0xFF),
-                debugRandom ? 'X' : (redMultiplier & 0xFF), ((redMultiplier >> 8) & 0xFF), (redOffset & 0xFF), ((redOffset >> 8) & 0xFF),
-                debugRandom ? 'X' : (greenMultiplier & 0xFF), ((greenMultiplier >> 8) & 0xFF), (greenOffset & 0xFF), ((greenOffset >> 8) & 0xFF),
-                debugRandom ? 'X' : (blueMultiplier & 0xFF), ((blueMultiplier >> 8) & 0xFF), (blueOffset & 0xFF), ((blueOffset >> 8) & 0xFF),
-                colorEffect.getType(), 0x00);
-
-        if ((colorEffect instanceof NoColorEffect) && debugRandom) {
-            fg.write('X', 'X');
-            fg.write('X', 'X', 'X', 'X');
-        } else {
-            fg.writeUI16(colorEffect.getValuePercent());
-            fg.write(effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), effectColor.getAlpha());
+        
+        fg.write(0x00);
+        
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
+            fg.write(0x01);
         }
 
-        fg.writeBomString("");
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F2.ordinal()) {
+            int redMultiplier = colorEffect.getRedMultiplier();
+            int greenMultiplier = colorEffect.getGreenMultiplier();
+            int blueMultiplier = colorEffect.getBlueMultiplier();
+            int alphaMultiplier = colorEffect.getAlphaMultiplier();
+            int redOffset = colorEffect.getRedOffset();
+            int greenOffset = colorEffect.getGreenOffset();
+            int blueOffset = colorEffect.getBlueOffset();
+            int alphaOffset = colorEffect.getAlphaOffset();
+            Color effectColor = colorEffect.getValueColor();
+
+            if (flaFormatVersion.ordinal() > FlaFormatVersion.F3.ordinal()) {
+                fg.write(debugRandom ? 'X' : (alphaMultiplier & 0xFF), ((alphaMultiplier >> 8) & 0xFF), (alphaOffset & 0xFF), ((alphaOffset >> 8) & 0xFF));
+            }
+            fg.write(                
+                    debugRandom ? 'X' : (redMultiplier & 0xFF), ((redMultiplier >> 8) & 0xFF), (redOffset & 0xFF), ((redOffset >> 8) & 0xFF),
+                    debugRandom ? 'X' : (greenMultiplier & 0xFF), ((greenMultiplier >> 8) & 0xFF), (greenOffset & 0xFF), ((greenOffset >> 8) & 0xFF),
+                    debugRandom ? 'X' : (blueMultiplier & 0xFF), ((blueMultiplier >> 8) & 0xFF), (blueOffset & 0xFF), ((blueOffset >> 8) & 0xFF),
+                    colorEffect.getType(), 0x00);
+
+            if ((colorEffect instanceof NoColorEffect) && debugRandom) {
+                fg.write('X', 'X');
+                fg.write('X', 'X', 'X');
+                if (flaFormatVersion.ordinal() > FlaFormatVersion.F3.ordinal()) {
+                    fg.write('X');
+                }
+            } else {
+                fg.writeUI16(colorEffect.getValuePercent());
+                fg.write(effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), effectColor.getAlpha()); //why is there alpha for  F1, F2?            
+            }
+
+        }        
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
+            fg.writeBomString("");
+        }
+        
         if (debugRandom) {
             fg.write('X', 'X');
         } else {
             fg.writeUI16(libraryItemIndex);
         }
         fg.write(0x00, 0x00); //Is this an extension to the libraryItemIndex? 
-
+        
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
             fg.write(0x00, 0x00, 0x00);
         }
@@ -1036,19 +1051,48 @@ public class TimelineConverter extends AbstractConverter {
             fg.write(0x00, 0x00);
         }
 
-        if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
+        if (flaFormatVersion == FlaFormatVersion.F5) {
             fg.write(0x00, 0x00);
-            fg.write(0x01, 0x00, 0x00, 0x00, 0x00);
+            fg.write(0x01, 0x00, 0x00, 0x00, 0x00);  
             fg.write(0x01, 0x00, 0x00, 0x00);
         }
         if (symbolType == FlaWriter.SYMBOLTYPE_GRAPHIC) {
             return;
-        }
+        }                
 
-        fg.write((symbolType == FlaWriter.SYMBOLTYPE_BUTTON ? flaFormatVersion.buttonVersion : flaFormatVersion.spriteVersionG),
+        if (symbolType == FlaWriter.SYMBOLTYPE_BUTTON) {
+            switch (flaFormatVersion) {
+                case F1:
+                    fg.write(0x02, 0x00,
+                            0x00, 0x00, 0x00, 0x00,
+                            0x01, 0x00
+                    );
+                    break;
+                case F2:
+                    fg.write(0x02, 0x01,
+                            0x00, 0x00, 0x00, 0x00,
+                            0x01, 0x00, 0x80, 0xC1
+                    );
+                    break;
+                case F3:
+                case F4:
+                    fg.write(0x04, 0x00,
+                            0x00, 0x00, 0x00);
+                    break;
+                default:
+                    fg.write(flaFormatVersion.buttonVersion,
+                            flaFormatVersion.spriteVersionB,
+                            0x00, 0x00, 0x00,
+                            0x01, 0x00, 0x00, 0x00);
+                    break;
+            }
+        } else {
+            fg.write(flaFormatVersion.spriteVersionG,
                 flaFormatVersion.spriteVersionB,
                 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00);
+        }
+        
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
             fg.write((symbolInstanceId & 0xFF), ((symbolInstanceId >> 8) & 0xFF));
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
@@ -1056,8 +1100,13 @@ public class TimelineConverter extends AbstractConverter {
             }
             fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
         }
-        fg.writeBomString(actionScript);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+            fg.writeBomString(actionScript);
+        }
         if (symbolType == FlaWriter.SYMBOLTYPE_BUTTON) {
+            if (flaFormatVersion.ordinal() <= FlaFormatVersion.F2.ordinal()) {
+                return;
+            }
             fg.write((int) (trackAsMenu ? 1 : 0));
             if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
                 return;
@@ -1092,7 +1141,7 @@ public class TimelineConverter extends AbstractConverter {
                 componentTxt = "YYY";
             }
             fg.writeBomString(componentTxt);
-        }
+        }        
     }
 
     private void instanceHeader(Element element, FlaWriter fg, int instanceType, boolean isInstance) throws IOException {
@@ -1993,7 +2042,7 @@ public class TimelineConverter extends AbstractConverter {
     }
 
     private void handleShape(Element element, Element document, FlaWriter fg, boolean inGroup, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
-        instanceHeader(element, fg, flaFormatVersion.shapeType, false);
+        instanceHeader(element, fg, flaFormatVersion.shapeType, false);        
         fg.write(flaFormatVersion.shapeVersion);
         Node fillsNode = getSubElementByName(element, "fills");
         List<Element> fillStyles = new ArrayList<>();
@@ -3304,7 +3353,11 @@ public class TimelineConverter extends AbstractConverter {
                     final int YELLOW_OUTLINE = 4;
                     final int PURPLE_OUTLINE = 5;
                     
-                    fg.write(NORMAL_COLOR);
+                    if (debugRandom) {
+                        fg.write('X');
+                    } else {                    
+                        fg.write(NORMAL_COLOR);
+                    }
                                         
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {                    
                         fg.write(0x00);

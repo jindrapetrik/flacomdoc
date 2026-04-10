@@ -633,9 +633,9 @@ public class FlaConverter extends AbstractConverter {
                 fg.writeUI16(symbolId);
             }
             fg.write(0x00, 0x00, symbolType);
-            fg.writeBomString("");
-
+            
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
+                fg.writeBomString("");
                 fg.write(0x01, 0x00, 0x00, 0x00, flaFormatVersion.spriteVersionE);
                 fg.write(0x00);
                 fg.write(0x00, 0x00,
@@ -656,7 +656,9 @@ public class FlaConverter extends AbstractConverter {
                 fg.write(0x00);
             }
 
-            writeTime(fg, symbolTime);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
+                writeTime(fg, symbolTime);
+            }
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
                 fg.writeBomString("");
                 fg.writeBomString("");
@@ -664,7 +666,7 @@ public class FlaConverter extends AbstractConverter {
 
             if (flaFormatVersion.ordinal() == FlaFormatVersion.F5.ordinal()) {
                 fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x01);
-            } else {
+            } else if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
                 fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
                         0x01, 0x00, 0x00, 0x00,
                         0x01, 0x00, 0x00, 0x00,
