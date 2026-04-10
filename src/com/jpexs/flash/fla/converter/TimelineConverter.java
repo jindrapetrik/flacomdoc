@@ -2603,6 +2603,9 @@ public class TimelineConverter extends AbstractConverter {
                         outPoint44 = Long.parseLong(frame.getAttribute("outPoint44"));
                     }
                     int soundZoomLevel = -1;
+                    if (debugRandom) {
+                        soundZoomLevel = ('X' << 8) + 'X';
+                    }
                     if (frame.hasAttribute("soundZoomLevel")) {
                         soundZoomLevel = Integer.parseInt(frame.getAttribute("soundZoomLevel"));
                     }
@@ -2672,7 +2675,10 @@ public class TimelineConverter extends AbstractConverter {
                         );
                     }*/
                     fg.write(0x00);
+                    
+                    fg.write(0x00, 0x00, 0x00);
                 }                
+                                
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
                     fg.write(flaFormatVersion.frameVersionC, 0x00, 0x00, 0x00);
                     fg.write(0x01); //set this to 0 to ommit following 7 bytes for F5
@@ -2890,7 +2896,7 @@ public class TimelineConverter extends AbstractConverter {
 
                 if (flaFormatVersion == FlaFormatVersion.F1) {
                     fg.write(0x00,0x00,0x00,0x00,0x00,0x01,0x00);
-                } else if (flaFormatVersion.ordinal() == FlaFormatVersion.F2.ordinal()) {
+                } else if (flaFormatVersion == FlaFormatVersion.F2) {
                     fg.write(0x01);
                     fg.write(0x00, 0x00, 0x00, 0x00);
                     fg.write(0x01, 0x00, 0x80, 0xC1); //??
@@ -2902,14 +2908,9 @@ public class TimelineConverter extends AbstractConverter {
                 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
                     fg.write(0x01, 0x00, 0x00, 0x00, soundEffect);
+                    fg.write(0x00, 0x00, 0x00);
                 }
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {               
-                    fg.write(0x00);
-                }
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) { 
-                    fg.write(0x00, 0x00);
-                }
-
+                
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
                     fg.write(anchor ? 1 : 0,
                             0x00, 0x00, 0x00);
