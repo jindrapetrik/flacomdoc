@@ -400,19 +400,17 @@ public class TimelineConverter extends AbstractConverter {
         Element membersElement = getSubElementByName(element, "members");
         if (membersElement != null) {           
             List<Element> members = getAllSubElements(membersElement);
-            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
-                useClass("CPicShape", fg, definedClasses, totalObjectCount);
-                fg.write(flaFormatVersion.groupVersion);
-                boolean selected = false;
-                if (element.hasAttribute("selected")) {
-                    selected = "true".equals(element.getAttribute("selected"));
-                }
-                boolean locked = false;
-                if (element.hasAttribute("locked")) {
-                    locked = "true".equals(element.getAttribute("locked"));
-                }
-                fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00));
+            useClass("CPicShape", fg, definedClasses, totalObjectCount);
+            fg.write(flaFormatVersion.groupVersion);
+            boolean selected = false;
+            if (element.hasAttribute("selected")) {
+                selected = "true".equals(element.getAttribute("selected"));
             }
+            boolean locked = false;
+            if (element.hasAttribute("locked")) {
+                locked = "true".equals(element.getAttribute("locked"));
+            }
+            fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00));
             handleElements(members, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd, false, sourceDir);
         }
     }
