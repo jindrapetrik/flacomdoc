@@ -1339,7 +1339,8 @@ public class TimelineConverter extends AbstractConverter {
 
             int fontRenderingMode = FONTRENDERING_DEFAULT;
             boolean isSelectable = true;
-
+            boolean includeOutlines = false;
+            
             float left = 0f;
             float width = 0f;
             float top = 0f;
@@ -1371,6 +1372,10 @@ public class TimelineConverter extends AbstractConverter {
                         break;
                 }
             }
+            
+            if ("true".equals(element.getAttribute("includeOutlines"))) {
+                includeOutlines = true;
+            }                
 
             if (element.hasAttribute("left")) {
                 left = Float.parseFloat(element.getAttribute("left"));
@@ -1435,9 +1440,13 @@ public class TimelineConverter extends AbstractConverter {
             }
 
             fg.write(
-                    autoExpand ? 0x01 : 0, 0x00
-            );
-
+                autoExpand ? 0x01 : 0
+            );            
+            
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
+                fg.write(0x00);
+            }
+            
             Element fontsElement = getSubElementByName(document, "fonts");
             List<Element> domFontItems = new ArrayList<>();
 
@@ -1451,45 +1460,52 @@ public class TimelineConverter extends AbstractConverter {
                 domTextRuns = getAllSubElementsByName(textRunsElement, "DOMTextRun");
             }
 
-            int textFlags = (!isStatic ? 0x01 : 0)
-                    + (isDynamic ? 0x02 : 0)
-                    + (password ? 0x04 : 0)
-                    + (border ? 0x40 : 0)
-                    + (wrap ? 0x08 : 0)
-                    + (multiline ? 0x10 : 0)
-                    + (isDynamic && renderAsHTML && !isSelectable ? 0x80 : 0);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
+                int textFlags = (!isStatic ? 0x01 : 0)
+                        + (isDynamic ? 0x02 : 0)
+                        + (password ? 0x04 : 0)
+                        + (wrap ? 0x08 : 0)
+                        + (multiline ? 0x10 : 0)
+                        + (includeOutlines ? 0x20 : 0)
+                        + (border ? 0x40 : 0)
+                        + (isDynamic && renderAsHTML && !isSelectable ? 0x80 : 0);
 
-            //Only single font per text (?)
-            if (flaFormatVersion.ordinal() < FlaFormatVersion.MX2004.ordinal()) {
-                for (Element textRun : domTextRuns) {
-                    Element textAttrsElement = getSubElementByName(textRun, "textAttrs");
-                    if (textAttrsElement == null) {
-                        continue;
-                    }
-                    Element domTextAttrs = getSubElementByName(textAttrsElement, "DOMTextAttrs");
-                    if (domTextAttrs == null) {
-                        continue;
-                    }
-                    if (domTextAttrs.hasAttribute("face")) {
-                        String face = domTextAttrs.getAttribute("face");
-
-                        for (Element domFontItem : domFontItems) {
-                            if (face.equals(domFontItem.getAttribute("font"))
-                                    || face.equals(domFontItem.getAttribute("name") + "*") //imported
-                                    ) {
-                                if (domFontItem.hasAttribute("embeddedCharacters")) {
-                                    textFlags |= 0x20;
-                                }
-                                break;
-                            }
-                        }
-                        break;
-                    }
+                if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal() && isStatic) {
+                    textFlags |= 0x40; //??
                 }
 
-            }
+                //Only single font per text (?)
+                if (flaFormatVersion.ordinal() < FlaFormatVersion.MX2004.ordinal()) {
+                    for (Element textRun : domTextRuns) {
+                        Element textAttrsElement = getSubElementByName(textRun, "textAttrs");
+                        if (textAttrsElement == null) {
+                            continue;
+                        }
+                        Element domTextAttrs = getSubElementByName(textAttrsElement, "DOMTextAttrs");
+                        if (domTextAttrs == null) {
+                            continue;
+                        }
+                        if (domTextAttrs.hasAttribute("face")) {
+                            String face = domTextAttrs.getAttribute("face");
 
-            fg.write(textFlags);
+                            for (Element domFontItem : domFontItems) {
+                                if (face.equals(domFontItem.getAttribute("font"))
+                                        || face.equals(domFontItem.getAttribute("name") + "*") //imported
+                                        ) {
+                                    if (domFontItem.hasAttribute("embeddedCharacters")) {
+                                        textFlags |= 0x20;
+                                    }
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+
+                }
+
+                fg.write(textFlags);
+            }
 
             List<String> allEmbedRanges = new ArrayList<>();
             int embedFlag = 0;
@@ -1569,23 +1585,28 @@ public class TimelineConverter extends AbstractConverter {
                 embedFlag |= 0x80;
             }
 
-            fg.write(embedFlag);
-            if (!isStatic) {
-                fg.write(0);
-            } else {
-                int flags = 0;
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()
-                        && fontRenderingMode == FONTRENDERING_DEVICE) {
-                    flags |= 0x02;
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                fg.write(embedFlag);
+                if (!isStatic) {
+                    fg.write(0);
+                } else {
+                    int flags = 0;
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()
+                            && fontRenderingMode == FONTRENDERING_DEVICE) {
+                        flags |= 0x02;
+                    }
+                    if (isSelectable) {
+                        flags |= 0x01;
+                    }
+                    fg.write(flags);
                 }
-                if (isSelectable) {
-                    flags |= 0x01;
-                }
-                fg.write(flags);
             }
-            fg.write(0x00);
-            fg.writeUI16(maxCharacters);
-            fg.writeBomString(variableName);
+            
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
+                fg.write(0x00);
+                fg.writeUI16(maxCharacters);
+                fg.writeBomString(variableName);            
+            }
             if (!embeddedCharacters.isEmpty()) {
                 fg.writeBomString(embeddedCharacters);
             }
@@ -1780,6 +1801,8 @@ public class TimelineConverter extends AbstractConverter {
                     rightMargin = Float.parseFloat(domTextAttrs.getAttribute("rightMargin"));
                 }
 
+                //how about domTextAttrs attribute "useScreenSpacing"?
+                
                 boolean rotation = false;
                 if (domTextAttrs.hasAttribute("rotation")) {
                     rotation = "true".equals(domTextAttrs.getAttribute("rotation"));
@@ -1848,7 +1871,12 @@ public class TimelineConverter extends AbstractConverter {
                 fg.writeUI16((int) Math.round(indent * 20));
                 fg.writeUI16((int) Math.round(leftMargin * 20));
                 fg.writeUI16((int) Math.round(rightMargin * 20));
-                fg.writeUI16((int) Math.round(letterSpacing * 20));
+                
+                if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {
+                    fg.write(0x00);
+                } else {
+                    fg.writeUI16((int) Math.round(letterSpacing * 20));
+                }
 
                 if (flaFormatVersion == FlaFormatVersion.CS4) {
                     fg.writeBomString(url);

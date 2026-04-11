@@ -51,7 +51,7 @@ public class FlaConverterTest {
     private static final String SOURCE_DIR = "testdata/fla" + ADD + "/cs5";
     private static final String SOURCE_DIR_NG = "testdata/flang/cs5";
 
-    private static final int NG_MAX_TEST_NUM = 7;            
+    private static final int NG_MAX_TEST_NUM = 9;            
     
 
     private static final String EXPECTED_BASE_DIR = "testdata/fla" + ADD;
@@ -540,10 +540,14 @@ public class FlaConverterTest {
         }
         return baos.toByteArray();
     }
-
+       
     public static void main(String[] args) throws Exception {
         for (FlaFormatVersion flaFormatVersion : FlaFormatVersion.values()) {
-            String expectedDirParent = EXPECTED_BASE_DIR + "/" + flaFormatVersion.name().toLowerCase();
+            String add = "";
+            if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {
+                add = "ng";
+            }
+            String expectedDirParent = EXPECTED_BASE_DIR + add + "/" + flaFormatVersion.name().toLowerCase();
             File expectedDir = new File(expectedDirParent);
             for (File f : expectedDir.listFiles()) {
                 if (f.isDirectory()) {
