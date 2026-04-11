@@ -256,7 +256,7 @@ public class TimelineConverter extends AbstractConverter {
             Reference<Integer> totalObjectCount) throws IOException {
         useClass("CPicVideoStream", fg, definedClasses, totalObjectCount);
         fg.write(flaFormatVersion.videoStreamVersion);
-        instanceHeader(videoInstance, fg, flaFormatVersion.videoType, true);
+        instanceHeader(videoInstance, fg, flaFormatVersion.videoType, true, false);
 
         long frameLeft = 0;
         if (videoInstance.hasAttribute("frameLeft")) {
@@ -334,7 +334,7 @@ public class TimelineConverter extends AbstractConverter {
 
         useClass("CPicBitmap", fg, definedClasses, totalObjectCount);
         fg.write(flaFormatVersion.bitmapVersion);
-        instanceHeader(bitmapInstance, fg, flaFormatVersion.bitmapType, true);
+        instanceHeader(bitmapInstance, fg, flaFormatVersion.bitmapType, true, false);
         fg.writeUI16(bitmapId);
 
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
@@ -351,19 +351,21 @@ public class TimelineConverter extends AbstractConverter {
             boolean motionTweenEnd
     ) throws IOException {
         Element membersElement = getSubElementByName(element, "members");
-        if (membersElement != null) {
+        if (membersElement != null) {           
             List<Element> members = getAllSubElements(membersElement);
-            useClass("CPicShape", fg, definedClasses, totalObjectCount);
-            fg.write(flaFormatVersion.groupVersion);
-            boolean selected = false;
-            if (element.hasAttribute("selected")) {
-                selected = "true".equals(element.getAttribute("selected"));
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                useClass("CPicShape", fg, definedClasses, totalObjectCount);
+                fg.write(flaFormatVersion.groupVersion);
+                boolean selected = false;
+                if (element.hasAttribute("selected")) {
+                    selected = "true".equals(element.getAttribute("selected"));
+                }
+                boolean locked = false;
+                if (element.hasAttribute("locked")) {
+                    locked = "true".equals(element.getAttribute("locked"));
+                }
+                fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00));
             }
-            boolean locked = false;
-            if (element.hasAttribute("locked")) {
-                locked = "true".equals(element.getAttribute("locked"));
-            }
-            fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00));
             handleElements(members, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd, false);
         }
     }
@@ -407,29 +409,35 @@ public class TimelineConverter extends AbstractConverter {
         for (int e = 0; e < elements.size(); e++) {
             Element element = elements.get(e);
             if ("DOMShape".equals(element.getNodeName())) {
-                if (element.getAttribute("isFloating").equals("true")) {
-                    useClass("CPicShape", fg, definedClasses, totalObjectCount);
-                    fg.write(flaFormatVersion.groupVersion);
-                    boolean selected = false;
-                    if (element.hasAttribute("selected")) {
-                        selected = "true".equals(element.getAttribute("selected"));
-                    }
-                    boolean locked = false;
-                    if (element.hasAttribute("locked")) {
-                        locked = "true".equals(element.getAttribute("locked"));
-                    }
+                if (element.getAttribute("isFloating").equals("true")) {                    
                     isFloating = true;
-                    fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00) + (isFloating /*???*/ ? 0x01 : 0x00));
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                        useClass("CPicShape", fg, definedClasses, totalObjectCount);
+                        fg.write(flaFormatVersion.groupVersion);
+                        boolean selected = false;
+                        if (element.hasAttribute("selected")) {
+                            selected = "true".equals(element.getAttribute("selected"));
+                        }
+                        boolean locked = false;
+                        if (element.hasAttribute("locked")) {
+                            locked = "true".equals(element.getAttribute("locked"));
+                        }                    
+                        fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00) + (isFloating /*???*/ ? 0x01 : 0x00));                        
+                    }
                     shapeElement = element;
+                    
                 }
-                handleShape(element, document, fg, false, definedClasses, totalObjectCount);
+                handleShape(element, document, fg, isFloating, definedClasses, totalObjectCount);
+                if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {
+                    isFloating = false;
+                }                
                 hasShape = true;
                 break;
             }
         }
         
         if (!hasShape || isFloating) {
-            instanceHeader(shapeElement, fg, flaFormatVersion.shapeType, false);
+            instanceHeader(shapeElement, fg, flaFormatVersion.shapeType, false, flaFormatVersion.ordinal() < FlaFormatVersion.F4.ordinal());
             fg.write(flaFormatVersion.shapeVersion);
             fg.writeUI32(0); //totalEdgeCount
             fg.write(0x00, 0x00); //fillStyleCount
@@ -897,8 +905,8 @@ public class TimelineConverter extends AbstractConverter {
         long centerPoint3DZLong = Math.round(centerPoint3DZ * 20);
 
         fg.write(flaFormatVersion.spriteVersion);
-        instanceHeader(symbolInstance, fg, flaFormatVersion.symbolType, true);
-
+        instanceHeader(symbolInstance, fg, flaFormatVersion.symbolType, true, false);
+        
         fg.write((firstFrame & 0xFF), ((firstFrame >> 8) & 0xFF));
         switch (symbolType) {
             case FlaWriter.SYMBOLTYPE_MOVIE_CLIP:
@@ -939,8 +947,9 @@ public class TimelineConverter extends AbstractConverter {
             int blueOffset = colorEffect.getBlueOffset();
             int alphaOffset = colorEffect.getAlphaOffset();
             Color effectColor = colorEffect.getValueColor();
+            
 
-            if (flaFormatVersion.ordinal() > FlaFormatVersion.F3.ordinal()) {
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
                 fg.write(debugRandom ? 'X' : (alphaMultiplier & 0xFF), ((alphaMultiplier >> 8) & 0xFF), (alphaOffset & 0xFF), ((alphaOffset >> 8) & 0xFF));
             }
             fg.write(                
@@ -948,13 +957,9 @@ public class TimelineConverter extends AbstractConverter {
                     debugRandom ? 'X' : (greenMultiplier & 0xFF), ((greenMultiplier >> 8) & 0xFF), (greenOffset & 0xFF), ((greenOffset >> 8) & 0xFF),
                     debugRandom ? 'X' : (blueMultiplier & 0xFF), ((blueMultiplier >> 8) & 0xFF), (blueOffset & 0xFF), ((blueOffset >> 8) & 0xFF),
                     colorEffect.getType(), 0x00);
-
             if ((colorEffect instanceof NoColorEffect) && debugRandom) {
                 fg.write('X', 'X');
-                fg.write('X', 'X', 'X');
-                if (flaFormatVersion.ordinal() > FlaFormatVersion.F3.ordinal()) {
-                    fg.write('X');
-                }
+                fg.write('X', 'X', 'X', 'X');                
             } else {
                 fg.writeUI16(colorEffect.getValuePercent());
                 fg.write(effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), effectColor.getAlpha()); //why is there alpha for  F1, F2?            
@@ -1056,6 +1061,8 @@ public class TimelineConverter extends AbstractConverter {
             fg.write(0x01, 0x00, 0x00, 0x00, 0x00);  
             fg.write(0x01, 0x00, 0x00, 0x00);
         }
+        
+        
         if (symbolType == FlaWriter.SYMBOLTYPE_GRAPHIC) {
             return;
         }                
@@ -1141,10 +1148,10 @@ public class TimelineConverter extends AbstractConverter {
                 componentTxt = "YYY";
             }
             fg.writeBomString(componentTxt);
-        }        
+        }              
     }
 
-    private void instanceHeader(Element element, FlaWriter fg, int instanceType, boolean isInstance) throws IOException {
+    private void instanceHeader(Element element, FlaWriter fg, int instanceType, boolean isInstance, boolean strippedMatrix) throws IOException {
 
         Matrix placeMatrix = parseMatrix(getSubElementByName(element, "matrix"));
 
@@ -1203,12 +1210,16 @@ public class TimelineConverter extends AbstractConverter {
                         (int) (tptY & 0xFF), (int) ((tptY >> 8) & 0xFF), (int) ((tptY >> 16) & 0xFF), (int) ((tptY >> 24) & 0xFF)
                 );
             }
-        }
+        }        
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
             fg.write(0x00, cacheAsBitmap ? 1 : 0);
         }
         fg.write(instanceType);
-        fg.writeMatrix(placeMatrix);
+        if (strippedMatrix) {
+            fg.writeMatrix(new Matrix());
+        } else {
+            fg.writeMatrix(placeMatrix);        
+        }        
     }
 
     static int textCount = 0;
@@ -1403,7 +1414,7 @@ public class TimelineConverter extends AbstractConverter {
             //orientation="vertical right to left", "vertical left to right"
             //fontRenderingMode="device" , "bitmap", "standard", "customThicknessSharpness"
             fg.write(flaFormatVersion.textVersionC);
-            instanceHeader(element, fg, flaFormatVersion.textVersion, true);
+            instanceHeader(element, fg, flaFormatVersion.textVersion, true, false);
             fg.writeUI32((int) Math.round(left * 20));
             if (debugRandom) {
                 //width can change
@@ -2041,8 +2052,16 @@ public class TimelineConverter extends AbstractConverter {
         }
     }
 
-    private void handleShape(Element element, Element document, FlaWriter fg, boolean inGroup, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
-        instanceHeader(element, fg, flaFormatVersion.shapeType, false);        
+    private void handleShape(Element element, Element document, FlaWriter fg, boolean isFloating, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
+        instanceHeader(element, fg, flaFormatVersion.shapeType, false, isFloating && flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal());
+        
+        
+        Matrix edgeMatrix = parseMatrix(getSubElementByName(element, "matrix"));
+        if (!isFloating || flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+            edgeMatrix = new Matrix();
+        }
+        
+        
         fg.write(flaFormatVersion.shapeVersion);
         Node fillsNode = getSubElementByName(element, "fills");
         List<Element> fillStyles = new ArrayList<>();
@@ -2280,7 +2299,7 @@ public class TimelineConverter extends AbstractConverter {
                 Node edgesAttrNode = edge.getAttributes().getNamedItem("edges");
                 if (edgesAttrNode != null) {
                     String edgesStr = edgesAttrNode.getTextContent();
-                    fg.writeEdges(edgesStr, strokeStyle, fillStyle0, fillStyle1);
+                    fg.writeEdges(edgesStr, strokeStyle, fillStyle0, fillStyle1, edgeMatrix);
                 }
             }
         }
@@ -2474,7 +2493,7 @@ public class TimelineConverter extends AbstractConverter {
             for (int f = 0; f < frames.size(); f++) {
                 useClass("CPicFrame", fg, definedClasses, totalObjectCount);
                 fg.write(flaFormatVersion.frameVersion);
-                fg.write(0x00);
+                fg.write(0x00);                
                 totalFramesCountRef.setVal(totalFramesCountRef.getVal() + 1);
                 Element frame = frames.get(f);
                 Element elementsNode = getSubElementByName(frame, "elements");

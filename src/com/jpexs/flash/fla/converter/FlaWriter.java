@@ -228,7 +228,18 @@ public class FlaWriter {
         return totalEdges;
     }
 
-    public void writeEdges(String edges, int strokeStyle, int fillStyle0, int fillStyle1) throws IOException {
+    private void transformEdgeValue(String[] edgeXY, int offset, Matrix transform) {
+        double parsedX = parseEdge(edgeXY[offset]);       
+        double parsedY = parseEdge(edgeXY[offset + 1]); 
+        
+        Matrix transform2 = new Matrix(transform.a, transform.b, transform.c, transform.d, transform.tx * 20, transform.ty * 20);
+        
+        Point2D p = transform2.transform(parsedX, parsedY);
+        edgeXY[offset] = numEdgeToString(p.getX());
+        edgeXY[offset + 1] = numEdgeToString(p.getY());
+    }
+    
+    public void writeEdges(String edges, int strokeStyle, int fillStyle0, int fillStyle1, Matrix transform) throws IOException {
         setStrokeStyle(strokeStyle);
         setFillStyle0(fillStyle0);
         setFillStyle1(fillStyle1);
@@ -263,6 +274,7 @@ public class FlaWriter {
             }                        
 
             try {
+                transformEdgeValue(parts, 0 , transform);
                 moveTo(
                         selection,
                         parts[0],
@@ -280,6 +292,7 @@ public class FlaWriter {
                             throw new IllegalArgumentException(parts[i] + " requires two arguments");
                         }
                         try {
+                            transformEdgeValue(parts, i + 1 , transform);                
                             lineTo(
                                     parts[i + 1],
                                     parts[i + 2],
@@ -296,6 +309,8 @@ public class FlaWriter {
                         }
 
                         try {
+                            transformEdgeValue(parts, i + 1 , transform);                
+                            transformEdgeValue(parts, i + 3 , transform);                
                             curveTo(
                                     parts[i + 1],
                                     parts[i + 2],
@@ -658,7 +673,7 @@ public class FlaWriter {
                 (int) (dLong & 0xFF), (int) ((dLong >> 8) & 0xFF), (int) ((dLong >> 16) & 0xFF), (int) ((dLong >> 24) & 0xFF),
                 (int) (txLong & 0xFF), (int) ((txLong >> 8) & 0xFF), (int) ((txLong >> 16) & 0xFF), (int) ((txLong >> 24) & 0xFF),
                 (int) (tyLong & 0xFF), (int) ((tyLong >> 8) & 0xFF), (int) ((tyLong >> 16) & 0xFF), (int) ((tyLong >> 24) & 0xFF));
-    }
+    }    
 
     public void writeBitmapFill(
             int type,

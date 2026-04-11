@@ -69,4 +69,9 @@ public final class Matrix implements Cloneable {
     public Point2D transform(Point2D point) {
         return transform(point.getX(), point.getY());
     }
+
+    @Override
+    public String toString() {
+        return "[Matrix " + a + ", " + b + ", " + c + ", " + d + ", " + tx + ", " + ty + "]";
+    }
 }

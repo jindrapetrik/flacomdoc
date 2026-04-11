@@ -132,9 +132,12 @@ public class EdgeReader {
     }
 
     public static void main(String[] args) throws IOException {
-        File file = new File("testdata\\fla\\cs3\\0003_fills\\P 2 1726169870");
+        boolean cs3OrHigher = false;
+        File file = new File("testdata\\flang\\f4\\0007_symbols\\Symbol 3");
+        //File file = new File("out\\f4\\S 1 1775898172");
+        
         FileInputStream fis = new FileInputStream(file);
-        fis.skip(515);
+        fis.skip(111);
         double x = 0;
         double y = 0;
         boolean first = true;
@@ -143,22 +146,32 @@ public class EdgeReader {
         while (fis.available() > 0) {
             int flags = fis.read();
 
-            if ((flags & FlaWriter.FLAG_EDGE_NO_SELECTION) == FlaWriter.FLAG_EDGE_NO_SELECTION) {
+            if ((flags & FlaWriter.FLAG_EDGE_HAS_STYLES) == FlaWriter.FLAG_EDGE_HAS_STYLES) {
+                boolean hasSelection = (flags & FlaWriter.FLAG_EDGE_NO_SELECTION) != FlaWriter.FLAG_EDGE_NO_SELECTION;
                 int stroke = fis.read();
+                if (hasSelection) {
+                    fis.read();
+                }
                 int fs0 = fis.read();
+                if (hasSelection) {
+                    fis.read();
+                }
                 int fs1 = fis.read();
+                if (hasSelection) {
+                    fis.read();
+                }
                 if (!first) {
-                    for (String e : edges) {
+                    /*for (String e : edges) {
                         System.out.print(e);
-                    }
+                    }*/
                     edges.clear();
 
-                    System.out.println("\"/>");
+                    //System.out.println("\"/>");
                 }
-                //System.out.println(sb.toString());
+                System.out.println(sb.toString());
                 sb = new StringBuilder();
                 first = false;
-                System.out.print("<Edge ");
+                /*System.out.print("<Edge ");
                 if (fs0 != 0) {
                     System.out.print("fillStyle0=\"" + fs0 + "\" ");
                 }
@@ -170,7 +183,7 @@ public class EdgeReader {
                     System.out.print("strokeStyle=\"" + stroke + "\" ");
                 }
 
-                System.out.print("edges=\"");
+                System.out.print("edges=\"");*/
             }
             sb.append("0x").append(Integer.toHexString(flags)).append(" ");
             if ((flags & FlaWriter.FLAG_EDGE_FROM_SHORT) == FlaWriter.FLAG_EDGE_FROM_SHORT) {
@@ -251,8 +264,8 @@ public class EdgeReader {
             } else {
                 sb.append(" to none");
             }
-            sb.append(";");
-            if (!hasControl) {
+            sb.append(";\r\n");
+            if (!hasControl && cs3OrHigher) {
                 int generalLineFlag = fis.read();
                 if (generalLineFlag == 1 && !edges.isEmpty()) {
                     String e = edges.get(edges.size() - 1);
