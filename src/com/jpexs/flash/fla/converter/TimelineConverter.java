@@ -24,6 +24,8 @@ import com.jpexs.flash.fla.converter.coloreffects.BrightnessColorEffect;
 import com.jpexs.flash.fla.converter.coloreffects.ColorEffectInterface;
 import com.jpexs.flash.fla.converter.coloreffects.NoColorEffect;
 import com.jpexs.flash.fla.converter.coloreffects.TintColorEffect;
+import com.jpexs.flash.fla.converter.coloreffects.media.JpegImageBinToFlash1Convertor;
+import com.jpexs.flash.fla.converter.coloreffects.media.LosslessImageBinToFlash1Convertor;
 import com.jpexs.flash.fla.converter.filters.AdjustColorFilter;
 import com.jpexs.flash.fla.converter.filters.BevelFilter;
 import com.jpexs.flash.fla.converter.filters.BlurFilter;
@@ -32,12 +34,14 @@ import com.jpexs.flash.fla.converter.filters.FilterInterface;
 import com.jpexs.flash.fla.converter.filters.GlowFilter;
 import com.jpexs.flash.fla.converter.filters.GradientBevelFilter;
 import com.jpexs.flash.fla.converter.filters.GradientGlowFilter;
+import com.jpexs.flash.fla.converter.streams.InputStorageInterface;
 import com.jpexs.helpers.Reference;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.geom.Point2D;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -308,21 +312,28 @@ public class TimelineConverter extends AbstractConverter {
     protected void handleBitmapInstance(Element bitmapInstance,
             Element document,
             FlaWriter fg,
-            Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount
+            Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
+            InputStorageInterface sourceDir
     ) throws IOException {
         if (!bitmapInstance.hasAttribute("libraryItemName")) {
             return;
         }
-
+       
         String libraryItemName = bitmapInstance.getAttribute("libraryItemName");
 
         List<Element> mediaItems = getMedia(document);
         int bitmapId = 0;
+        String bitmapDataHRef = "";
+        boolean isJPEG = false;
         for (int i = 0; i < mediaItems.size(); i++) {
             Element mediaItem = mediaItems.get(i);
             if ("DOMBitmapItem".equals(mediaItem.getTagName()) && mediaItem.hasAttribute("name")) {
                 if (libraryItemName.equals(mediaItem.getAttribute("name"))) {
                     bitmapId = i + 1;
+                    bitmapDataHRef = mediaItem.getAttribute("bitmapDataHRef");
+                    if ("true".equals(mediaItem.getAttribute("isJPEG"))) {
+                        isJPEG = true;
+                    }
                     break;
                 }
             }
@@ -334,8 +345,43 @@ public class TimelineConverter extends AbstractConverter {
 
         useClass("CPicBitmap", fg, definedClasses, totalObjectCount);
         fg.write(flaFormatVersion.bitmapVersion);
-        instanceHeader(bitmapInstance, fg, flaFormatVersion.bitmapType, true, false);
-        fg.writeUI16(bitmapId);
+        instanceHeader(bitmapInstance, fg, flaFormatVersion.bitmapType, true, false);        
+            
+        if (flaFormatVersion == FlaFormatVersion.F1) {
+            if (sourceDir.fileExists("bin/" + bitmapDataHRef)) {
+                OutputStream fgOs = new OutputStream() {
+                    @Override
+                    public void write(int b) throws IOException {
+                        fg.write(b);
+                    }
+
+                    @Override
+                    public void write(byte[] b) throws IOException {
+                        fg.write(b);
+                    }
+
+                    @Override
+                    public void write(byte[] b, int off, int len) throws IOException {
+                        fg.write(b, off, len);
+                    }                                                                                                
+                };
+                if (isJPEG) {
+                    try (InputStream fis = sourceDir.readFile("bin/" + bitmapDataHRef)) {                    
+                        JpegImageBinToFlash1Convertor convertor = new JpegImageBinToFlash1Convertor(fis);
+                        convertor.convertTo(fgOs);
+                    }
+                } else {
+                    try (InputStream fis = sourceDir.readFile("bin/" + bitmapDataHRef)) {                    
+                        LosslessImageBinToFlash1Convertor convertor = new LosslessImageBinToFlash1Convertor(fis);
+                        convertor.convertTo(fgOs);
+                    }
+                }
+            }
+        } else {        
+            fg.writeUI16(bitmapId);
+        }
+        
+        
 
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
             fg.write(0x00);
@@ -348,7 +394,8 @@ public class TimelineConverter extends AbstractConverter {
             Map<String, Integer> definedClasses,
             Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
-            boolean motionTweenEnd
+            boolean motionTweenEnd,
+            InputStorageInterface sourceDir
     ) throws IOException {
         Element membersElement = getSubElementByName(element, "members");
         if (membersElement != null) {           
@@ -366,7 +413,7 @@ public class TimelineConverter extends AbstractConverter {
                 }
                 fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00));
             }
-            handleElements(members, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd, false);
+            handleElements(members, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd, false, sourceDir);
         }
     }
 
@@ -375,7 +422,8 @@ public class TimelineConverter extends AbstractConverter {
             Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
             boolean motionTweenEnd,
-            boolean allowWritingShapeHeader
+            boolean allowWritingShapeHeader,
+            InputStorageInterface sourceDir
     ) throws IOException {
         for (int instanceIndex = 0; instanceIndex < elements.size(); instanceIndex++) {
             Element element = elements.get(instanceIndex);
@@ -384,7 +432,7 @@ public class TimelineConverter extends AbstractConverter {
                     handleSymbolInstance(element, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd);
                     break;
                 case "DOMBitmapInstance":
-                    handleBitmapInstance(element, document, fg, definedClasses, totalObjectCount);
+                    handleBitmapInstance(element, document, fg, definedClasses, totalObjectCount, sourceDir);
                     break;
                 case "DOMVideoInstance":
                     handleVideoInstance(element, document, fg, definedClasses, totalObjectCount);
@@ -398,7 +446,7 @@ public class TimelineConverter extends AbstractConverter {
                     Logger.getLogger(TimelineConverter.class.getName()).warning("DOMTLFText element is not supported");
                     break;
                 case "DOMGroup":
-                    handleGroup(element, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd);
+                    handleGroup(element, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, motionTweenEnd, sourceDir);
                     break;
             }
         }
@@ -2483,7 +2531,8 @@ public class TimelineConverter extends AbstractConverter {
             Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount,
             Reference<Integer> copiedComponentPathRef,
             Reference<Integer> totalFramesCountRef,
-            Integer overrideLayerType
+            Integer overrideLayerType,
+            InputStorageInterface sourceDir
     ) throws IOException {
         useClass("CPicLayer", fg, definedClasses, totalObjectCount);
         fg.write(flaFormatVersion.layerVersion);
@@ -2533,7 +2582,7 @@ public class TimelineConverter extends AbstractConverter {
                     elements = getAllSubElements(elementsNode);
                 }
 
-                handleElements(elements, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, prevTweenType.equals("motion"), true);
+                handleElements(elements, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, prevTweenType.equals("motion"), true, sourceDir);
 
                 prevTweenType = tweenType;
 
@@ -3297,7 +3346,8 @@ public class TimelineConverter extends AbstractConverter {
             Reference<Integer> copiedComponentPathRef,
             Reference<Integer> totalFramesCountRef,
             Map<Integer, Integer> layerIndexToNValue,
-            boolean hasChildren
+            boolean hasChildren,
+            InputStorageInterface sourceDir
     ) throws IOException {
         if (writtenLayers.contains(layerIndex)) {
             return;
@@ -3372,7 +3422,7 @@ public class TimelineConverter extends AbstractConverter {
         int nValue = 1 + definedClasses.size() + totalObjectCount.getVal();
         layerIndexToNValue.put(layerIndex, nValue);
 
-        writeLayerContents(layer, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, overrideLayerType);
+        writeLayerContents(layer, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, overrideLayerType, sourceDir);
 
         if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
             if (parentLayerType.equals("mask")) {
@@ -3380,7 +3430,7 @@ public class TimelineConverter extends AbstractConverter {
             }
         }
         if (parentLayerIndex > -1 && !writtenLayers.contains(parentLayerIndex)) {
-            writeLayer(document, fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, true);
+            writeLayer(document, fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, true, sourceDir);
         } else {
             if (parentLayerIndex > -1) {
                 fg.writeEncodedUI(layerIndexToNValue.get(parentLayerIndex));
@@ -3456,7 +3506,7 @@ public class TimelineConverter extends AbstractConverter {
         }
     }
 
-    public void convert(Element domTimeLine, Element document, OutputStream os) throws SAXException, IOException, ParserConfigurationException {
+    public void convert(Element domTimeLine, Element document, OutputStream os, InputStorageInterface sourceDir) throws SAXException, IOException, ParserConfigurationException {
         FlaWriter fg = new FlaWriter(os, flaFormatVersion, charset);
         fg.setTitle(getTitle());
         fg.setDebugRandom(debugRandom);
@@ -3482,7 +3532,7 @@ public class TimelineConverter extends AbstractConverter {
             Set<Integer> writtenLayers = new HashSet<>();
 
             for (int layerIndex = layers.size() - 1; layerIndex >= 0; layerIndex--) {
-                writeLayer(document, fg, layers, layerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, false);
+                writeLayer(document, fg, layers, layerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, false, sourceDir);
             }
         }
         int currentFrame = 0;

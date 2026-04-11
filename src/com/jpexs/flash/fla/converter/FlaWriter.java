@@ -884,6 +884,12 @@ public class FlaWriter {
         pos += bytes.length;
     }
 
+    public void write(byte[] bytes, int offset, int len) throws IOException {
+        os.write(bytes, offset, len);
+        pos += len;
+    }
+
+    
     public void write(int... values) throws IOException {
         for (int i : values) {
             if (i > 255) {
@@ -891,7 +897,7 @@ public class FlaWriter {
             }
             os.write(i);
             pos++;
-        }
+        }        
     }
 
     public void writeEncodedUI(int value) throws IOException {

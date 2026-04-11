@@ -51,7 +51,7 @@ public class FlaConverterTest {
     private static final String SOURCE_DIR = "testdata/fla" + ADD + "/cs5";
     private static final String SOURCE_DIR_NG = "testdata/flang/cs5";
 
-    private static final int NG_MAX_TEST_NUM = 9;            
+    private static final int NG_MAX_TEST_NUM = 10;            
     
 
     private static final String EXPECTED_BASE_DIR = "testdata/fla" + ADD;
@@ -146,7 +146,14 @@ public class FlaConverterTest {
                 FlaFormatVersion lowestFlaVersion = FlaFormatVersion.valueOf(suffix.toUpperCase());
                 if (flaFormatVersion.ordinal() < lowestFlaVersion.ordinal()) {
                     sourceFilesList.remove(i);
+                    continue;
                 }
+            }
+            
+            String numStr = name.substring(0, 4);
+            int num = Integer.parseInt(numStr);
+            if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal() && num > NG_MAX_TEST_NUM) {
+                sourceFilesList.remove(i);                
             }
         }
 
@@ -158,11 +165,6 @@ public class FlaConverterTest {
     }
 
     private void convert(String folderName, FlaFormatVersion flaFormatVersion) throws Exception {
-        String numStr = folderName.substring(0, 4);
-        int num = Integer.parseInt(numStr);
-        if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal() && num > NG_MAX_TEST_NUM) {
-            return;
-        }
         String sourceDir = SOURCE_DIR;
         String add = "";
         if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {

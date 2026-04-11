@@ -633,7 +633,7 @@ public class FlaConverter extends AbstractConverter {
                 fg.writeUI16(symbolId);
             }
             fg.write(0x00, 0x00, symbolType);
-            
+
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
                 fg.writeBomString("");
                 fg.write(0x01, 0x00, 0x00, 0x00, flaFormatVersion.spriteVersionE);
@@ -769,7 +769,7 @@ public class FlaConverter extends AbstractConverter {
             TimelineConverter symbolPageGenerator = new TimelineConverter(flaFormatVersion, charset, symbolName);
             symbolPageGenerator.setDebugRandom(debugRandom);
             try (OutputStream sos = outputDir.getOutputStream(symbolFile)) {
-                symbolPageGenerator.convert(domTimelineElement, document, sos);
+                symbolPageGenerator.convert(domTimelineElement, document, sos, sourceDir);
             }
         }
 
@@ -1046,7 +1046,7 @@ public class FlaConverter extends AbstractConverter {
                 TimelineConverter pageGenerator = new TimelineConverter(flaFormatVersion, charset, "Page " + pageCount);
                 pageGenerator.setDebugRandom(debugRandom);
                 try (OutputStream pos = outputDir.getOutputStream(pageName)) {
-                    pageGenerator.convert(domTimeline, document, pos);
+                    pageGenerator.convert(domTimeline, document, pos, sourceDir);
                 }
             }
 
@@ -1363,15 +1363,15 @@ public class FlaConverter extends AbstractConverter {
             }
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
                 fg.write(0x00, 0x00);
-                writeColorDef(document, fg, flaFormatVersion, definedClasses, objectsCount);                                          
-                
+                writeColorDef(document, fg, flaFormatVersion, definedClasses, objectsCount);
+
                 Element foldersElement = getSubElementByName(document, "folders");
                 List<Element> domFolderItems = new ArrayList<>();
                 if (foldersElement != null) {
                     domFolderItems = getAllSubElementsByName(foldersElement, "DOMFolderItem");
                 }
 
-                fg.writeUI32(domFolderItems.size());                
+                fg.writeUI32(domFolderItems.size());
 
                 for (Element domFolderItem : domFolderItems) {
                     fg.write(flaFormatVersion.libraryFolderVersionB, 0x00, 0x00, 0x00);
@@ -1445,7 +1445,7 @@ public class FlaConverter extends AbstractConverter {
                         fg.write(0x00);
                     }
                 }
-                    
+
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
                     fg.write(0x00, 0x00);
                 }
@@ -1456,7 +1456,7 @@ public class FlaConverter extends AbstractConverter {
                     writeQTAudioSettings(fg);
                     fg.write(0x00, 0x00);
                 }
-                fg.write(0x00, 0x00);                
+                fg.write(0x00, 0x00);
                 fg.write(0x01, 0x00);
             }
 
@@ -1865,6 +1865,9 @@ public class FlaConverter extends AbstractConverter {
 
     protected void writeDomBitmapItem(FlaWriter dw, Element domBitmapItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, OutputStorageInterface outputDir, InputStorageInterface sourceDir) throws IOException {
 
+        if (flaFormatVersion == FlaFormatVersion.F1) {
+            return;
+        }
         /*
         <media>
           <DOMBitmapItem name="bitmapfill.jpg" itemID="66d4468f-000004f3" sourceExternalFilepath=".\LIBRARY\bitmapfill.jpg" sourceLastImported="1667390241" externalFileSize="12213" quality="50" href="bitmapfill.jpg" bitmapDataHRef="M 2 1725187727.dat" frameRight="640" frameBottom="1280" isJPEG="true"/>
@@ -1894,20 +1897,57 @@ public class FlaConverter extends AbstractConverter {
             dw.writeUI16(mediaCount);
         }
         dw.writeBomString(debugRandom ? "YYY" : importFilePath);
-        writeTimeCreated(dw);
-        dw.write(flaFormatVersion.mediaBitsVersionC, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
-        if (parentFolderItemID == null) {
-            dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+        if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {
+            dw.write(0xFF, 0xFF, 0xFF, 0xFF);
         } else {
-            dw.writeItemID(parentFolderItemID);
+            writeTimeCreated(dw);
         }
-        dw.write(0x01, 0x00, 0x00, 0x00);
+        dw.write(flaFormatVersion.mediaBitsVersionC);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
 
-        String itemID = generateItemID(generatedItemIdOrder);
-        if (domBitmapItem.hasAttribute("itemID")) {
-            itemID = domBitmapItem.getAttribute("itemID");
+            dw.write(0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+            if (parentFolderItemID == null) {
+                dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+            } else {
+                dw.writeItemID(parentFolderItemID);
+            }
+            dw.write(0x01, 0x00, 0x00, 0x00);
+
+            String itemID = generateItemID(generatedItemIdOrder);
+            if (domBitmapItem.hasAttribute("itemID")) {
+                itemID = domBitmapItem.getAttribute("itemID");
+            }
+            dw.writeItemID(itemID);
+
+            boolean hasBinData = false;
+            if (domBitmapItem.hasAttribute("bitmapDataHRef")) {
+                String bitmapDataHRef = domBitmapItem.getAttribute("bitmapDataHRef");
+                if (sourceDir.fileExists("bin/" + bitmapDataHRef)) {
+                    //copy the data file
+                    try (OutputStream fos = outputDir.getOutputStream(mediaFile); InputStream fis = sourceDir.readFile("bin/" + bitmapDataHRef);) {
+                        byte[] buf = new byte[4096];
+                        int cnt;
+                        while ((cnt = fis.read(buf)) > 0) {
+                            fos.write(buf, 0, cnt);
+                        }
+                    }
+                    hasBinData = true;
+                }
+            }
+
+            if (!hasBinData) {
+                Logger.getLogger(FlaConverter.class.getName()).log(Level.WARNING, "Missing bin/*.dat file for {0}", name);
+            }
+
+            writeAsLinkage(dw, domBitmapItem);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                dw.write(0x00);
+            }
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                dw.write(0x01, 0x00, 0x00, 0x00);
+            }
+            dw.write(flaFormatVersion.mediaBitsVersionB);
         }
-        dw.writeItemID(itemID);
 
         boolean allowSmoothing = false;
 
@@ -1949,33 +1989,6 @@ public class FlaConverter extends AbstractConverter {
         if (domBitmapItem.hasAttribute("compressionType")) { //"photo" (default) or "lossless"
             compressionTypeLossless = "lossless".equals(domBitmapItem.getAttribute("compressionType"));
         }
-
-        boolean hasBinData = false;
-        if (domBitmapItem.hasAttribute("bitmapDataHRef")) {
-            String bitmapDataHRef = domBitmapItem.getAttribute("bitmapDataHRef");
-            if (sourceDir.fileExists("bin/" + bitmapDataHRef)) {
-                //copy the data file
-                try (OutputStream fos = outputDir.getOutputStream(mediaFile); InputStream fis = sourceDir.readFile("bin/" + bitmapDataHRef);) {
-                    byte[] buf = new byte[4096];
-                    int cnt;
-                    while ((cnt = fis.read(buf)) > 0) {
-                        fos.write(buf, 0, cnt);
-                    }
-                }
-                hasBinData = true;
-            }
-        }
-
-        if (!hasBinData) {
-            Logger.getLogger(FlaConverter.class.getName()).log(Level.WARNING, "Missing bin/*.dat file for {0}", name);
-        }
-
-        writeAsLinkage(dw, domBitmapItem);
-        if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-            dw.write(0x00);
-        }
-        dw.write(0x01, 0x00, 0x00, 0x00);
-        dw.write(flaFormatVersion.mediaBitsVersionB);
         if (compressionTypeLossless) {
             dw.write(0x01);
         } else {
@@ -1986,10 +1999,13 @@ public class FlaConverter extends AbstractConverter {
             }
         }
         dw.write(quality, allowSmoothing ? 1 : 0);
-        if (isJPEG) {
-            dw.writeUI32(externalFileSize);
-        } else {
-            dw.writeUI32(0);
+
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
+            if (isJPEG) {
+                dw.writeUI32(externalFileSize);
+            } else {
+                dw.writeUI32(0);
+            }
         }
         if (flaFormatVersion == FlaFormatVersion.CS4) {
             dw.write(useDeblocking ? 1 : 0);
@@ -2202,7 +2218,7 @@ public class FlaConverter extends AbstractConverter {
         String CQTAudioSettings = "CQTAudioSettings";
         dw.write(CQTAudioSettings.length(),
                 0x00);
-        dw.write(CQTAudioSettings.getBytes());        
+        dw.write(CQTAudioSettings.getBytes());
     }
 
     protected void writeColorDef(Element document, FlaWriter dw, FlaFormatVersion flaFormatVersion, Map<String, Integer> definedClasses, Reference<Integer> objectsCount) throws IOException {
@@ -2599,7 +2615,7 @@ public class FlaConverter extends AbstractConverter {
 
         return propertiesMap;
     }
-    
+
     private Map<String, String> getPropertiesF4() {
         Map<String, String> propertiesMap = new LinkedHashMap<>();
         propertiesMap.put("PublishFlashProperties::Version", "4");
