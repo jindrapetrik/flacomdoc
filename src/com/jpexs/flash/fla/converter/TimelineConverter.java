@@ -2522,7 +2522,7 @@ public class TimelineConverter extends AbstractConverter {
         return element.getAttribute("alpha").equals("0");
     }
 
-    private void writeLayerContents(
+    private int writeLayerContents(
             Element layer,
             Element document,
             FlaWriter fg,
@@ -2531,8 +2531,9 @@ public class TimelineConverter extends AbstractConverter {
             Reference<Integer> totalFramesCountRef,
             Integer overrideLayerType,
             InputStorageInterface sourceDir
-    ) throws IOException {
+    ) throws IOException {        
         useClass("CPicLayer", fg, definedClasses, totalObjectCount);
+        int result = definedClasses.size() + totalObjectCount.getVal();
         fg.write(flaFormatVersion.layerVersion);
         fg.write(0x00);
 
@@ -2591,6 +2592,10 @@ public class TimelineConverter extends AbstractConverter {
 
                 if (flaFormatVersion.ordinal() <= FlaFormatVersion.F8.ordinal()) {
                     keyMode = keyMode & ~0x2000;
+                }
+                
+                if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {
+                    keyMode = keyMode & ~0x4000;
                 }
 
                 int duration = 1;
@@ -2686,7 +2691,7 @@ public class TimelineConverter extends AbstractConverter {
                  */
                 fg.writeUI16(keyMode);
                 fg.writeUI16(acceleration);
-
+                
                 int soundId = 0;
                 if (frame.hasAttribute("soundName")) {
                     String soundName = frame.getAttribute("soundName");
@@ -3240,10 +3245,11 @@ public class TimelineConverter extends AbstractConverter {
                 fg.write(color.getBlue());
                 fg.write(0xFF);
                 fg.write(showOutlines ? 1 : 0);
-                fg.write(0x00, 0x00, 0x00, heightMultiplier, 0x00, 0x00, 0x00);
-                fg.write(layerType);
+                fg.write(0x00, 0x00, 0x00, heightMultiplier, 0x00, 0x00, 0x00);                
             }
+            fg.write(layerType);
         }
+        return result;
     }
 
     private static boolean areElementsEqual(Element elem1, Element elem2, boolean includeAttributes) {
@@ -3344,13 +3350,14 @@ public class TimelineConverter extends AbstractConverter {
             Reference<Integer> copiedComponentPathRef,
             Reference<Integer> totalFramesCountRef,
             Map<Integer, Integer> layerIndexToNValue,
+            Map<Integer, Integer> layerIndexToMValue,
             boolean hasChildren,
             InputStorageInterface sourceDir
     ) throws IOException {
         if (writtenLayers.contains(layerIndex)) {
             return;
         }
-        writtenLayers.add(layerIndex);
+        writtenLayers.add(layerIndex);                                       
         Element layer = layers.get(layerIndex);
 
         boolean autoNamed = true;
@@ -3417,63 +3424,118 @@ public class TimelineConverter extends AbstractConverter {
             }
         }
 
+        
+        if (flaFormatVersion.ordinal() <= FlaFormatVersion.F3.ordinal() 
+            && parentLayerIndex > -1 
+            && !writtenLayers.contains(parentLayerIndex)) {
+            writeLayer(document, fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, layerIndexToMValue, true, sourceDir);
+        }
+        
+        
+        
         int nValue = 1 + definedClasses.size() + totalObjectCount.getVal();
-        layerIndexToNValue.put(layerIndex, nValue);
-
-        writeLayerContents(layer, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, overrideLayerType, sourceDir);
-
+        int numObjects = totalObjectCount.getVal();
+        layerIndexToNValue.put(layerIndex, nValue);  
+                                
+        int layerObjectId = writeLayerContents(layer, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, overrideLayerType, sourceDir);
+        layerIndexToMValue.put(layerIndex, layerObjectId);
+        
         if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
             if (parentLayerType.equals("mask")) {
                 fg.write(0x00, 0x00);
             }
         }
-        if (parentLayerIndex > -1 && !writtenLayers.contains(parentLayerIndex)) {
-            writeLayer(document, fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, true, sourceDir);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal() 
+            && parentLayerIndex > -1 
+            && !writtenLayers.contains(parentLayerIndex)) {
+            writeLayer(document, fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, layerIndexToMValue, true, sourceDir);
         } else {
-            if (parentLayerIndex > -1) {
-                fg.writeEncodedUI(layerIndexToNValue.get(parentLayerIndex));
-            } else {
-                fg.writeUI16(0);
-            }
-            if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
-                if (parentLayerType.equals("mask")) {
-                    fg.write(0x00);
-                } else if (parentLayerType.equals("guide") || layerTypeStr.equals("")) {
-                    fg.write(0x00);
-                    
-                    final int NORMAL_COLOR = 0;
-                    final int RED_OUTLINE = 1;
-                    final int GREEN_OUTLINE = 2;
-                    final int BLUE_OUTLINE = 3;
-                    final int YELLOW_OUTLINE = 4;
-                    final int PURPLE_OUTLINE = 5;
-                    
+            final int NORMAL_COLOR = 0;
+            final int RED_OUTLINE = 1;
+            final int GREEN_OUTLINE = 2;
+            final int BLUE_OUTLINE = 3;
+            final int YELLOW_OUTLINE = 4;
+            final int PURPLE_OUTLINE = 5;
+            
+            if (flaFormatVersion.ordinal() <= FlaFormatVersion.F3.ordinal()) {                                                                
+                if (parentLayerIndex > -1) {
+                    fg.writeEncodedUI(layerIndexToMValue.get(parentLayerIndex));
+                } else if (layerTypeStr.equals("")) {
+                    fg.write(0x00, 0x00);
+                }
+                 
+                if (parentLayerType.equals("guide")) {
                     if (debugRandom) {
                         fg.write('X');
                     } else {                    
                         fg.write(NORMAL_COLOR);
                     }
-                                        
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {                    
                         fg.write(0x00);
                     }
+                    if (debugRandom) {
+                        fg.write('X');
+                    } else {                    
+                        fg.write(NORMAL_COLOR);
+                    }
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {                    
+                        fg.write(0x00);
+                    }
+                } else if (layerTypeStr.equals("")) {
+                    if (debugRandom) {
+                        fg.write('X');
+                    } else {                    
+                        fg.write(NORMAL_COLOR);
+                    }
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {                    
+                        fg.write(0x00);
+                    }
+                }                
+            } else {
+                if (parentLayerIndex > -1) {
+                    fg.writeEncodedUI(layerIndexToNValue.get(parentLayerIndex));
+                } else {
+                    if (hasChildren && flaFormatVersion == FlaFormatVersion.F4) {
+                        fg.writeEncodedUI(layerIndexToMValue.get(layerIndex + 1));
+                    } else {
+                        fg.writeUI16(0);
+                    }                    
+                }                                              
+                if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
+                    if (parentLayerType.equals("mask")) {
+                        fg.write(0x00);
+                    } else if (parentLayerType.equals("guide") || layerTypeStr.equals("")) {                    
+                        fg.write(0x00);
+                        
+                        if (debugRandom) {
+                            fg.write('X');
+                        } else {                    
+                            fg.write(NORMAL_COLOR);                            
+                        }
+
+                        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {                    
+                            fg.write(0x00);
+                        }                    
+                    }
                 }
-            }
+            }            
         }
 
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
             fg.write(open ? 1 : 0);
             fg.write(autoNamed ? 1 : 0);
         } else {
-            if (layerTypeStr.equals("mask")) {
-                fg.write(0x00, 0x00, 0x01);
-                if (hasChildren) {
-                    fg.write(0x00);
-                }
-            } else if (layerTypeStr.equals("guide")) {
-                fg.write(0x00, 0x00, 0x00);
-                if (hasChildren) {
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {                                
+                if (layerTypeStr.equals("mask")) {
+                    fg.write(0x00, 0x00, 0x01);
+                    if (hasChildren) {
+                        fg.write(0x00);
+                    }
+                } else if (layerTypeStr.equals("guide")) {                    
                     fg.write(0x00, 0x00, 0x00);
+                    if (hasChildren) {
+                        fg.write(0x00, 0x00, 0x00);
+                    }
                 }
             }
         }
@@ -3481,7 +3543,10 @@ public class TimelineConverter extends AbstractConverter {
             fg.write(animationType);
         }
 
-        if (isNormalLayer) {
+        if (parentLayerIndex > -1 && flaFormatVersion.ordinal() <= FlaFormatVersion.F3.ordinal()) {
+            fg.writeEncodedUI(nValue);
+        }
+        if (isNormalLayer && flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
             int pi = parentLayerIndex;
             int li = layerIndex;
             while (pi > -1) {
@@ -3498,10 +3563,7 @@ public class TimelineConverter extends AbstractConverter {
                     pi = -1;
                 }
             }
-        }
-        if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
-            //fg.write(0);
-        }
+        }       
     }
 
     public void convert(Element domTimeLine, Element document, OutputStream os, InputStorageInterface sourceDir) throws SAXException, IOException, ParserConfigurationException {
@@ -3526,11 +3588,12 @@ public class TimelineConverter extends AbstractConverter {
             List<Element> layers = getAllSubElementsByName(layersNode, "DOMLayer");
 
             Map<Integer, Integer> layerIndexToNValue = new HashMap<>();
+            Map<Integer, Integer> layerIndexToMValue = new HashMap<>();
 
             Set<Integer> writtenLayers = new HashSet<>();
 
             for (int layerIndex = layers.size() - 1; layerIndex >= 0; layerIndex--) {
-                writeLayer(document, fg, layers, layerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, false, sourceDir);
+                writeLayer(document, fg, layers, layerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, layerIndexToMValue, false, sourceDir);
             }
         }
         int currentFrame = 0;
