@@ -51,7 +51,9 @@ public class FlaConverterTest {
     private static final String SOURCE_DIR = "testdata/fla" + ADD + "/cs5";
     private static final String SOURCE_DIR_NG = "testdata/flang/cs5";
 
-    private static final int NG_MAX_TEST_NUM = 12;            
+    private static final int NG_MAX_TEST_NUM = 15;            
+    
+    private static final List<Integer> NG_SKIP_TESTS = Arrays.asList(13, 14);
     
 
     private static final String EXPECTED_BASE_DIR = "testdata/fla" + ADD;
@@ -152,8 +154,14 @@ public class FlaConverterTest {
             
             String numStr = name.substring(0, 4);
             int num = Integer.parseInt(numStr);
-            if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal() && num > NG_MAX_TEST_NUM) {
-                sourceFilesList.remove(i);                
+            if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {
+                if (num > NG_MAX_TEST_NUM) {
+                    sourceFilesList.remove(i);  
+                    continue;
+                }
+                if (NG_SKIP_TESTS.contains(num)) {
+                    sourceFilesList.remove(i);  
+                }
             }
         }
 

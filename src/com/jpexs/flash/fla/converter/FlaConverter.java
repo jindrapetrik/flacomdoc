@@ -1069,7 +1069,7 @@ public class FlaConverter extends AbstractConverter {
             } else {
                 fg.write(0x03);
             }
-
+            
             fg.write(0x00);
             fg.write(0x01, 0x00,
                     1 + currentTimeline,
@@ -1083,8 +1083,12 @@ public class FlaConverter extends AbstractConverter {
             fg.write(0x00);
             int mediaCount = writeMedia(fg, document, generatedItemIdOrder, definedClasses, objectsCount, outputDir, sourceDir);
 
-            fg.write(0x00, 0x00);
-
+            if (flaFormatVersion == FlaFormatVersion.F1 && debugRandom) {
+                fg.write('X', 'X');
+            } else {
+                fg.write(0x00, 0x00);           
+            }
+            
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F2.ordinal()) {
                 if (debugRandom) {
                     fg.write('X', 'X');
@@ -1199,8 +1203,8 @@ public class FlaConverter extends AbstractConverter {
 
             fg.writeUI16(gridSpacingX * 20);
 
-            boolean pageTabsVisible = false; //"View/Page tabs"
-
+            boolean pageTabsVisible = false; //"View/Page tabs"           
+            
             int previewMode = getAttributeAsInt(document, "previewMode", Arrays.asList(
                     "outlines",
                     "fast",
@@ -1212,7 +1216,7 @@ public class FlaConverter extends AbstractConverter {
             fg.write(
                     previewMode,
                     rulerVisible ? 1 : 0,
-                    pageTabsVisible ? 1 : 0
+                    debugRandom ? 'X' : (pageTabsVisible ? 1 : 0)
             );
 
             //NO EFFECT:
