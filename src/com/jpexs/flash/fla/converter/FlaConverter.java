@@ -1063,14 +1063,11 @@ public class FlaConverter extends AbstractConverter {
 
             fg.write(0x00, 0x00);
             if (debugRandom) {
-                fg.write('U');
-            } else if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal() || flaFormatVersion.ordinal() <= flaFormatVersion.F5.ordinal()) {
-                fg.write(0x02);
+                fg.write('X', 'X');
             } else {
-                fg.write(0x03);
+                fg.writeUI16(nextSceneIdentifier);
             }
-            
-            fg.write(0x00);
+
             fg.write(0x01, 0x00,
                     1 + currentTimeline,
                     0x00);
@@ -1086,9 +1083,9 @@ public class FlaConverter extends AbstractConverter {
             if (flaFormatVersion == FlaFormatVersion.F1 && debugRandom) {
                 fg.write('X', 'X');
             } else {
-                fg.write(0x00, 0x00);           
+                fg.write(0x00, 0x00);
             }
-            
+
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F2.ordinal()) {
                 if (debugRandom) {
                     fg.write('X', 'X');
@@ -1204,7 +1201,7 @@ public class FlaConverter extends AbstractConverter {
             fg.writeUI16(gridSpacingX * 20);
 
             boolean pageTabsVisible = false; //"View/Page tabs"           
-            
+
             int previewMode = getAttributeAsInt(document, "previewMode", Arrays.asList(
                     "outlines",
                     "fast",
@@ -1662,18 +1659,6 @@ public class FlaConverter extends AbstractConverter {
         }
         dw.writeBomString(debugRandom ? "YYY" : importFilePath);
         writeTimeCreated(dw);
-        dw.write(flaFormatVersion.mediaSoundVersionC, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
-        if (parentFolderItemID == null) {
-            dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-        } else {
-            dw.writeItemID(parentFolderItemID);
-        }
-        dw.write(0x01, 0x00, 0x00, 0x00);
-        String itemID = generateItemID(generatedItemIdOrder);
-        if (domSoundItem.hasAttribute("itemID")) {
-            itemID = domSoundItem.getAttribute("itemID");
-        }
-        dw.writeItemID(itemID);
 
         String format = "";
         if (domSoundItem.hasAttribute("format")) {
@@ -1721,12 +1706,31 @@ public class FlaConverter extends AbstractConverter {
             exportBits = Integer.parseInt(domSoundItem.getAttribute("exportBits"));
         }
 
-        writeAsLinkage(dw, domSoundItem);
-        if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-            dw.write(0x00);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
+            dw.write(flaFormatVersion.mediaSoundVersionC, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+            if (parentFolderItemID == null) {
+                dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+            } else {
+                dw.writeItemID(parentFolderItemID);
+            }
+
+            dw.write(0x01, 0x00, 0x00, 0x00);
+            String itemID = generateItemID(generatedItemIdOrder);
+            if (domSoundItem.hasAttribute("itemID")) {
+                itemID = domSoundItem.getAttribute("itemID");
+            }
+            dw.writeItemID(itemID);
+
+            writeAsLinkage(dw, domSoundItem);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+                dw.write(0x00);
+            }
         }
-        dw.write(0x01, 0x00, 0x00, 0x00, flaFormatVersion.mediaSoundVersionB,
-                formatAsNum, 0x00);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+            dw.write(0x01, 0x00, 0x00, 0x00);            
+        }
+        dw.write(flaFormatVersion.mediaSoundVersionB,
+                    formatAsNum, 0x00);
         dw.writeUI32(sampleCount);
 
         dw.writeUI16(exportFormat);
@@ -1737,8 +1741,10 @@ public class FlaConverter extends AbstractConverter {
             deviceSoundHRef = domSoundItem.getAttribute("deviceSoundHRef");
         }
 
-        dw.write(0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+            dw.write(0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+        }
 
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
             dw.writeBomString(deviceSoundHRef);

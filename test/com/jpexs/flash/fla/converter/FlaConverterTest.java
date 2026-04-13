@@ -51,9 +51,11 @@ public class FlaConverterTest {
     private static final String SOURCE_DIR = "testdata/fla" + ADD + "/cs5";
     private static final String SOURCE_DIR_NG = "testdata/flang/cs5";
 
-    private static final int NG_MAX_TEST_NUM = 15;            
+    private static final int NG_MAX_TEST_NUM = 18;            
     
-    private static final List<Integer> NG_SKIP_TESTS = Arrays.asList(13, 14);
+    private static final List<Integer> NG_SKIP_TESTS = Arrays.asList(
+            13, 14 //Ignore ActionScripts for now
+    );
     
 
     private static final String EXPECTED_BASE_DIR = "testdata/fla" + ADD;
