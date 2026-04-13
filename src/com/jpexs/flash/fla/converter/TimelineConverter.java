@@ -1010,8 +1010,8 @@ public class TimelineConverter extends AbstractConverter {
                 fg.writeUI16(colorEffect.getValuePercent());
                 fg.write(effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), effectColor.getAlpha()); //why is there alpha for  F1, F2?            
             }
-
         }        
+        
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
             fg.writeBomString("");
         }
@@ -1140,10 +1140,11 @@ public class TimelineConverter extends AbstractConverter {
                     break;
             }
         } else {
-            fg.write(flaFormatVersion.spriteVersionG,
-                flaFormatVersion.spriteVersionB,
-                0x00, 0x00, 0x00,
+            fg.write(flaFormatVersion.spriteVersionG);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+                fg.write(flaFormatVersion.spriteVersionB, 0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00);
+            }
         }
         
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
@@ -1172,7 +1173,9 @@ public class TimelineConverter extends AbstractConverter {
             fg.write(0x00, 0x00, 0x00, 0x00);
             return;
         }
-        if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
+        if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {
+            
+        } else if (flaFormatVersion.ordinal() == FlaFormatVersion.F5.ordinal()) {
             fg.write(0x01, 0x00, 0x00, 0x00, 0x00);
         } else {
             fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
@@ -1194,7 +1197,7 @@ public class TimelineConverter extends AbstractConverter {
                 componentTxt = "YYY";
             }
             fg.writeBomString(componentTxt);
-        }              
+        }                 
     }
 
     private void instanceHeader(Element element, FlaWriter fg, int instanceType, boolean isInstance, boolean strippedMatrix) throws IOException {

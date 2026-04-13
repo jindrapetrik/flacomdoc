@@ -947,7 +947,7 @@ public class FlaConverter extends AbstractConverter {
                 }
                 if (flaFormatVersion.ordinal() == FlaFormatVersion.F5.ordinal()) {
                     fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x01);
-                } else if (flaFormatVersion.ordinal() > flaFormatVersion.F5.ordinal()) {
+                } else if (flaFormatVersion.ordinal() >= flaFormatVersion.MX.ordinal()) {
                     fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
                             debugRandom ? 'U' : 0x01, //NEW - different from sprite
                             0x00, 0x00, 0x00,
