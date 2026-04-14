@@ -2383,37 +2383,48 @@ public class FlaConverter extends AbstractConverter {
         }
 
         dw.write(0x00, 0x03, 0x00, 0x00, 0x00);
-        //if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
-
+        
         if (debugRandom) {
-            dw.write('U', 0x00, 0x00, 0x00,
-                    'U', 'U', 0x00, 0x00,
-                    'U', 'U', 0x00, 0x00,
-                    'U', 'U', 0x00, 0x00,
-                    'U', 'U', 0x00, 0x00,
-                    0x01,
-                    0x00, 0x00, 0x00, 'U');
+            dw.write('X', 0x00, 0x00, 0x00,
+                    'X', 'X', 0x00, 0x00,
+                    'X', 'X', 0x00, 0x00,
+                    'X', 'X', 0x00, 0x00,
+                    'X', 'X', 0x00, 0x00,
+                    0x01,0x00, 0x00, 0x00, 
+                    'X');
         } else {
-            dw.write(0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00,
-                    0x00, 0x00, 0x00, 0x00,
-                    0x01,
-                    0x00, 0x00, 0x00, 0x01);
+            
+            boolean libraryWindowOpened = false;
+            //set to 1000x768 on F4
+            int libraryWindowTop = 80;
+            int libraryWindowLeft = 784;
+            int libraryWindowBottom = 380;
+            int libraryWindowRight = 944;
+            
+            final int ORDER_NAME = 0;
+            final int ORDER_KIND = 1;
+            final int ORDER_USE_COUNT = 2;
+            final int ORDER_DATE_MODIFIED = 3;
+            
+            int libraryOrderBy = 0;
+            
+            dw.write(libraryWindowOpened ? 0x01 : 0x00);
+            dw.write(0x00, 0x00, 0x00);
+            dw.writeUI32(libraryWindowTop);
+            dw.writeUI32(libraryWindowLeft);
+            dw.writeUI32(libraryWindowBottom);
+            dw.writeUI32(libraryWindowRight);
+            dw.write(0x01, 0x00, 0x00, 0x00); //?
+            dw.write(ORDER_NAME);
         }
-        //In F8:
-        /*
-            dw.write(0x01, 0x00, 0x00, 0x00,
-                    0x97, 0x01, 0x00, 0x00, //wtf are these?
-                    0x11, 0x03, 0x00, 0x00,
-                    0xA6, 0x02, 0x00, 0x00,
-                    0xE1, 0x03, 0x00, 0x00,
-                    0x01,
-                    0x00, 0x00, 0x00, 0x00);
-        }*/
-        dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+
+        boolean keepUseCountsUpdated = false; //Library option
+        
+        dw.write(0x00, 0x00, 0x00, 
+                0x00, 0x00, 0x00, 0x00,
+                0x01, 0x00, 0x00, 0x00, 
+                keepUseCountsUpdated ? 0x01 : 0x00,
+                0x00, 0x00, 0x00,
                 0x01, 0x00, 0x00, 0x00);
     }
 

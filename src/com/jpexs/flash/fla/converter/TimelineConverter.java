@@ -1169,7 +1169,9 @@ public class TimelineConverter extends AbstractConverter {
         fg.writeBomString(instanceName);
 
         if (symbolType == FlaWriter.SYMBOLTYPE_BUTTON) {
-            writeAccessibleData(fg, symbolInstance, false);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
+                writeAccessibleData(fg, symbolInstance, false);
+            }
             fg.write(0x00, 0x00, 0x00, 0x00);
             return;
         }
