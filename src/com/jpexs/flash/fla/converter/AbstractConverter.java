@@ -35,7 +35,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
- * Converter - class with common methods for FlaConverter nd TimelineConverter.
+ * Converter - class with common methods for FlaConverter and TimelineConverter.
  * @author JPEXS
  */
 public abstract class AbstractConverter {
@@ -235,7 +235,7 @@ public abstract class AbstractConverter {
         if (element.hasAttribute("autoLabeling")) {
             autoLabeling = !"false".equals(element.getAttribute("autoLabeling"));
         }
-        fg.write(flaFormatVersion.getAccessibilityVersion(), 0x00);
+        fg.write(flaFormatVersion.accessibilityVersion, 0x00);
         fg.write(0x00, 0x00, silent ? 1 : 0, 0x00, 0x00, 0x00);
         fg.writeBomString(accName);
         fg.writeBomString(description);

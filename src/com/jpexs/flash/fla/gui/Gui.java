@@ -18,12 +18,14 @@
  */
 package com.jpexs.flash.fla.gui;
 
+import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Toolkit;
 import java.awt.Window;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
@@ -261,13 +263,6 @@ public class Gui {
     }
 
     public static void start() {
-
-        System.setProperty("sun.java2d.d3d", "false");
-        System.setProperty("sun.java2d.noddraw", "true");
-        System.setProperty("sun.java2d.uiScale", "1.0");
-        System.setProperty("sun.java2d.opengl", "false");
-        System.setProperty("sun.java2d.uiScale.enabled", "false");
-
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException

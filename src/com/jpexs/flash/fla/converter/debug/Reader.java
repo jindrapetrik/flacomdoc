@@ -30,8 +30,8 @@ public class Reader {
     public static void main(String[] args) throws Exception {
 
         boolean uni = false;
-        RandomAccessFile fis = new RandomAccessFile("testdata\\fla\\f5\\0001_empty_doc\\Contents", "r");
-        fis.seek(216); //TODO: enter valid position
+        RandomAccessFile fis = new RandomAccessFile("testdata\\flang\\f4\\0001_empty_doc\\Contents", "r");
+        fis.seek(178); //TODO: enter valid position
         int len = fis.read() + (fis.read() << 8);
         System.out.println("len = " + len);
         for (int i = 0; i < len; i++) {

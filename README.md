@@ -35,7 +35,8 @@ To convert CS5+ FLA/XFL to lower:
 java -jar flacomdoc.jar convert [--format <format>] [--charset <charset>] inputfile.fla/xfl outputfile.fla
 ```
 
-For `--format` option you can choose: `CS4`, `CS3`, `F8`, `MX2004`, `MX` or `F5`.
+For `--format` option you can choose: 
+`CS4`, `CS3`, `F8`, `MX2004`, `MX`, `F5`, `F4`, `F3`, `F2` or `F1`.
 
 Charset setting is applicable for `MX` and lower formats and defaults to `WINDOWS-1252`.
 
@@ -53,6 +54,10 @@ For conversion, following target formats are available:
  * MX 2004
  * MX
  * Flash 5
+ * Flash 4
+ * Flash 3
+ * Flash 2
+ * Flash 1
 
 For ComDoc extraction, all FLA formats CS4 and lower.
 
@@ -61,13 +66,13 @@ For ComDoc extraction, all FLA formats CS4 and lower.
  * Compiled clips
  * Components
  * Inverse Kinematics
- * Support for FLA below Flash 5
 
 ## License
 This work is licensed under LGPL v2.1, see [LICENSE.md](LICENSE.md) for details.
 
 ## Acknowledges
 GUI Application uses FLA icon from [FatCow icons pack].
+We also use icons of Macromedia / Adobe icons.
 
 
 ## Author

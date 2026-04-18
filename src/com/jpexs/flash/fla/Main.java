@@ -128,13 +128,11 @@ public class Main {
                 System.out.print("Available formats for --format: ");
                 boolean first = true;
                 for (FlaFormatVersion v : FlaFormatVersion.values()) {
-                    if (v.ordinal() >= FlaFormatVersion.F5.ordinal()) {
-                        if (!first) {
-                            System.out.print(", ");
-                        }
-                        first = false;
-                        System.out.print(v.toString());
+                    if (!first) {
+                        System.out.print(", ");
                     }
+                    first = false;
+                    System.out.print(v.toString());                    
                 }
                 System.out.println();
                 break;
@@ -214,6 +212,7 @@ public class Main {
                     outputStorage.close();
                     System.out.println("OK");
                 } catch (Exception ex) {
+                    ex.printStackTrace();
                     System.err.println("Error: " + ex.getLocalizedMessage());
                     System.exit(1);
                 }
