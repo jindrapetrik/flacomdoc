@@ -18,10 +18,14 @@
  */
 package com.jpexs.flash.fla.converter;
 
+import com.jpexs.flash.fla.script.ScriptParseException;
+import com.jpexs.flash.fla.script.ScriptParser;
+import com.jpexs.flash.fla.script.commands.AbstractCommand;
 import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -97,8 +101,8 @@ public class FlaWriter {
     public static final int LAYERTYPE_GUIDE = 1;
     public static final int LAYERTYPE_GUIDED = 2;
     public static final int LAYERTYPE_FOLDER = 3;
-    public static final int LAYERTYPE_MASK = 4;
-
+    public static final int LAYERTYPE_MASK = 4;   
+    
     private String x = "0";
     private String y = "0";
     private int strokeStyle = 0;
@@ -934,6 +938,95 @@ public class FlaWriter {
         writeUI32(itemIDLow);
     }
 
+    public void writeScript(String source) throws IOException {
+        ScriptParser parser = new ScriptParser(flaFormatVersion);
+        try {
+            List<AbstractCommand> commands = parser.parse(source, debugRandom);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
+                writeUI32(commands.size());
+            }
+            for (AbstractCommand cmd : commands) {
+                switch(flaFormatVersion) {
+                    case F1:
+                        write(0x00);
+                        break;
+                    case F2:
+                        write(0x01);
+                        break;
+                    case F3:
+                        write(0x04);
+                        break;
+                    case F4:
+                        write(0x09);
+                        break;
+                }                
+                write(cmd.getActionKind());
+                writeString(cmd.getUrl().value);
+                writeString(cmd.getWindow().value); //max 19 in F1, max 24 in F2
+                writeString(cmd.getPage()); //max 21 in  F1, max 24 in F2                    
+                writeUI16(cmd.getFrameNum()); //max 16000   
+                
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F2.ordinal()) {
+                    writeUI16(cmd.getWaitForExtraFrames());
+                }
+                
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {                
+                    writeString(cmd.getLabel());                    
+                    writeString(cmd.getArg0().value);
+                    writeString(cmd.getArg1().value);
+                    writeString(cmd.getTarget().value);
+                    writeUI32(cmd.getLevel());
+                    write( 
+                                   cmd.onRelease() ? 0x01 : 0x00,0x00,0x00,0x00,
+                                     cmd.onPress() ? 0x01 : 0x00,0x00,0x00,0x00,
+                            cmd.onReleaseOutside() ? 0x01 : 0x00,0x00,0x00,0x00,
+                                  cmd.onRollOver() ? 0x01 : 0x00,0x00,0x00,0x00,
+                                   cmd.onRollOut() ? 0x01 : 0x00,0x00,0x00,0x00,
+                                  cmd.onDragOver() ? 0x01 : 0x00,0x00,0x00,0x00,
+                                   cmd.onDragOut() ? 0x01 : 0x00,0x00,0x00,0x00
+                    );
+                }
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {                
+                    writeUI32(cmd.getProperty());
+                    write(0x00, 0x00); //Uknown, but probably 2 strings
+                    writeString(cmd.getDepth().value);
+                    writeString(cmd.getVariableName().value);
+                    writeString(cmd.getMethod());
+                    write(cmd.doesLoadVariables() ? 0x01 : 0x00, 0x00, 0x00, 0x00);
+                    writeString(cmd.getArg2().value);
+                    writeString(cmd.getArg3().value);
+                    write(!cmd.getVariableName().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,
+                            !cmd.getUrl().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00, 
+                            !cmd.getArg0().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,                         
+                            !cmd.getArg1().isRaw ? 0x01 : 0x00, 0x00, 0x00,  0x00,
+                            !cmd.getArg2().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,
+                            !cmd.getArg3().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,
+                            !cmd.getWindow().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00, 
+                            !cmd.getTarget().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,
+                            !cmd.getDepth().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,
+                            cmd.isStart() ? 0x01 : 0x00, 0x00, 0x00, 0x00,
+                            cmd.hasConstrainToRectangle() ? 0x01 : 0x00, 0x00, 0x00, 0x00, 
+                            cmd.hasLockMouseToCenter() ? 0x01 : 0x00, 0x00, 0x00, 0x00, 
+                            cmd.onKeyPress() ? 0x01 : 0x00, 0x00, 0x00, 0x00);
+                     writeUI32(cmd.getKey());
+                     write(0x00, 0x00, 0x00, 0x00); //uknown, but probably boolean ?
+                }
+            }
+            
+        } catch (IOException | ScriptParseException | InterruptedException ex) {
+            logger.log(Level.SEVERE, null, ex);
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
+                writeUI32(0);
+            } else {
+                write(0);
+                writeString("");
+                writeString("");
+                writeString("");
+                writeUI16(1);
+            }
+        }
+    }
+    
     public void writeUI32(long value) throws IOException {
         write((int) (value & 0xFF));
         write((int) ((value >> 8) & 0xFF));

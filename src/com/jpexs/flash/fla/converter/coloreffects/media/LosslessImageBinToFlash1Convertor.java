@@ -134,8 +134,8 @@ public class LosslessImageBinToFlash1Convertor {
     }
 
     public static void main(String[] args) throws IOException {
-        File f = new File("c:\\Dropbox\\Programovani\\JavaSE\\FlaComDoc\\testdata\\flang\\f2\\0010_bitmaps\\Media 1");
+        File f = new File("testdata\\flang\\f2\\0010_bitmaps\\Media 1");
         LosslessImageBinToFlash1Convertor r = new LosslessImageBinToFlash1Convertor(new FileInputStream(f));
-        r.convertTo(new FileOutputStream("c:\\Dropbox\\Programovani\\JavaSE\\FlaComDoc\\testdata\\m1.bin"));
+        r.convertTo(new FileOutputStream("testdata\\m1.bin"));
     }
 }

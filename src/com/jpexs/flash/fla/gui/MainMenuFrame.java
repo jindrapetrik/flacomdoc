@@ -115,6 +115,42 @@ public class MainMenuFrame extends JFrame {
             }
         }
         );
+        
+        JButton convertF4Button = new JButton("Convert to Flash 4...");
+        convertF4Button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                convert(FlaFormatVersion.F4);
+            }
+        }
+        );
+        
+        JButton convertF3Button = new JButton("Convert to Flash 3...");
+        convertF3Button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                convert(FlaFormatVersion.F3);
+            }
+        }
+        );
+        
+        JButton convertF2Button = new JButton("Convert to Flash 2...");
+        convertF2Button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                convert(FlaFormatVersion.F2);
+            }
+        }
+        );
+        
+        JButton convertF1Button = new JButton("Convert to Flash 1...");
+        convertF1Button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                convert(FlaFormatVersion.F1);
+            }
+        }
+        );
         JButton extractButton = new JButton("Extract FLA ComDoc...");
         extractButton.addActionListener(this::extractActionPerformed);
         JButton exitButton = new JButton("Exit");
@@ -126,11 +162,15 @@ public class MainMenuFrame extends JFrame {
         cnt.add(convertMX2004Button);
         cnt.add(convertMXButton);
         cnt.add(convertF5Button);
+        cnt.add(convertF4Button);
+        cnt.add(convertF3Button);
+        cnt.add(convertF2Button);
+        cnt.add(convertF1Button);
         cnt.add(extractButton);
         cnt.add(exitButton);
 
         Gui.setWindowIcon(this);
-        setSize(400, 300);
+        setSize(500, 400);
         Gui.centerScreen(this);
     }
 
@@ -165,12 +205,15 @@ public class MainMenuFrame extends JFrame {
                 if (f.isDirectory()) {
                     return true;
                 }
-                return f.getName().toLowerCase().endsWith(".fla");
+                return f.getName().toLowerCase().endsWith(flaFormatVersion == FlaFormatVersion.F1 ? ".spa" : ".fla");
             }
 
             @Override
             public String getDescription() {
-                return "FLA document " + flaFormatVersion + " (*.fla)";
+                if (flaFormatVersion == FlaFormatVersion.F1) {
+                    return "SPA document (*.spa)";
+                }
+                return "FLA document (*.fla)";
             }
         });
 
@@ -194,7 +237,7 @@ public class MainMenuFrame extends JFrame {
             OutputStorageInterface outputStorage = new CfbOutputStorage(outputFile);
 
             FlaConverter contentsGenerator = new FlaConverter(flaFormatVersion, 
-                    "WINDOWS-1250" //TODO: Create some GUI to select charset
+                    "WINDOWS-1251" //TODO: Create some GUI to select charset
             );
             contentsGenerator.convert(inputStorage, outputStorage);
 

@@ -179,6 +179,10 @@ auxiliary.show.customizer.message=<message>
                         <label>src</label>
                         <location>src</location>
                     </source-folder>
+                     <source-folder style="packages">
+                        <label>lexers</label>
+                        <location>lexers</location>
+                    </source-folder>
                     <source-folder style="packages">
                         <label>test</label>
                         <location>test</location>

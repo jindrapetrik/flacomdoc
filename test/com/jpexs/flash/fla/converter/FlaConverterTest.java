@@ -53,9 +53,7 @@ public class FlaConverterTest {
 
     private static final int NG_MAX_TEST_NUM = 19;            
     
-    private static final List<Integer> NG_SKIP_TESTS = Arrays.asList(
-            13, 14 //Ignore ActionScripts for now
-    );
+    private static final List<Integer> NG_SKIP_TESTS = Arrays.asList();
     
 
     private static final String EXPECTED_BASE_DIR = "testdata/fla" + ADD;

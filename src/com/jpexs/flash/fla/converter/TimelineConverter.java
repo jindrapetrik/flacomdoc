@@ -839,7 +839,7 @@ public class TimelineConverter extends AbstractConverter {
         if (symbolInstance.hasAttribute("centerPoint3DZ")) {
             centerPoint3DZ = Double.parseDouble(symbolInstance.getAttribute("centerPoint3DZ"));
         }
-
+        
         ColorEffectInterface colorEffect = new NoColorEffect();
 
         Element colorElement = getSubElementByName(symbolInstance, "color");
@@ -1116,21 +1116,14 @@ public class TimelineConverter extends AbstractConverter {
         if (symbolType == FlaWriter.SYMBOLTYPE_BUTTON) {
             switch (flaFormatVersion) {
                 case F1:
-                    fg.write(0x02, 0x00,
-                            0x00, 0x00, 0x00, 0x00,
-                            0x01, 0x00
-                    );
-                    break;
                 case F2:
-                    fg.write(0x02, 0x01,
-                            0x00, 0x00, 0x00, 0x00,
-                            0x01, 0x00, 0x80, 0xC1
-                    );
+                    fg.write(0x02);
+                    fg.writeScript(actionScript);
                     break;
                 case F3:
                 case F4:
-                    fg.write(0x04, 0x00,
-                            0x00, 0x00, 0x00);
+                    fg.write(0x04);
+                    fg.writeScript(actionScript);
                     break;
                 default:
                     fg.write(flaFormatVersion.buttonVersion,
@@ -1237,7 +1230,11 @@ public class TimelineConverter extends AbstractConverter {
         }
 
         if (isInstance) {
-            fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00));
+            if (debugRandom) {
+                fg.write('X');
+            } else {            
+                fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00));
+            }
         }
         fg.write(0x00, 0x00);
         if (transformationPointX == null) {
@@ -2806,31 +2803,13 @@ public class TimelineConverter extends AbstractConverter {
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {                
                     fg.writeBomString(name);
                 }
-                if (flaFormatVersion == FlaFormatVersion.F3 || flaFormatVersion == FlaFormatVersion.F4) {
-                    //TODO: actíons
-                    /*int actionCount = 1;
-                    fg.write(actionCount);
-                    
-                    final int ACTION_PLAY = 1;
-                    final int ACTION_STOP = 2;
-                    
-                    //for FLASH4:
-                    for (int i = 0; i < actionCount; i++) {
-                        fg.write(
-                            0x00, 0x00, 0x00, 0x09, ACTION_PLAY, 0x00, 0x00, 0x00, 0x01, 0x00, 0x80, 0xC1, 0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00 
-                        );
-                    }*/
-                    fg.write(0x00);
-                    
-                    fg.write(0x00, 0x00, 0x00);
-                }                
+                                                               
+                if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {
+                    fg.writeScript(actionScript);
+                }
+                if (flaFormatVersion == FlaFormatVersion.F4) {
+                    //fg.write(0x00);
+                }
                                 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
                     fg.write(flaFormatVersion.frameVersionC, 0x00, 0x00, 0x00);
@@ -3047,13 +3026,7 @@ public class TimelineConverter extends AbstractConverter {
                                 "custom"
                         ), "none");
 
-                if (flaFormatVersion == FlaFormatVersion.F1) {
-                    fg.write(0x00,0x00,0x00,0x00,0x00,0x01,0x00);
-                } else if (flaFormatVersion == FlaFormatVersion.F2) {
-                    fg.write(0x01);
-                    fg.write(0x00, 0x00, 0x00, 0x00);
-                    fg.write(0x01, 0x00, 0x80, 0xC1); //??
-                } else {
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
                     fg.write(0x00);
                     fg.write(0x00, 0x00, 0x00, 0x00);
                     fg.writeBomString("");
