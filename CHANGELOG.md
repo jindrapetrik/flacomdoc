@@ -1,7 +1,10 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [2.0.0] - 2026-04-18
+### Added
+- Support for conversion to Flash 1, 2, 3 and 4
+
 ### Fixed
 - Negative numbers in cubics edges
 
