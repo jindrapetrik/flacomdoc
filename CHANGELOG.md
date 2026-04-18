@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [2.0.1] - 2026-04-18
+### Fixed
+- F1-F4 fonts
+- F2-F3 images
+
 ## [2.0.0] - 2026-04-18
 ### Added
 - Support for conversion to Flash 1, 2, 3 and 4
