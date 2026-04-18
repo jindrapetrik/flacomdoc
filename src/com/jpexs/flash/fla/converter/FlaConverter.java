@@ -2072,6 +2072,9 @@ public class FlaConverter extends AbstractConverter {
     }
 
     protected int writeFonts(FlaWriter dw, Element document, Reference<Long> generatedItemIdOrder) throws IOException {
+        if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {
+            return 0;
+        }
         Element fontsElement = getSubElementByName(document, "fonts");
         List<Element> domFontItems = new ArrayList<>();
         if (fontsElement != null) {

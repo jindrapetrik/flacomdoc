@@ -1498,7 +1498,7 @@ public class TimelineConverter extends AbstractConverter {
             Element fontsElement = getSubElementByName(document, "fonts");
             List<Element> domFontItems = new ArrayList<>();
 
-            if (fontsElement != null) {
+            if (fontsElement != null && flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
                 domFontItems = getAllSubElementsByName(fontsElement, "DOMFontItem");
             }
 
