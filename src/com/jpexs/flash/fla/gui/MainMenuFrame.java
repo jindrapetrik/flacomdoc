@@ -34,6 +34,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -63,7 +64,7 @@ public class MainMenuFrame extends JFrame {
         Container cnt = getContentPane();
         cnt.setLayout(new GridLayout(4, 2));
 
-        JButton convertCs4Button = new JButton("Convert to CS4...");
+        JButton convertCs4Button = new JButton("Convert to Adobe Flash CS4...", getIcon("flashcs4"));
         convertCs4Button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -71,7 +72,7 @@ public class MainMenuFrame extends JFrame {
             }
         }
         );
-        JButton convertCs3Button = new JButton("Convert to CS3...");
+        JButton convertCs3Button = new JButton("Convert to Adobe Flash CS3...", getIcon("flashcs3"));
         convertCs3Button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -80,7 +81,7 @@ public class MainMenuFrame extends JFrame {
         }
         );
 
-        JButton convertF8Button = new JButton("Convert to Flash 8...");
+        JButton convertF8Button = new JButton("Convert to Macromedia Flash 8...", getIcon("flash8"));
         convertF8Button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -89,7 +90,7 @@ public class MainMenuFrame extends JFrame {
         }
         );
         
-        JButton convertMX2004Button = new JButton("Convert to MX2004...");
+        JButton convertMX2004Button = new JButton("Convert to Macromedia Flash MX2004...", getIcon("flashmx2004"));
         convertMX2004Button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -98,7 +99,7 @@ public class MainMenuFrame extends JFrame {
         }
         );
         
-        JButton convertMXButton = new JButton("Convert to MX...");
+        JButton convertMXButton = new JButton("Convert to Macromedia Flash MX...", getIcon("flashmx"));
         convertMXButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -107,7 +108,7 @@ public class MainMenuFrame extends JFrame {
         }
         );
         
-        JButton convertF5Button = new JButton("Convert to Flash 5...");
+        JButton convertF5Button = new JButton("Convert to Macromedia Flash 5...", getIcon("flash5"));
         convertF5Button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -116,7 +117,7 @@ public class MainMenuFrame extends JFrame {
         }
         );
         
-        JButton convertF4Button = new JButton("Convert to Flash 4...");
+        JButton convertF4Button = new JButton("Convert to Macromedia Flash 4...", getIcon("flash4"));
         convertF4Button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -125,7 +126,7 @@ public class MainMenuFrame extends JFrame {
         }
         );
         
-        JButton convertF3Button = new JButton("Convert to Flash 3...");
+        JButton convertF3Button = new JButton("Convert to Macromedia Flash 3...", getIcon("flash3"));
         convertF3Button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -134,7 +135,7 @@ public class MainMenuFrame extends JFrame {
         }
         );
         
-        JButton convertF2Button = new JButton("Convert to Flash 2...");
+        JButton convertF2Button = new JButton("Convert to Macromedia Flash 2...", getIcon("flash2"));
         convertF2Button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -143,7 +144,7 @@ public class MainMenuFrame extends JFrame {
         }
         );
         
-        JButton convertF1Button = new JButton("Convert to Flash 1...");
+        JButton convertF1Button = new JButton("Convert to FutureSplash Animator (Flash 1)...", getIcon("flash1"));
         convertF1Button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -151,9 +152,9 @@ public class MainMenuFrame extends JFrame {
             }
         }
         );
-        JButton extractButton = new JButton("Extract FLA ComDoc...");
+        JButton extractButton = new JButton("Extract FLA ComDoc...", getIcon("extract"));
         extractButton.addActionListener(this::extractActionPerformed);
-        JButton exitButton = new JButton("Exit");
+        JButton exitButton = new JButton("Exit", getIcon("exit"));
         exitButton.addActionListener(this::exitActionPerformed);
 
         cnt.add(convertCs4Button);
@@ -170,8 +171,13 @@ public class MainMenuFrame extends JFrame {
         cnt.add(exitButton);
 
         Gui.setWindowIcon(this);
-        setSize(500, 400);
+        //setSize(500, 400);
+        pack();
         Gui.centerScreen(this);
+    }
+    
+    private ImageIcon getIcon(String name) {
+        return new ImageIcon(MainMenuFrame.class.getClassLoader().getResource("com/jpexs/flash/fla/gui/graphics/" + name + ".png"));
     }
 
     private void convert(FlaFormatVersion flaFormatVersion) {
