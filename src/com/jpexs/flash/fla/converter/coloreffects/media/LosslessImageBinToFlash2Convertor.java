@@ -25,6 +25,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
 /**
@@ -32,11 +34,11 @@ import java.util.zip.InflaterInputStream;
  *
  * @author JPEXS
  */
-public class LosslessImageBinToFlash1Convertor {
+public class LosslessImageBinToFlash2Convertor {
 
     private final DataInputStream is;
 
-    public LosslessImageBinToFlash1Convertor(InputStream is) {
+    public LosslessImageBinToFlash2Convertor(InputStream is) {
         this.is = new DataInputStream(is);
     }
 
@@ -95,13 +97,32 @@ public class LosslessImageBinToFlash1Convertor {
         while ((cnt = uis.read(buf)) > 0) {
             baos.write(buf, 0, cnt);
         }                
+        
+        os.write(1); //compressed variant
+        
+        baos = new ByteArrayOutputStream();
+        DeflaterOutputStream def = new DeflaterOutputStream(baos, new Deflater(1));
         byte[] arr = baos.toByteArray();
         for (int i = 0; i < arr.length; i += 4) {
-            os.write(0); //strip alpha data
-            os.write(arr[i + 1]);
-            os.write(arr[i + 2]);
-            os.write(arr[i + 3]);            
+            def.write(0); //strip alpha data
+            def.write(arr[i + 1]);
+            def.write(arr[i + 2]);
+            def.write(arr[i + 3]);            
         }
+        def.flush();
+        def.finish();
+        byte[] data = baos.toByteArray();
+        int pos = 0;
+        while (pos < data.length) {
+            cnt = 2048; //it seems that using large chunk sizes like 0xFFFF crashes flash. 2024 is used in CS5.
+            if (pos + cnt > data.length) {
+                cnt = data.length - pos;
+            }
+            writeUI16(os, cnt);
+            os.write(data, pos, cnt);
+            pos += cnt;
+        }
+        writeUI16(os, 0);
     }
 
     private int readUI16() throws IOException {
@@ -135,7 +156,7 @@ public class LosslessImageBinToFlash1Convertor {
 
     public static void main(String[] args) throws IOException {
         File f = new File("out\\f3_jpeg\\Media 1");
-        LosslessImageBinToFlash1Convertor r = new LosslessImageBinToFlash1Convertor(new FileInputStream(f));
+        LosslessImageBinToFlash2Convertor r = new LosslessImageBinToFlash2Convertor(new FileInputStream(f));
         r.convertTo(new FileOutputStream("testdata\\f3_jpeg.bin"));
     }
 }

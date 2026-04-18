@@ -18,6 +18,8 @@
  */
 package com.jpexs.flash.fla.converter;
 
+import com.jpexs.flash.fla.converter.coloreffects.media.JpegImageBinToFlash23Convertor;
+import com.jpexs.flash.fla.converter.coloreffects.media.LosslessImageBinToFlash2Convertor;
 import com.jpexs.flash.fla.converter.streams.InputStorageInterface;
 import com.jpexs.flash.fla.converter.streams.OutputStorageInterface;
 import com.jpexs.flash.fla.converter.swatches.ExtendedSwatchItem;
@@ -29,6 +31,7 @@ import java.awt.Color;
 import java.awt.Font;
 import java.io.DataInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -1927,28 +1930,7 @@ public class FlaConverter extends AbstractConverter {
             if (domBitmapItem.hasAttribute("itemID")) {
                 itemID = domBitmapItem.getAttribute("itemID");
             }
-            dw.writeItemID(itemID);
-
-            boolean hasBinData = false;
-            if (domBitmapItem.hasAttribute("bitmapDataHRef")) {
-                String bitmapDataHRef = domBitmapItem.getAttribute("bitmapDataHRef");
-                if (sourceDir.fileExists("bin/" + bitmapDataHRef)) {
-                    //copy the data file
-                    try (OutputStream fos = outputDir.getOutputStream(mediaFile); InputStream fis = sourceDir.readFile("bin/" + bitmapDataHRef);) {
-                        byte[] buf = new byte[4096];
-                        int cnt;
-                        while ((cnt = fis.read(buf)) > 0) {
-                            fos.write(buf, 0, cnt);
-                        }
-                    }
-                    hasBinData = true;
-                }
-            }
-
-            if (!hasBinData) {
-                Logger.getLogger(FlaConverter.class.getName()).log(Level.WARNING, "Missing bin/*.dat file for {0}", name);
-            }
-
+            dw.writeItemID(itemID);            
             writeAsLinkage(dw, domBitmapItem);
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
                 dw.write(0x00);
@@ -1957,6 +1939,48 @@ public class FlaConverter extends AbstractConverter {
                 dw.write(0x01, 0x00, 0x00, 0x00);
             }
             dw.write(flaFormatVersion.mediaBitsVersionB);
+        }
+        
+        boolean hasBinData = false;
+        if (domBitmapItem.hasAttribute("bitmapDataHRef")) {
+            String bitmapDataHRef = domBitmapItem.getAttribute("bitmapDataHRef");
+            if (sourceDir.fileExists("bin/" + bitmapDataHRef)) {
+
+                boolean isJpeg = "true".equals(domBitmapItem.getAttribute("isJPEG"));
+                
+                try (OutputStream fos = outputDir.getOutputStream(mediaFile); InputStream fis = sourceDir.readFile("bin/" + bitmapDataHRef);) {
+                    boolean converted = false;
+                    if (flaFormatVersion == FlaFormatVersion.F3) {
+                        if (isJpeg) {
+                            JpegImageBinToFlash23Convertor conv = new JpegImageBinToFlash23Convertor(fis);
+                            conv.convertTo(fos, 3);
+                            converted = true;
+                        }
+                    } else if (flaFormatVersion == FlaFormatVersion.F2) {
+                        if (isJpeg) {
+                            JpegImageBinToFlash23Convertor conv = new JpegImageBinToFlash23Convertor(fis);
+                            conv.convertTo(fos, 2);
+                        } else {
+                            LosslessImageBinToFlash2Convertor conv = new LosslessImageBinToFlash2Convertor(fis);
+                            conv.convertTo(fos);
+                        }
+                        converted = true;
+                    }
+
+                    if (!converted) {
+                        byte[] buf = new byte[4096];
+                        int cnt;
+                        while ((cnt = fis.read(buf)) > 0) {
+                            fos.write(buf, 0, cnt);
+                        }
+                    }
+                }
+                hasBinData = true;
+            }
+        }
+
+        if (!hasBinData) {
+            Logger.getLogger(FlaConverter.class.getName()).log(Level.WARNING, "Missing bin/*.dat file for {0}", name);
         }
 
         boolean allowSmoothing = false;
