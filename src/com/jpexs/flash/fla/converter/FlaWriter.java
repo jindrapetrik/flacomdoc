@@ -704,9 +704,13 @@ public class FlaWriter {
             int flow,
             Matrix gradientMatrix,
             double focalRatio
-    ) throws IOException {
-
-        write(0x00, 0x00, 0x00, debugRandom ? 'U' : 0x00);
+    ) throws IOException {        
+        //the purpose of these four is unknown, but it seems that if on last place we put 0, the fill is missing
+        if (debugRandom) {
+            write('U', 'U', 'U', 'U');
+        } else {
+            write(0x00, 0x00, 0x00, 0xFF); 
+        }
         write(type, 0x00);
         writeMatrix(gradientMatrix);
         write(colors.length);

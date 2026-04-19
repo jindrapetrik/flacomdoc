@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 - F4 compound operators
 - F4 texts
 - Morphshapes
+- Gradient fills
 
 ## [2.0.1] - 2026-04-18
 ### Fixed

@@ -2059,7 +2059,11 @@ public class TimelineConverter extends AbstractConverter {
             case "RadialGradient": {
                 Matrix matrix = parseMatrix(getSubElementByName(element, "matrix"));
                 List<Element> gradientEntries = getAllSubElementsByName(element, "GradientEntry");
-                fg.write(0x00, 0x00, 0x00, debugRandom ? 'U' : 0x00);
+                if (debugRandom) {
+                    fg.write('U', 'U', 'U', 'U');
+                } else {
+                    fg.write(0x00, 0x00, 0x00, 0xFF);
+                }
                 if ("LinearGradient".equals(element.getTagName())) {
                     fg.writeUI16(FlaWriter.FILLTYPE_LINEAR_GRADIENT);
                 } else {
@@ -2901,7 +2905,7 @@ public class TimelineConverter extends AbstractConverter {
                                 Element fill2 = fillStyles2.size() > i ? fillStyles2.get(i) : null;
                                 fills.add(fill1);
 
-                                if (!areElementsEqual(fill1, fill2, false) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
+                                if (!areElementsEqual(fill1, fill2, false)|| flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
                                     fills.add(fill2);
                                 }
                             }
