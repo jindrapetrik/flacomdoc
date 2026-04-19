@@ -1651,7 +1651,8 @@ public class TimelineConverter extends AbstractConverter {
                     }
                     fg.write(flags);
                 }
-            }
+                fg.write(0x00);
+            }            
             
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
                 fg.writeUI16(maxCharacters);
@@ -1662,7 +1663,7 @@ public class TimelineConverter extends AbstractConverter {
             }
             if (flaFormatVersion == FlaFormatVersion.CS4) {
                 fg.write(0x00);
-            }
+            }            
 
             /*
                             <DOMTextRun>
@@ -3246,7 +3247,7 @@ public class TimelineConverter extends AbstractConverter {
             return true;
         }
         if (elem1 == null || elem2 == null) {
-            return true;
+            return false;
         }
         if (!elem1.getTagName().equals(elem2.getTagName())) {
             return false;
