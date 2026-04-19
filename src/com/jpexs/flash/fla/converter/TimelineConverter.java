@@ -1629,12 +1629,15 @@ public class TimelineConverter extends AbstractConverter {
                 embedFlag |= 0x40;
             }
 
-            if (renderAsHTML) {
+            if (renderAsHTML && flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
                 embedFlag |= 0x80;
             }
 
-            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
                 fg.write(embedFlag);
+            }
+            
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
                 if (!isStatic) {
                     fg.write(0);
                 } else {
@@ -1651,7 +1654,6 @@ public class TimelineConverter extends AbstractConverter {
             }
             
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
-                fg.write(0x00);
                 fg.writeUI16(maxCharacters);
                 fg.writeBomString(variableName);            
             }
@@ -2040,6 +2042,11 @@ public class TimelineConverter extends AbstractConverter {
     }
 
     private void writeMorphFillStylePart(Element document, FlaWriter fg, Element fillStyleElement) throws IOException {
+        if (fillStyleElement == null) { //???
+            fg.write(0x00, 0x00, 0x00, 0x00);
+            fg.writeUI16(0);
+            return;
+        }
         Element element = getFirstSubElement(fillStyleElement);
         switch (element.getTagName()) {
             case "SolidColor": {
@@ -3235,7 +3242,7 @@ public class TimelineConverter extends AbstractConverter {
             return true;
         }
         if (elem1 == null || elem2 == null) {
-            return false;
+            return true;
         }
         if (!elem1.getTagName().equals(elem2.getTagName())) {
             return false;
