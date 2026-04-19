@@ -38,6 +38,7 @@ import com.jpexs.flash.fla.script.commands.ToggleHighQualityCommand;
 import com.jpexs.flash.fla.script.commands.TraceCommand;
 import com.jpexs.flash.fla.script.commands.UnloadMovieCommand;
 import com.jpexs.flash.fla.converter.FlaFormatVersion;
+import com.jpexs.flash.fla.script.commands.SetPropertyCommand;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -51,11 +52,10 @@ import java.util.List;
  */
 public class ScriptParser {
 
-    private final FlaFormatVersion flaVersion;    
-    
+    private final FlaFormatVersion flaVersion;
+
     private ScriptLexer lexer;
-   
-    
+
     /**
      * Constructor
      *
@@ -65,9 +65,8 @@ public class ScriptParser {
         this.flaVersion = flaVersion;
     }
 
-    private final boolean debugMode = false;  
-    
-    
+    private final boolean debugMode = false;
+
     private void expected(ParsedSymbol symb, int line, Object... expected) throws IOException, ScriptParseException {
         boolean found = false;
         for (Object t : expected) {
@@ -91,31 +90,27 @@ public class ScriptParser {
             throw new ScriptParseException("" + expStr + " expected but " + symb.type + " found", line);
         }
     }
-    
-    
+
     private ParsedSymbol expectedType(Object... type) throws IOException, ScriptParseException, InterruptedException {
         ParsedSymbol symb = lex();
         expected(symb, lexer.yyline(), type);
         return symb;
     }
-    
-    
-     private ParsedSymbol lex() throws IOException, ScriptParseException, InterruptedException {
+
+    private ParsedSymbol lex() throws IOException, ScriptParseException, InterruptedException {
         ParsedSymbol ret = lexer.lex();
         if (debugMode) {
             System.out.println(ret);
         }
         return ret;
     }
-    
-    
+
     public List<AbstractCommand> parse(String script, boolean debugRandom) throws IOException, ScriptParseException, InterruptedException {
         lexer = new ScriptLexer(new StringReader(script));
         List<AbstractCommand> ret = commands();
-        
-        
+
         AbstractCommand singleCommand = null;
-        
+
         if (flaVersion.ordinal() <= FlaFormatVersion.F2.ordinal()) {
             if (ret.size() > 2) {
                 if (ret.get(0) instanceof IfFrameIsLoadedCommand && ret.get(ret.size() - 1) instanceof EndFrameLoadedCommand) {
@@ -133,8 +128,8 @@ public class ScriptParser {
                                 window = gu.getWindow().value;
                                 hasGetUrl = true;
                                 pos++;
-                            }                            
-                        } 
+                            }
+                        }
                         if (ret.size() == pos + 1) {
                             if (ret.get(pos) instanceof GotoAndStopCommand) {
                                 GotoAndStopCommand cmd = (GotoAndStopCommand) ret.get(pos);
@@ -163,7 +158,7 @@ public class ScriptParser {
                     }
                 }
             }
-            
+
             if (singleCommand == null) {
                 if (ret.size() == 2) {
                     String url = "";
@@ -173,7 +168,7 @@ public class ScriptParser {
                         if (gu.getMinFlaVersion() == FlaFormatVersion.F1) {
                             url = gu.getUrl().value;
                             window = gu.getWindow().value;
-                            
+
                             if (ret.get(1) instanceof GotoAndStopCommand) {
                                 GotoAndStopCommand cmd = (GotoAndStopCommand) ret.get(1);
                                 if (cmd.getMinFlaVersion() == FlaFormatVersion.F1) {
@@ -189,36 +184,36 @@ public class ScriptParser {
                                     singleCommand = new GetUrlGotoAndPlay(url, window, page, frameNum);
                                 }
                             }
-                        }                            
-                    }                                                                 
-                }                
+                        }
+                    }
+                }
             }
-        }        
-        
+        }
+
         if (singleCommand != null) {
             ret.clear();
             ret.add(singleCommand);
         }
-        
+
         if (flaVersion.ordinal() <= FlaFormatVersion.F2.ordinal() && ret.isEmpty()) {
             ret.add(new EmptyCommand());
         }
-        
+
         if (flaVersion.ordinal() <= FlaFormatVersion.F2.ordinal() && ret.size() > 1) {
             throw new ScriptParseException("Only single action expected for FLA format " + flaVersion, -1);
         }
-        
-        FlaFormatVersion minVersion = FlaFormatVersion.F1;                        
+
+        FlaFormatVersion minVersion = FlaFormatVersion.F1;
         for (AbstractCommand cmd : ret) {
             if (cmd.getMinFlaVersion().ordinal() > minVersion.ordinal()) {
                 minVersion = cmd.getMinFlaVersion();
             }
-        }        
-        
-        if (minVersion.ordinal() > flaVersion.ordinal()) {
-            throw new ScriptParseException("The code cannot be represented in FLA format " + flaVersion +". Minimum is " + minVersion + ".", -1);
         }
-        
+
+        if (minVersion.ordinal() > flaVersion.ordinal()) {
+            throw new ScriptParseException("The code cannot be represented in FLA format " + flaVersion + ". Minimum is " + minVersion + ".", -1);
+        }
+
         if (debugRandom) {
             for (AbstractCommand cmd : ret) {
                 cmd.defaultPage = "YYY";
@@ -230,10 +225,10 @@ public class ScriptParser {
                 cmd.defaultKey = ('X' << 24) + ('X' << 16) + ('X' << 8) + 'X';
             }
         }
-        
+
         return ret;
     }
-    
+
     private void expectedIdentifier(ParsedSymbol s, int line, Object... exceptions) throws IOException, ScriptParseException {
         for (Object ex : exceptions) {
             if (s.isType(ex)) {
@@ -244,7 +239,7 @@ public class ScriptParser {
             throw new ScriptParseException(SymbolType.IDENTIFIER + " expected but " + s.type + " found", line);
         }
     }
-    
+
     private boolean isIdentifier(ParsedSymbol s, Object... exceptions) {
         for (Object ex : exceptions) {
             if (s.isType(ex)) {
@@ -258,8 +253,7 @@ public class ScriptParser {
                 SymbolType.NUMBER_OP, SymbolType.STRING_OP);
     }
 
-    
-   private List<AbstractCommand> commands() throws IOException, ScriptParseException, InterruptedException {
+    private List<AbstractCommand> commands() throws IOException, ScriptParseException, InterruptedException {
         List<AbstractCommand> ret = new ArrayList<>();
         if (debugMode) {
             System.out.println("commands:");
@@ -273,7 +267,7 @@ public class ScriptParser {
         }
         return ret;
     }
-    
+
     private List<AbstractCommand> command(boolean mustBeCommand) throws IOException, ScriptParseException, InterruptedException {
         LexBufferer buf = new LexBufferer();
         lexer.addListener(buf);
@@ -284,7 +278,7 @@ public class ScriptParser {
         ParsedSymbol s = lex();
         if (s.type == SymbolType.EOF) {
             return new ArrayList<>();
-        }        
+        }
 
         switch (s.type) {
             case DUPLICATEMOVIECLIP:
@@ -373,7 +367,7 @@ public class ScriptParser {
                         lexer.pushback(s);
                     }
                 } else {
-                    lexer.pushback(s);                    
+                    lexer.pushback(s);
                 }
                 expectedType(SymbolType.PARENT_CLOSE);
                 ret.add(new GetUrlCommand(url, target, sendVarsMethod));
@@ -397,7 +391,7 @@ public class ScriptParser {
                 }
                 int frameNum = -1;
                 if (gtsFrame.isNumeric) {
-                    frameNum = (int)(double)Double.parseDouble(gtsFrame.value);
+                    frameNum = (int) (double) Double.parseDouble(gtsFrame.value);
                 }
                 if (gtKind == SymbolType.GOTOANDPLAY) {
                     if (frameNum > -1) {
@@ -457,19 +451,19 @@ public class ScriptParser {
                 expectedType(SymbolType.PARENT_OPEN);
                 Expression unTargetOrNum = expression();
                 expectedType(SymbolType.PARENT_CLOSE);
-                
+
                 int level = -1;
                 if (unloadType == SymbolType.UNLOADMOVIENUM && unTargetOrNum.isNumeric) {
-                    level = (int)(double)Double.parseDouble(unTargetOrNum.value);
+                    level = (int) (double) Double.parseDouble(unTargetOrNum.value);
                 }
                 if (level > -1) {
                     ret.add(new UnloadMovieCommand(level));
                 } else {
                     ret.add(new UnloadMovieCommand(unTargetOrNum, unloadType == SymbolType.UNLOADMOVIENUM));
                 }
-                                
+
                 break;
-            
+
             case LOADVARIABLES:
             case LOADMOVIE:
             case LOADVARIABLESNUM:
@@ -496,19 +490,19 @@ public class ScriptParser {
                 } else {
                     lexer.pushback(s);
                 }
-                
+
                 int num = -1;
                 if (targetOrNum.isNumeric) {
-                    num = (int)(double)Double.parseDouble(targetOrNum.value);
+                    num = (int) (double) Double.parseDouble(targetOrNum.value);
                 }
-                
+
                 expectedType(SymbolType.PARENT_CLOSE);
                 switch (loadType) {
                     case LOADVARIABLES:
                         ret.add(new LoadVariablesCommand(url2, targetOrNum, true, lvmethod));
                         break;
                     case LOADMOVIE:
-                        ret.add(new LoadMovieCommand(url2, targetOrNum, true, lvmethod));                        
+                        ret.add(new LoadMovieCommand(url2, targetOrNum, true, lvmethod));
                         break;
                     case LOADVARIABLESNUM:
                         if (num > -1) {
@@ -576,9 +570,9 @@ public class ScriptParser {
 
                         }
                     } else {
-                        lexer.pushback(s);                        
+                        lexer.pushback(s);
                     }
-                } else {    
+                } else {
                     lexer.pushback(s);
                 }
                 expectedType(SymbolType.PARENT_CLOSE);
@@ -592,7 +586,7 @@ public class ScriptParser {
                 expectedType(SymbolType.PARENT_OPEN);
                 ret.add(new CallCommand(expression()));
                 expectedType(SymbolType.PARENT_CLOSE);
-                break;            
+                break;
             case TELLTARGET:
                 int tellTargetLine = lexer.yyline();
                 expectedType(SymbolType.PARENT_OPEN);
@@ -602,8 +596,8 @@ public class ScriptParser {
                 ret.add(new BeginTellTargetCommand(tellTarget));
                 ret.addAll(commands());
                 ret.add(new EndTellTargetCommand());
-                expectedType(SymbolType.CURLY_CLOSE);                
-                
+                expectedType(SymbolType.CURLY_CLOSE);
+
                 break;
 
             case IFFRAMELOADED:
@@ -614,7 +608,7 @@ public class ScriptParser {
                 expectedType(SymbolType.CURLY_OPEN);
                 int iflFrameNum = -1;
                 if (iflExpr.isNumeric) {
-                    iflFrameNum = (int)(double)Double.parseDouble(iflExpr.value);
+                    iflFrameNum = (int) (double) Double.parseDouble(iflExpr.value);
                 }
                 if (iflFrameNum > -1) {
                     ret.add(new IfFrameIsLoadedCommand(iflFrameNum));
@@ -624,7 +618,7 @@ public class ScriptParser {
                 ret.addAll(commands());
                 ret.add(new EndFrameLoadedCommand());
                 expectedType(SymbolType.CURLY_CLOSE);
-                break;            
+                break;
             case VAR:
                 s = lex();
                 expectedIdentifier(s, lexer.yyline());
@@ -640,13 +634,13 @@ public class ScriptParser {
             case CURLY_OPEN:
                 ret.addAll(commands());
                 expectedType(SymbolType.CURLY_CLOSE);
-                break;            
+                break;
             case IF:
                 int ifLine = lexer.yyline();
                 expectedType(SymbolType.PARENT_OPEN);
                 Expression ifExpr = expression();
                 expectedType(SymbolType.PARENT_CLOSE);
-                
+
                 ret.add(new IfCommand(ifExpr));
                 ret.addAll(command(true));
                 s = lex();
@@ -656,7 +650,7 @@ public class ScriptParser {
                 } else {
                     lexer.pushback(s);
                 }
-                ret.add(new EndIfCommand());                
+                ret.add(new EndIfCommand());
                 break;
             case WHILE:
                 int whileLine = lexer.yyline();
@@ -664,14 +658,14 @@ public class ScriptParser {
                 ret.add(new LoopWhileCommand(expression()));
                 expectedType(SymbolType.PARENT_CLOSE);
                 ret.addAll(command(true));
-                ret.add(new EndLoopCommand());                
+                ret.add(new EndLoopCommand());
                 break;
             case SEMICOLON: //empty command
                 if (debugMode) {
                     System.out.println("/command");
                 }
-                return ret;            
-            case IDENTIFIER:            
+                return ret;
+            case IDENTIFIER:
                 String lowercaseIdent = s.value.toString().toLowerCase();
                 if ("on".equals(lowercaseIdent)) {
                     expectedType(SymbolType.PARENT_OPEN);
@@ -735,13 +729,13 @@ public class ScriptParser {
                         throw new ScriptParseException("condition must be non empty", lexer.yyline());
                     }
                     expectedType(SymbolType.CURLY_OPEN);
-                    
+
                     if (flaVersion.ordinal() <= FlaFormatVersion.F2.ordinal() && (onPress || onReleaseOutside || onRollOver || onRollOut || onDragOver || onDragOut)) {
                         throw new ScriptParseException("Only release handler is available in " + flaVersion + " FLA", lexer.yyline());
                     }
-                    
+
                     List<AbstractCommand> commands = commands();
-                    
+
                     if (!commands.isEmpty()) {
                         boolean hasOnClause = onPress || onReleaseOutside || onRollOver || onRollOut || onDragOver || onDragOut;
                         if (hasOnClause) {
@@ -759,20 +753,63 @@ public class ScriptParser {
                     expectedType(SymbolType.CURLY_CLOSE);
                 } else if ("nextscene".equals(lowercaseIdent)) {
                     expectedType(SymbolType.PARENT_OPEN);
-                    expectedType(SymbolType.PARENT_CLOSE);                    
+                    expectedType(SymbolType.PARENT_CLOSE);
                     ret.add(new NextSceneCommand());
                 } else if ("prevscene".equals(lowercaseIdent)) {
                     expectedType(SymbolType.PARENT_OPEN);
                     expectedType(SymbolType.PARENT_CLOSE);
                     ret.add(new PrevSceneCommand());
-                } else { //general identifier
+                } else if ("setproperty".equals(lowercaseIdent)) {
+                    expectedType(SymbolType.PARENT_OPEN);
+                    Expression propTarget = expression();
+                    expectedType(SymbolType.COMMA);
+                    ParsedSymbol propNameSymb = lex();
+                    expectedIdentifier(propNameSymb, lexer.yyline());
+                    int propIndex = -1;
+                    for (int i = 0; i < SetPropertyCommand.PROPERTY_IDENTIFIERS.length; i++) {
+                        if (SetPropertyCommand.PROPERTY_IDENTIFIERS[i].toLowerCase().equals(propNameSymb.value.toString().toLowerCase())) {
+                            propIndex = i;
+                            break;
+                        }
+                    }
+                    if (propIndex == -1) {
+                        throw new ScriptParseException("Unknown property: " + propNameSymb.value.toString(), lexer.yyline());
+                    }
+                    expectedType(SymbolType.COMMA);
+                    Expression value = expression();
+                    expectedType(SymbolType.PARENT_CLOSE);
+                    ret.add(new SetPropertyCommand(propIndex, propTarget, value));
+                } else { //general identifier                    
                     Expression varName = new Expression(s.value.toString(), true);
                     ParsedSymbol symb = lex();
-                    if (symb.isType(SymbolType.ASSIGN)) {
-                        Expression expr = expression();
-                        ret.add(new SetVariableCommand(varName, expr));
-                    } else {
-                        throw new ScriptParseException("Unknown identifier", lexer.yyline());
+                    switch (symb.type) {
+                        case ASSIGN: {
+                            Expression expr = expression();
+                            ret.add(new SetVariableCommand(varName, expr));
+                            break;
+                        }
+                        case ASSIGN_PLUS: {
+                            Expression expr = expression();
+                            ret.add(new SetVariableCommand(varName, new Expression(varName.toString() + " + " + expr.toString())));
+                            break;
+                        }
+                        case ASSIGN_MINUS: {
+                            Expression expr = expression();
+                            ret.add(new SetVariableCommand(varName, new Expression(varName.toString() + " - " + expr.toString())));
+                            break;
+                        }
+                        case ASSIGN_MULTIPLY: {
+                            Expression expr = expression();
+                            ret.add(new SetVariableCommand(varName, new Expression(varName.toString() + " * " + expr.toString())));
+                            break;
+                        }
+                        case ASSIGN_DIVIDE: {
+                            Expression expr = expression();
+                            ret.add(new SetVariableCommand(varName, new Expression(varName.toString() + " / " + expr.toString())));
+                            break;
+                        }
+                        default:
+                            throw new ScriptParseException("Unknown " + symb + " after identifier " + varName, lexer.yyline());
                     }
                 }
                 break;
@@ -793,9 +830,8 @@ public class ScriptParser {
 
         return ret;
 
-    }            
+    }
 
-    
     private Expression expression() throws IOException, ScriptParseException, InterruptedException {
         if (debugMode) {
             System.out.println("expression:");
@@ -805,25 +841,25 @@ public class ScriptParser {
             return new Expression();
         }
         Expression expr = expression1(prim, Precedence.NOPRECEDENCE);
-            
+
         if (debugMode) {
             System.out.println("/expression");
         }
         return expr;
     }
-    
+
     private Expression handleVariable(ParsedSymbol s) throws IOException, ScriptParseException, InterruptedException {
         Expression ret;
         if (s.value.equals("not")) {
             ret = new Expression("not " + expressionPrimary(false, true));
         } else {
-            String varName = s.value.toString();           
+            String varName = s.value.toString();
 
             ret = new Expression(varName);
         }
         return ret;
     }
-    
+
     private Expression expressionPrimary(boolean allowEmpty, boolean allowCall) throws IOException, ScriptParseException, InterruptedException {
         if (debugMode) {
             System.out.println("primary:");
@@ -833,7 +869,7 @@ public class ScriptParser {
 
         switch (s.type) {
             case PREPROCESSOR:
-                throw new ScriptParseException("Unknown preprocessor instruction: §§" + s.value, lexer.yyline());                
+                throw new ScriptParseException("Unknown preprocessor instruction: §§" + s.value, lexer.yyline());
             case MINUS:
                 s = lex();
                 if (s.isType(SymbolType.DOUBLE)) {
@@ -852,7 +888,7 @@ public class ScriptParser {
                 break;
             case FALSE:
                 ret = new Expression("False");
-                break;            
+                break;
             case STRING:
                 ret = new Expression((String) s.value, true);
                 break;
@@ -862,7 +898,7 @@ public class ScriptParser {
             case INTEGER:
             case DOUBLE:
                 ret = new Expression("" + s.value, true, true);
-                break;                        
+                break;
             case NOT:
                 ret = new Expression("not " + expressionPrimary(false, true));
                 break;
@@ -870,14 +906,14 @@ public class ScriptParser {
                 Expression pexpr = expression();
                 if (pexpr == null) {
                     throw new ScriptParseException("Expression expected", lexer.yyline());
-                }                
+                }
                 expectedType(SymbolType.PARENT_CLOSE);
                 ret = new Expression("(" + pexpr + ")");
-                break;            
+                break;
             case EVAL:
                 expectedType(SymbolType.PARENT_OPEN);
                 ret = new Expression("Eval(" + expression() + ")");
-                expectedType(SymbolType.PARENT_CLOSE);                
+                expectedType(SymbolType.PARENT_CLOSE);
                 break;
             case MBORD:
                 expectedType(SymbolType.PARENT_OPEN);
@@ -902,7 +938,7 @@ public class ScriptParser {
                 expectedType(SymbolType.COMMA);
                 Expression len1 = expression();
                 expectedType(SymbolType.PARENT_CLOSE);
-                ret = new Expression("MBSubstring(" + val1 + "," + index1 +"," + len1 + ")");
+                ret = new Expression("MBSubstring(" + val1 + "," + index1 + "," + len1 + ")");
                 break;
             case SUBSTRING:
                 expectedType(SymbolType.PARENT_OPEN);
@@ -912,7 +948,7 @@ public class ScriptParser {
                 expectedType(SymbolType.COMMA);
                 Expression len2 = expression();
                 expectedType(SymbolType.PARENT_CLOSE);
-                ret = new Expression("Substring(" + val2 + "," + index2 +"," + len2 + ")");
+                ret = new Expression("Substring(" + val2 + "," + index2 + "," + len2 + ")");
                 break;
             case LENGTH:
                 expectedType(SymbolType.PARENT_OPEN);
@@ -928,7 +964,7 @@ public class ScriptParser {
                 expectedType(SymbolType.PARENT_OPEN);
                 ret = new Expression("Int(" + expression() + ")");
                 expectedType(SymbolType.PARENT_CLOSE);
-                break;                       
+                break;
             case ORD:
                 expectedType(SymbolType.PARENT_OPEN);
                 ret = new Expression("Ord(" + expression() + ")");
@@ -944,16 +980,16 @@ public class ScriptParser {
                 expectedType(SymbolType.PARENT_CLOSE);
                 ret = new Expression("GetTimer()");
                 break;
-            case IDENTIFIER:                
-                if (s.value.toString().toLowerCase().equals("getpropety")) {
+            case IDENTIFIER:
+                if (s.value.toString().toLowerCase().equals("getproperty")) {
                     expectedType(SymbolType.PARENT_OPEN);
                     Expression gpTarget = expression();
                     expectedType(SymbolType.COMMA);
                     ParsedSymbol sprop = lex();
                     expectedIdentifier(sprop, lexer.yyline());
-                    ret = new Expression("GetProperty(" + gpTarget+ "," + sprop.value.toString() + ")");
+                    ret = new Expression("GetProperty(" + gpTarget + "," + sprop.value.toString() + ")");
                     expectedType(SymbolType.PARENT_CLOSE);
-                } else {                
+                } else {
                     ret = handleVariable(s);
                 }
                 break;
@@ -971,7 +1007,7 @@ public class ScriptParser {
                 if (!isGlobalFuncVar) {
                     lexer.pushback(s);
                 }
-        }      
+        }
         if (debugMode) {
             System.out.println("/primary");
         }
@@ -1022,7 +1058,7 @@ public class ScriptParser {
         //with relation operators reversed as we have precedence in reverse order
         while (isBinaryOperator(lookahead) && getSymbPrecedence(lookahead) <= min_precedence) {
             op = lookahead;
-            lex();           
+            lex();
 
             rhs = expressionPrimary(true, true);
             if (rhs == null) {
@@ -1098,7 +1134,7 @@ public class ScriptParser {
         }
         return lhs;
     }
-    
+
     /*
 
     private List<GraphTargetItem> commands(boolean inWith, boolean inFunction, boolean inMethod, int forinlevel, boolean inTellTarget, List<VariableActionItem> variables, List<FunctionActionItem> functions, Reference<Boolean> hasEval) throws IOException, ActionParseException, InterruptedException {
@@ -3600,5 +3636,5 @@ public class ScriptParser {
             throw new ActionParseException(type + " requires SWF version lower than " + max, lexer.yyline());
         }
     }
-*/
+     */
 }

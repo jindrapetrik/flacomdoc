@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- F4 get/set property
+- F4 compound operators
+
 ## [2.0.1] - 2026-04-18
 ### Fixed
 - F1-F4 fonts
