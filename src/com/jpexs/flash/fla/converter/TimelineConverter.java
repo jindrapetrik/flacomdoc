@@ -3606,17 +3606,12 @@ public class TimelineConverter extends AbstractConverter {
         }
         fg.write(flaFormatVersion.pageVersionB);
         fg.write(nextLayerId, 0x00);
-        if (flaFormatVersion == FlaFormatVersion.MX2004) {
-            fg.write(nextFolderId, 0x00);
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
+            fg.writeUI16(nextFolderId);
         }
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-            fg.write(currentFrame, 0x00);
-            if (debugRandom) {
-                fg.write('X');
-            } else {
-                fg.write(0x00);
-            }
-            fg.write(0x00, 0x00, 0x00);
+            // CPicPage revision 7 adds the selected frame after both counters.
+            fg.writeUI32(currentFrame);
         }
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
             if (domTimeLine.hasAttribute("guides")) {
