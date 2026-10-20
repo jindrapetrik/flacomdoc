@@ -360,10 +360,14 @@ public class FlaWriter {
             type |= FLAG_EDGE_TO_FLOAT;
         }
 
+        int strokeWithSelection = strokeStyle | ((selection & EDGESELECTION_STROKE) != 0 ? 0x8000 : 0);
+        int fill0WithSelection = fillStyle0 | ((selection & EDGESELECTION_FILL0) != 0 ? 0x8000 : 0);
+        int fill1WithSelection = fillStyle1 | ((selection & EDGESELECTION_FILL1) != 0 ? 0x8000 : 0);
+        boolean byteStyles = strokeWithSelection < 0x100
+                && fill0WithSelection < 0x100 && fill1WithSelection < 0x100;
         if (stylesChanged) {
             type |= FLAG_EDGE_HAS_STYLES;
-
-            if (selection == 0) {
+            if (byteStyles) {
                 type |= FLAG_EDGE_NO_SELECTION;
             }
         }
@@ -371,29 +375,12 @@ public class FlaWriter {
         write(type);
         if (stylesChanged) {
             logger.log(Level.FINE, "writing style 0x{0} 0x{1} 0x{2}", new Object[]{String.format("%02X", strokeStyle), String.format("%02X", fillStyle0), String.format("%02X", fillStyle1)});
-            write(strokeStyle);
-            if (selection != 0) {
-                if ((selection & EDGESELECTION_STROKE) == EDGESELECTION_STROKE) {
-                    write(0x80);
-                } else {
-                    write(0x00);
-                }
-            }
-            write(fillStyle0);
-            if (selection != 0) {
-                if ((selection & EDGESELECTION_FILL0) == EDGESELECTION_FILL0) {
-                    write(0x80);
-                } else {
-                    write(0x00);
-                }
-            }
-            write(fillStyle1);
-            if (selection != 0) {
-                if ((selection & EDGESELECTION_FILL1) == EDGESELECTION_FILL1) {
-                    write(0x80);
-                } else {
-                    write(0x00);
-                }
+            if (byteStyles) {
+                write(strokeWithSelection, fill0WithSelection, fill1WithSelection);
+            } else {
+                writeUI16(strokeWithSelection);
+                writeUI16(fill0WithSelection);
+                writeUI16(fill1WithSelection);
             }
             stylesChanged = false;
         }
