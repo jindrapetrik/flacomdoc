@@ -715,9 +715,9 @@ public class FlaWriter {
         writeMatrix(gradientMatrix);
         write(colors.length);
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-            write((int) Math.round(focalRatio * 255), 0x00,
-                    0x00, 0x00, (flow + (linearRgb ? 1 : 0)), 0x00, 0x00, 0x00
-            );
+            // The native archive stores the signed focal value as a full dword.
+            writeUI32((int) Math.round(focalRatio * 255));
+            writeUI32(flow + (linearRgb ? 1 : 0));
         }
         for (int i = 0; i < colors.length; i++) {
             write((int) Math.round(stopPos[i] * 255), colors[i].getRed(), colors[i].getGreen(), colors[i].getBlue(),
