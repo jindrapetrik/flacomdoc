@@ -2201,12 +2201,12 @@ public class TimelineConverter extends AbstractConverter {
         } else {
             fg.writeUI32(totalEdgeCount);
         }
-        fg.write(fillStyles.size(), 0x00);
+        fg.writeUI16(fillStyles.size());
         for (Node fillStyle : fillStyles) {
             Element fillStyleVal = getFirstSubElement(fillStyle);
             handleFill(fillStyleVal, document, fg);
         }
-        fg.write(strokeStyles.size(), 0x00);
+        fg.writeUI16(strokeStyles.size());
         for (Node strokeStyle : strokeStyles) {
             Node strokeStyleVal = getFirstSubElement(strokeStyle);
             int scaleMode = FlaWriter.SCALEMODE_NONE;
