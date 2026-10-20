@@ -853,7 +853,7 @@ public class FlaWriter {
         int len = flaFormatVersion.unicode ? s.length() : b.length;
         if (len < 0xFF) {
             write(len);
-        } else if (len < 0xFFFF) {
+        } else if (len < 0xFFFE) { // 0xFFFE is the archive Unicode marker.
             write(0xFF);
             writeUI16(len);
         } else {
