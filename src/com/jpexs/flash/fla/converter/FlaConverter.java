@@ -20,6 +20,7 @@ package com.jpexs.flash.fla.converter;
 
 import com.jpexs.flash.fla.converter.coloreffects.media.JpegImageBinToFlash23Convertor;
 import com.jpexs.flash.fla.converter.coloreffects.media.LosslessImageBinToFlash2Convertor;
+import com.jpexs.flash.fla.converter.coloreffects.media.VideoBinConvertor;
 import com.jpexs.flash.fla.converter.streams.InputStorageInterface;
 import com.jpexs.flash.fla.converter.streams.OutputStorageInterface;
 import com.jpexs.flash.fla.converter.swatches.ExtendedSwatchItem;
@@ -29,7 +30,6 @@ import com.jpexs.flash.fla.converter.swatches.SolidSwatchItem;
 import com.jpexs.helpers.Reference;
 import java.awt.Color;
 import java.awt.Font;
-import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -1845,27 +1845,8 @@ public class FlaConverter extends AbstractConverter {
             if (sourceDir.fileExists("bin/" + videoDataHRef)) {
                 //copy the data file
                 try (OutputStream fos = outputDir.getOutputStream(mediaFile); InputStream fis = sourceDir.readFile("bin/" + videoDataHRef)) {
-                    DataInputStream dais = new DataInputStream(fis);
-                    byte[] buf = new byte[0x31];
-                    dais.readFully(buf);
-                    fos.write(buf);
-                    fis.read();
-                    fos.write(0); //change 1 to 0
-                    fis.read();
-                    fos.write(0); //change 1 to 0
-
-                    buf = new byte[4];
-                    dais.readFully(buf);
-                    fos.write(buf);
-                    fis.read();
-                    fos.write(0); //change 1 to 0
-
-                    //copy rest of the file
-                    buf = new byte[4096];
-                    int cnt;
-                    while ((cnt = fis.read(buf)) > 0) {
-                        fos.write(buf, 0, cnt);
-                    }
+                    int payloadRevision = flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal() ? 3 : 2;
+                    new VideoBinConvertor(fis).convertTo(fos, payloadRevision);
                 }
                 hasBinData = true;
             }
