@@ -81,10 +81,16 @@ public class TimelineConverter extends AbstractConverter {
     private static final Pattern CUBICS_PATTERN = Pattern.compile("^!(?<mx>-?[0-9]+) +(?<my>-?[0-9]+) *\\(((?<pBCPx>-?[0-9]+) *, *(?<pBCPy>-?[0-9]+))? *; *(?<x1>-?[0-9]+),(?<y1>-?[0-9]+) +(?<x2>-?[0-9]+),(?<y2>-?[0-9]+) +(?<ex>-?[0-9]+),(?<ey>-?[0-9]+) *(?<xy>-?([QqPp]? *-?[0-9]+ +-?[0-9]+)+) *\\)((?<nBCPx>-?[0-9]+) *, *(?<nBCPy>-?[0-9]+))? *; *$");
     private static final Pattern CUBICS_XY_PATTERN = Pattern.compile("(?<letter>[QqPp]?) *(?<x>-?[0-9]+) +(?<y>-?[0-9]+)");
     private final String title;
+    private final SystemFontFiles systemFonts;
 
     public TimelineConverter(FlaFormatVersion flaFormatVersion, String charset, String title) {
+        this(flaFormatVersion, charset, title, SystemFontFiles.getInstance());
+    }
+
+    TimelineConverter(FlaFormatVersion flaFormatVersion, String charset, String title, SystemFontFiles systemFonts) {
         super(flaFormatVersion, charset);
         this.title = title;
+        this.systemFonts = systemFonts;
     }
 
     public String getTitle() {
@@ -1886,29 +1892,10 @@ public class TimelineConverter extends AbstractConverter {
                 }
                 fg.write(fillColor.getRed(), fillColor.getGreen(), fillColor.getBlue(), fillColor.getAlpha());
 
-                /*
-                        FIXME!!!
-                        I don't know how to calculate following (two) values,
-                        it is somehow bases on font family.
-                        
-                        Here are sample values for some familys (hex, decimal, binary)
-                        
-                        Times New Roman 0x12	18	0001 0010	
-                        Arial 0x22		34	0010 0010	
-                        Calibri 0x22		34	0010 0010	
-                        Comic sans 0x42		66	0100 0010	
-                        Courier new 0x31	49	0011 0001
-                        Lucida console 0x31	49	0011 0001	
-                        Tahoma 0x22		34	0010 0010
-                        Georgia 0x22		34	0010 0010
-                        Webdings 0x12 0x02	18/530	0001 0010
-                        Wingdings 0x02 0x02	2/514	0000 0010
-                        Verdana	0x22		34	0010 0010
-                        Impact 0x22		34	0010 0010
-
-                 */
-                fg.write(debugRandom ? 'U' : 0x12,
-                        0x00);
+                // Font classification bytes: LOGFONT pitch/family, then Windows character set.
+                FontMetadata fontMetadata = debugRandom ? FontMetadata.UNKNOWN : systemFonts.getMetadata(realFace);
+                fg.write(debugRandom ? 'U' : fontMetadata.getPitchAndFamily(),
+                        debugRandom ? 'U' : fontMetadata.getCharSet());
 
                 fg.write(
                         debugRandom ? 'X' : (bold ? 1 : 0),
