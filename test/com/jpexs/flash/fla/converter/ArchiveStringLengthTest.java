@@ -50,15 +50,15 @@ public class ArchiveStringLengthTest {
                 length = data.getInt();
             }
         }
-        assertEquals(width, version.unicode ? 2 : 1, "Archive character width");
-        byte[] expected = value.getBytes(version.unicode ? "UTF-16LE" : charset);
+        assertEquals(width, version.unicodeStrings ? 2 : 1, "Archive character width");
+        byte[] expected = value.getBytes(version.unicodeStrings ? "UTF-16LE" : charset);
         assertEquals(length * width, expected.length, "Payload length");
         byte[] payload = new byte[length * width];
         data.get(payload);
         assertEquals(payload, expected);
         assertEquals(data.getInt(), 0x12345678, "Next field must remain aligned");
         assertFalse(data.hasRemaining());
-        int prefix = version.unicode ? 3 : 0;
+        int prefix = version.unicodeStrings ? 3 : 0;
         if (expected.length / width >= 0xfffe) {
             assertEquals(out.toByteArray()[prefix] & 255, 255);
             assertEquals(ByteBuffer.wrap(out.toByteArray()).order(ByteOrder.LITTLE_ENDIAN)

@@ -842,7 +842,7 @@ public class FlaWriter {
     }
 
     public void writeBomString(String s) throws IOException {
-        if (flaFormatVersion.unicode) {
+        if (flaFormatVersion.unicodeStrings) {
             write(0xFF, 0xFE, 0xFF);
         }
         writeString(s);
@@ -850,7 +850,7 @@ public class FlaWriter {
 
     public void writeString(String s) throws IOException {
         byte[] b = s.getBytes(charset);
-        int len = flaFormatVersion.unicode ? s.length() : b.length;
+        int len = flaFormatVersion.unicodeStrings ? s.length() : b.length;
         if (len < 0xFF) {
             write(len);
         } else if (len < 0xFFFE) { // 0xFFFE is the archive Unicode marker.
@@ -862,7 +862,7 @@ public class FlaWriter {
             write(0xFF);
             writeUI32(len);
         }
-        if (flaFormatVersion.unicode) {
+        if (flaFormatVersion.unicodeStrings) {
             write(s.getBytes("UTF-16LE"));
         } else {
             write(b);

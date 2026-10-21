@@ -488,7 +488,7 @@ public class FlaConverter extends AbstractConverter {
         dw.write(0x00, 0x00,
                 0x00, 0x00);
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
-            dw.write(flaFormatVersion.asLinkageVersion);
+            dw.write(flaFormatVersion.libraryItemLinkageRevision);
 
             dw.write((linkageExportForAS ? 1 : 0) + (linkageImportForRS ? 2 : 0));
             dw.write(0x00, 0x00, 0x00
@@ -512,7 +512,7 @@ public class FlaConverter extends AbstractConverter {
         }
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
             dw.write(debugRandom ? 'X' : linkageFlags, //:-( sometimes, there's just no 4 flag, randomly
-                    flaFormatVersion.asLinkageVersionB, 0x00, 0x00, 0x00);
+                    flaFormatVersion.libraryItemLinkageAuxiliaryRevision, 0x00, 0x00, 0x00);
             dw.writeBomString("");
             dw.writeBomString(sourceLibraryItemHRef);
             dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -627,7 +627,7 @@ public class FlaConverter extends AbstractConverter {
             }
 
             useClass("CDocumentPage", 0x01, fg, definedClasses, objectsCount);
-            fg.write(flaFormatVersion.documentPageVersion);
+            fg.write(flaFormatVersion.documentPageRevision);
             fg.writeString(debugRandom ? "YYY" : symbolFile);
             fg.writeBomString(symbolName);
             if (debugRandom) {
@@ -639,7 +639,7 @@ public class FlaConverter extends AbstractConverter {
 
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
                 fg.writeBomString("");
-                fg.write(0x01, 0x00, 0x00, 0x00, flaFormatVersion.spriteVersionE);
+                fg.write(0x01, 0x00, 0x00, 0x00, flaFormatVersion.symbolLibraryItemMetadataRevision);
                 fg.write(0x00);
                 fg.write(0x00, 0x00,
                         0x01, 0x00, 0x00, 0x00);
@@ -673,7 +673,7 @@ public class FlaConverter extends AbstractConverter {
                 fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
                         0x01, 0x00, 0x00, 0x00,
                         0x01, 0x00, 0x00, 0x00,
-                        flaFormatVersion.spriteVersionC); //getDocumentPageVersionC
+                        flaFormatVersion.documentPageLinkageRevision);
                 fg.write(0x00, 0x00, 0x00);
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
                     fg.write(0x00);
@@ -683,7 +683,7 @@ public class FlaConverter extends AbstractConverter {
                 fg.writeBomString("");
 
                 fg.write(0x00,
-                        flaFormatVersion.spriteVersionF,
+                        flaFormatVersion.documentPageLinkageAuxiliaryRevision,
                         0x00, 0x00, 0x00);
                 fg.writeBomString("");
                 fg.writeBomString("");
@@ -698,7 +698,7 @@ public class FlaConverter extends AbstractConverter {
                         fg.writeBomString("");
                     }
                     fg.write(
-                            flaFormatVersion.spriteVersionD, //getDocumentPageVersionD
+                            flaFormatVersion.documentPageComponentMetadataRevision,
                             0x00,
                             0x00, 0x00, 0x00);
                     fg.writeBomString("");
@@ -714,7 +714,7 @@ public class FlaConverter extends AbstractConverter {
                             0x00, 0x00, 0x03);
                     fg.writeBomString("");
                 } else {
-                    fg.write(0x00, flaFormatVersion.spriteVersionD);
+                    fg.write(0x00, flaFormatVersion.documentPageComponentMetadataRevision);
                 }
                 fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
                 fg.writeBomString("");
@@ -828,8 +828,8 @@ public class FlaConverter extends AbstractConverter {
             if (debugRandom) {
                 fg.setDebugRandom(true);
             }
-            fg.write(flaFormatVersion.contentsVersion);
-            fg.write(flaFormatVersion.contentsVersionB);
+            fg.write(flaFormatVersion.contentsRevision);
+            fg.write(flaFormatVersion.contentsCompatibilityMarker);
 
             fg.write(0x00, 0x00, 0x00);
 
@@ -876,7 +876,7 @@ public class FlaConverter extends AbstractConverter {
                 String sceneName = domTimeline.getAttribute("name");
 
                 useClass("CDocumentPage", 1, fg, definedClasses, objectsCount);
-                fg.write(flaFormatVersion.documentPageVersion);
+                fg.write(flaFormatVersion.documentPageRevision);
 
                 pageCount++;
 
@@ -892,7 +892,7 @@ public class FlaConverter extends AbstractConverter {
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
                     fg.writeBomString("");
-                    fg.write(0x01, 0x00, 0x00, 0x00, flaFormatVersion.documentPageVersionB,
+                    fg.write(0x01, 0x00, 0x00, 0x00, flaFormatVersion.sceneLibraryItemMetadataRevision,
                             0x00,
                             0x00, 0x00,
                             0x01, 0x00, 0x00, 0x00,
@@ -907,7 +907,7 @@ public class FlaConverter extends AbstractConverter {
                 }
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
-                    fg.write(flaFormatVersion.asLinkageVersion, //getAsLinkageVersion
+                    fg.write(flaFormatVersion.libraryItemLinkageRevision,
                             0x00, //linkageExportForAS | linkageImportForRS
                             0x00, 0x00, 0x00);
                     fg.writeBomString(""); //linkageIdentifier
@@ -920,7 +920,7 @@ public class FlaConverter extends AbstractConverter {
 
                     fg.write(debugRandom ? 'X' : 0); //linkageFlags
 
-                    fg.write(flaFormatVersion.asLinkageVersionB);
+                    fg.write(flaFormatVersion.libraryItemLinkageAuxiliaryRevision);
 
                     fg.write(0x00, 0x00, 0x00);
                     fg.writeBomString("");
@@ -955,7 +955,7 @@ public class FlaConverter extends AbstractConverter {
                             debugRandom ? 'U' : 0x01, //NEW - different from sprite
                             0x00, 0x00, 0x00,
                             0x01, 0x00, 0x00, 0x00,
-                            flaFormatVersion.spriteVersionC); //getDocumentPageVersionC
+                            flaFormatVersion.documentPageLinkageRevision);
                     fg.write(0x00, 0x00, 0x00);
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
                         fg.write(0x00);
@@ -965,7 +965,7 @@ public class FlaConverter extends AbstractConverter {
                     fg.writeBomString("");
 
                     fg.write(0x00,
-                            flaFormatVersion.spriteVersionF,
+                            flaFormatVersion.documentPageLinkageAuxiliaryRevision,
                             0x00, 0x00, 0x00);
                     fg.writeBomString("");
                     fg.writeBomString("");
@@ -980,7 +980,7 @@ public class FlaConverter extends AbstractConverter {
                             fg.writeBomString("");
                         }
                         fg.write(
-                                flaFormatVersion.spriteVersionD, //getDocumentPageVersionD
+                                flaFormatVersion.documentPageComponentMetadataRevision,
                                 0x00,
                                 0x00, 0x00, 0x00);
                         fg.writeBomString("");
@@ -996,7 +996,7 @@ public class FlaConverter extends AbstractConverter {
                                 0x00, 0x00, 0x03);
                         fg.writeBomString("");
                     } else {
-                        fg.write(0x00, flaFormatVersion.spriteVersionD);
+                        fg.write(0x00, flaFormatVersion.documentPageComponentMetadataRevision);
                     }
                     fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
                     fg.writeBomString("");
@@ -1378,7 +1378,7 @@ public class FlaConverter extends AbstractConverter {
                 fg.writeUI32(domFolderItems.size());
 
                 for (Element domFolderItem : domFolderItems) {
-                    fg.write(flaFormatVersion.libraryFolderVersionB, 0x00, 0x00, 0x00);
+                    fg.write(flaFormatVersion.libraryFolderRevision, 0x00, 0x00, 0x00);
                     String folderFullName = domFolderItem.getAttribute("name");
                     String folderName = folderFullName;
                     String parentFolder = "";
@@ -1387,7 +1387,7 @@ public class FlaConverter extends AbstractConverter {
                         parentFolder = folderFullName.substring(0, folderFullName.lastIndexOf("/"));
                     }
                     fg.writeBomString(folderName);
-                    fg.write(flaFormatVersion.libraryFolderVersionC, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+                    fg.write(flaFormatVersion.folderLibraryItemMetadataRevision, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
 
                     if (parentFolder.isEmpty()) {
                         fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
@@ -1422,7 +1422,7 @@ public class FlaConverter extends AbstractConverter {
                             0x00, 0x00);
 
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
-                        fg.write(flaFormatVersion.libraryFolderVersion, 0x00, 0x00, 0x00, 0x00);
+                        fg.write(flaFormatVersion.folderLibraryItemLinkageRevision, 0x00, 0x00, 0x00, 0x00);
                         fg.writeBomString("");
                         fg.writeBomString("");
                     }
@@ -1434,7 +1434,7 @@ public class FlaConverter extends AbstractConverter {
                         fg.write(0x00);
                     }
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
-                        fg.write(flaFormatVersion.libraryFolderVersionD, 0x00, 0x00, 0x00);
+                        fg.write(flaFormatVersion.folderLibraryItemLinkageAuxiliaryRevision, 0x00, 0x00, 0x00);
                         fg.writeBomString("");
                         fg.writeBomString("");
                         fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1640,7 +1640,7 @@ public class FlaConverter extends AbstractConverter {
 
     protected void writeDomSoundItem(FlaWriter dw, Element domSoundItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, OutputStorageInterface outputDir, InputStorageInterface sourceDir) throws IOException {
         useClass("CMediaSound", 1, dw, definedClasses, objectsCount);
-        dw.write(flaFormatVersion.mediaSoundVersion);
+        dw.write(flaFormatVersion.soundMediaBaseRevision);
         String mediaFile = "M " + mediaCount + " " + getTimeCreatedAsString();
         dw.writeString(debugRandom ? "YYY" : mediaFile);
         String fullName = "";
@@ -1710,7 +1710,7 @@ public class FlaConverter extends AbstractConverter {
         }
 
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
-            dw.write(flaFormatVersion.mediaSoundVersionC, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+            dw.write(flaFormatVersion.soundLibraryItemMetadataRevision, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
             if (parentFolderItemID == null) {
                 dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
             } else {
@@ -1732,7 +1732,7 @@ public class FlaConverter extends AbstractConverter {
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
             dw.write(0x01, 0x00, 0x00, 0x00);            
         }
-        dw.write(flaFormatVersion.mediaSoundVersionB,
+        dw.write(flaFormatVersion.mediaSoundRevision,
                     formatAsNum, 0x00);
         dw.writeUI32(sampleCount);
 
@@ -1780,7 +1780,7 @@ public class FlaConverter extends AbstractConverter {
 
     protected void writeDomVideoItem(FlaWriter dw, Element domVideoItem, Map<String, Integer> definedClasses, Reference<Integer> objectsCount, int mediaCount, Reference<Long> generatedItemIdOrder, OutputStorageInterface outputDir, InputStorageInterface sourceDir) throws IOException {
         useClass("CMediaVideoStream", 1, dw, definedClasses, objectsCount);
-        dw.write(flaFormatVersion.mediaVideoVersion);
+        dw.write(flaFormatVersion.videoMediaBaseRevision);
         String mediaFile = "M " + mediaCount + " " + getTimeCreatedAsString();
         dw.writeString(debugRandom ? "YYY" : mediaFile);
         String fullName = "";
@@ -1803,7 +1803,7 @@ public class FlaConverter extends AbstractConverter {
         }
         dw.writeBomString(debugRandom ? "YYY" : importFilePath);
         writeTimeCreated(dw);
-        dw.write(flaFormatVersion.mediaVideoVersionC, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+        dw.write(flaFormatVersion.videoLibraryItemMetadataRevision, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
         if (parentFolderItemID == null) {
             dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
         } else {
@@ -1816,14 +1816,14 @@ public class FlaConverter extends AbstractConverter {
         }
         dw.writeItemID(itemID);
 
-        dw.write(0x00, 0x00, 0x00, 0x00, flaFormatVersion.mediaVideoVersionB, 0x00, 0x00, 0x00, 0x00);
+        dw.write(0x00, 0x00, 0x00, 0x00, flaFormatVersion.videoLibraryItemLinkageRevision, 0x00, 0x00, 0x00, 0x00);
         dw.writeBomString("");
         dw.writeBomString("");
         dw.writeBomString("");
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
             dw.write(0x00);
         }
-        dw.write(flaFormatVersion.mediaVideoVersionD, 0x00, 0x00, 0x00);
+        dw.write(flaFormatVersion.videoLibraryItemLinkageAuxiliaryRevision, 0x00, 0x00, 0x00);
         dw.writeBomString("");
         dw.writeBomString("");
         dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
@@ -1868,7 +1868,7 @@ public class FlaConverter extends AbstractConverter {
      </media>
          */
         useClass("CMediaBits", 1, dw, definedClasses, objectsCount);
-        dw.write(flaFormatVersion.mediaBitsVersion);
+        dw.write(flaFormatVersion.bitmapMediaBaseRevision);
         String mediaFile = "M " + mediaCount + " " + getTimeCreatedAsString();
         dw.writeString(debugRandom ? "YYY" : mediaFile);
 
@@ -1896,7 +1896,7 @@ public class FlaConverter extends AbstractConverter {
         } else {
             writeTimeCreated(dw);
         }
-        dw.write(flaFormatVersion.mediaBitsVersionC);
+        dw.write(flaFormatVersion.bitmapLibraryItemMetadataRevision);
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
 
             dw.write(0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
@@ -1919,7 +1919,7 @@ public class FlaConverter extends AbstractConverter {
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
                 dw.write(0x01, 0x00, 0x00, 0x00);
             }
-            dw.write(flaFormatVersion.mediaBitsVersionB);
+            dw.write(flaFormatVersion.mediaBitsRevision);
         }
         
         boolean hasBinData = false;
@@ -2127,11 +2127,11 @@ public class FlaConverter extends AbstractConverter {
                 }
             }
 
-            dw.write(flaFormatVersion.fontVersion);
+            dw.write(flaFormatVersion.fontItemRevision);
             dw.writeBomString(name);
             dw.writeUI16(id);
             writeTimeCreated(dw);
-            dw.write(flaFormatVersion.fontVersionB);
+            dw.write(flaFormatVersion.fontItemTextStyleRevision);
             dw.write(0x00, 0x00);
             if (flaFormatVersion == FlaFormatVersion.CS4) {
                 dw.writeBomString(fontFamily);
@@ -2209,7 +2209,7 @@ public class FlaConverter extends AbstractConverter {
                 }
             }
 
-            dw.write(flaFormatVersion.fontVersionC, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+            dw.write(flaFormatVersion.fontLibraryItemMetadataRevision, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
             if (parentFolderItemID == null) {
                 dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
             } else {
@@ -2333,7 +2333,7 @@ public class FlaConverter extends AbstractConverter {
         dw.writeUI16(solidSwatches.size());
         for (int s = 0; s < solidSwatches.size(); s++) {
             useClass("CColorDef", 0x00, dw, definedClasses, objectsCount);
-            dw.write(flaFormatVersion.colorDefVersion);
+            dw.write(flaFormatVersion.colorDefRevision);
             SolidSwatchItem sw = solidSwatches.get(s);
             dw.write(sw.red, sw.green, sw.blue, sw.alpha, 0x00, 0x00, sw.hue, 0x00, sw.saturation, 0x00, sw.brightness, 0x00);
         }
@@ -2347,7 +2347,7 @@ public class FlaConverter extends AbstractConverter {
         for (int x = 0; x < extendedSwatches.size(); x++) {
             ExtendedSwatchItem ex = extendedSwatches.get(x);
             useClass("CColorDef", 0x00, dw, definedClasses, objectsCount);
-            dw.write(flaFormatVersion.colorDefVersion);
+            dw.write(flaFormatVersion.colorDefRevision);
             /*if (x == 5) {
                 dw.write(0xFF, 0xFF, 0xFF);
             } else if (x == 6) {

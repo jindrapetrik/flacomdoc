@@ -37,7 +37,7 @@ public class TimelineCurrentFrameTest {
             int length = version == FlaFormatVersion.MX ? 7 : 9;
             assertEquals(java.util.Arrays.copyOfRange(selected, selected.length - length, selected.length),
                     java.util.Arrays.copyOfRange(zero, zero.length - length, zero.length));
-            assertEquals(selected[selected.length - length] & 255, version.pageVersionB);
+            assertEquals(selected[selected.length - length] & 255, version.picPageRevision);
         }
     }
 

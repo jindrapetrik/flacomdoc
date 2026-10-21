@@ -418,7 +418,7 @@ public class FlaConverterTest {
     }
     
     private int readString(byte[] data, int pos, FlaFormatVersion flaFormatVersion) {        
-        if (flaFormatVersion.unicode) {
+        if (flaFormatVersion.unicodeStrings) {
             pos += 3;
         }
         int len = data[pos] & 0xFF;
@@ -432,7 +432,7 @@ public class FlaConverterTest {
             pos += 4;
         }      
         
-        if (flaFormatVersion.unicode) {
+        if (flaFormatVersion.unicodeStrings) {
             len *= 2;
         }
         /*byte[] subdata = Arrays.copyOfRange(data, pos, pos + len);
