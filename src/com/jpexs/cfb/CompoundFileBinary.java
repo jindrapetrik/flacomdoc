@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -115,7 +116,7 @@ public class CompoundFileBinary implements AutoCloseable {
     private long numDifatSectors;
 
     private long firstDifatSectorLocation;
-    
+
     private Map<Long, Long> entryParents = new HashMap<>();
 
     public CompoundFileBinary(File file) throws IOException {
@@ -123,10 +124,21 @@ public class CompoundFileBinary implements AutoCloseable {
     }
 
     public CompoundFileBinary(File file, boolean createNew) throws IOException {
-        if (createNew) {
-            initNew(file);
-        } else {
-            initExisting(file);
+        try {
+            if (createNew) {
+                initNew(file);
+            } else {
+                initExisting(file);
+            }
+        } catch (IOException | RuntimeException ex) {
+            if (raf != null) {
+                try {
+                    raf.close();
+                } catch (IOException closeException) {
+                    ex.addSuppressed(closeException);
+                }
+            }
+            throw ex;
         }
     }
 
@@ -494,7 +506,7 @@ public class CompoundFileBinary implements AutoCloseable {
         DirectoryEntry right = entry.rightSiblingId == NOSTREAM ? null : getDirEntryById(entry.rightSiblingId);
         addToTree(tree, right);
     }
-    
+
     private void writeColors(Node<DirectoryEntry> node) throws IOException {
         if (node == null || node.data == null) {
             return;
@@ -511,18 +523,18 @@ public class CompoundFileBinary implements AutoCloseable {
             raf.seek(node.data.fileOffset + 68);
             writeUI32(newLeftSibling);
         }
-        
+
         long newRightSibling = node.right == null || node.right.data == null ? NOSTREAM : node.right.data.streamId;
         if (node.data.rightSiblingId != newRightSibling) {
             node.data.rightSiblingId = newRightSibling;
             raf.seek(node.data.fileOffset + 72);
             writeUI32(newRightSibling);
         }
-        
+
         writeColors(node.left);
-        writeColors(node.right);        
+        writeColors(node.right);
     }
-    
+
     private void markTreeColors(DirectoryEntry child, DirectoryEntry parent) throws IOException {
         RedBlackTree<DirectoryEntry> tree = new RedBlackTree<>();
         addToTree(tree, child);
@@ -534,7 +546,7 @@ public class CompoundFileBinary implements AutoCloseable {
         }
         writeColors(rootNode);
     }
-    
+
     private void markTreeBlack(DirectoryEntry entry) throws IOException {
         if (entry == null) {
             return;
@@ -713,10 +725,10 @@ public class CompoundFileBinary implements AutoCloseable {
             }
             directorySector = fat.get(directorySector);
         }
-        
+
         markTreeColors(getDirEntryById(parent.childId), parent);
         //markTreeBlack(getDirEntryById(parent.childId));
-    }       
+    }
 
     private void walkFiles(String localPath, String absPath, List<DirectoryEntry> ret) throws IOException {
 
@@ -954,7 +966,7 @@ public class CompoundFileBinary implements AutoCloseable {
         Logger.getLogger(CompoundFileBinary.class.getName()).log(Level.FINE, "allocated new mini sector {0}({1}) after sector {2}", new Object[]{foundMiniSectorId, String.format("%1$04X", (1 + miniStreamSector) * sectorLength + offset), prevSector});
 
         return foundMiniSectorId;
-    }   
+    }
 
     private long allocateNewSector(Long prevSector) throws IOException {
         List<Long> newSectors = allocateNewLength(sectorLength);
@@ -1017,7 +1029,7 @@ public class CompoundFileBinary implements AutoCloseable {
         if (newSectorIds.size() < numSectors) {
             sectorId++;
         }
-        
+
         while (newSectorIds.size() < numSectors) {
             int numNewSectors = 1;
             Long newFatSectorId = sectorId;
@@ -1050,7 +1062,7 @@ public class CompoundFileBinary implements AutoCloseable {
                     for (int i = 0; i < sectorLength - 4; i += 4) {
                         //raf.seek((1 + difatSectorLocation) * sectorLength + i);
                         long fatSector = difat.get(diFatIndex);// readUI32();
-                        
+
                         if (fatSector == FREESECT) {
                             raf.seek((1 + difatSectorLocation) * sectorLength + i);
                             writeUI32(newFatSectorId);
@@ -1117,7 +1129,7 @@ public class CompoundFileBinary implements AutoCloseable {
                     if (lastSectorFatFileOffset != null) {
                         raf.seek(lastSectorFatFileOffset);
                         writeUI32(sectorId);
-                        fat.put(lastSectorId, sectorId);                                            
+                        fat.put(lastSectorId, sectorId);
                     }
                     lastSectorFatFileOffset = (1 + newFatSectorId) * sectorLength + i;
                     lastSectorId = sectorId;
@@ -1270,9 +1282,13 @@ public class CompoundFileBinary implements AutoCloseable {
         }
 
         long difatSectorLocation = firstDifatSectorLocation;
+        Set<Long> difatVisited = new HashSet<>();
 
         while (difatSectorLocation <= MAXREGSECT) { //It should check for ENDOFCHAIN, but some FLA generators put FREESECT there too
-            raf.seek((1 + difatSectorLocation) * sectorLength);
+            if (!difatVisited.add(difatSectorLocation)) {
+                throw new IOException("Cyclic DIFAT chain");
+            }
+            raf.seek(checkedSectorPosition(difatSectorLocation));
             for (int i = 0; i < sectorLength - 4; i += 4) {
                 difat.add(readUI32());
             }
@@ -1283,7 +1299,7 @@ public class CompoundFileBinary implements AutoCloseable {
         long fatPos = 0;
         for (long fatSect : difat) {
             if (fatSect <= MAXREGSECT) {
-                raf.seek((1 + fatSect) * sectorLength);
+                raf.seek(checkedSectorPosition(fatSect));
                 for (int i = 0; i < sectorLength; i += 4) {
                     fat.put(fatPos, readUI32());
                     fatPos++;
@@ -1294,27 +1310,38 @@ public class CompoundFileBinary implements AutoCloseable {
         minifat = new TreeMap<>();
         long miniFatSectorLocation = firstMiniFatSectorLocation;
         long miniFatPos = 0;
+        Set<Long> miniFatVisited = new HashSet<>();
         while (miniFatSectorLocation != ENDOFCHAIN) {
             //System.err.println("file pos: " + raf.getFilePointer());
             //System.err.println("miniFatSectorLocation="+miniFatSectorLocation);
-            raf.seek((1 + miniFatSectorLocation) * sectorLength);
+            if (!miniFatVisited.add(miniFatSectorLocation)) {
+                throw new IOException("Cyclic mini-FAT chain");
+            }
+            raf.seek(checkedSectorPosition(miniFatSectorLocation));
             for (int i = 0; i < sectorLength; i += 4) {
                 minifat.put(miniFatPos, readUI32());
                 miniFatPos++;
             }
-            miniFatSectorLocation = fat.get(miniFatSectorLocation);
+            miniFatSectorLocation = nextReadSector(miniFatSectorLocation);
         }
 
         long directorySector = firstDirectorySectorLocation;
 
         directoryEntries = new ArrayList<>();
         long streamId = 0;
+        Set<Long> directoryVisited = new HashSet<>();
         while (directorySector != ENDOFCHAIN) {
-            raf.seek((1 + directorySector) * sectorLength);
+            if (!directoryVisited.add(directorySector)) {
+                throw new IOException("Cyclic directory sector chain");
+            }
+            raf.seek(checkedSectorPosition(directorySector));
 
             for (int i = 0; i < sectorLength; i += 128) {
                 byte[] nameBytes = readBytes(64);
                 int nameLen = readUI16();
+                if (nameLen != 0 && (nameLen < 2 || nameLen > 64 || (nameLen & 1) != 0)) {
+                    throw new IOException("Invalid CFB directory-name length");
+                }
                 String name = nameLen == 0 ? "" : new String(nameBytes, 0, nameLen - 2, "UTF-16LE");
 
                 int objectType = readEx();
@@ -1355,8 +1382,24 @@ public class CompoundFileBinary implements AutoCloseable {
                 directoryEntries.add(dirEntry);
                 streamId++;
             }
-            directorySector = fat.get(directorySector);
+            directorySector = nextReadSector(directorySector);
         }
+    }
+
+    private long checkedSectorPosition(long sector) throws IOException {
+        long position = (1 + sector) * sectorLength;
+        if (sector < 0 || sector > MAXREGSECT || position > raf.length() - sectorLength) {
+            throw new IOException("CFB sector lies outside the file");
+        }
+        return position;
+    }
+
+    private long nextReadSector(long sector) throws IOException {
+        Long next = fat.get(sector);
+        if (next == null) {
+            throw new IOException("Missing FAT sector entry");
+        }
+        return next;
     }
 
     private InputStream getMiniStream(long sector, long totalSize) {
@@ -1365,27 +1408,68 @@ public class CompoundFileBinary implements AutoCloseable {
             int rsectorPos = 0;
             long rsector = sector;
             long readPos = 0L;
+            final List<Long> rootSectors = new ArrayList<>();
+            final Set<Long> rootVisited = new HashSet<>();
+            final Set<Long> miniVisited = new HashSet<>();
+
+            private long physicalPosition() throws IOException {
+                long offset = rsector * miniSectorLength;
+                if (rsector < 0 || rsector > MAXREGSECT || offset >= miniStreamSize) {
+                    throw new IOException("Mini sector lies outside the root mini stream");
+                }
+                long index = offset / sectorLength;
+                while (rootSectors.size() <= index) {
+                    Long next = rootSectors.isEmpty() ? miniStreamStartingSector
+                            : fat.get(rootSectors.get(rootSectors.size() - 1));
+                    if (next == null || next < 0 || next > MAXREGSECT || !rootVisited.add(next)) {
+                        throw new IOException("Invalid or cyclic root mini-stream sector chain");
+                    }
+                    rootSectors.add(next);
+                }
+                return (1 + rootSectors.get((int) index)) * sectorLength + offset % sectorLength + rsectorPos;
+            }
 
             @Override
             public int read() throws IOException {
-                if (readPos >= totalSize) {
-                    return -1;
+                byte[] value = new byte[1];
+                return read(value, 0, 1) < 0 ? -1 : value[0] & 255;
+            }
+
+            @Override
+            public int read(byte[] bytes, int offset, int length) throws IOException {
+                if (offset < 0 || length < 0 || offset > bytes.length || length > bytes.length - offset) {
+                    throw new IndexOutOfBoundsException();
                 }
-                if (rsector == ENDOFCHAIN) {
-                    return -1;
+                if (length == 0) {
+                    return 0;
                 }
-                if (rsectorPos == miniSectorLength) {
-                    rsector = minifat.get(rsector);
-                    rsectorPos = 0;
+                int count = 0;
+                while (count < length && readPos < totalSize && rsector != ENDOFCHAIN) {
+                    if (rsectorPos == miniSectorLength) {
+                        Long next = minifat.get(rsector);
+                        if (next == null) {
+                            throw new IOException("Missing mini-FAT sector entry");
+                        }
+                        rsector = next;
+                        rsectorPos = 0;
+                        if (rsector == ENDOFCHAIN) {
+                            break;
+                        }
+                    }
+                    if (rsectorPos == 0 && !miniVisited.add(rsector)) {
+                        throw new IOException("Cyclic mini-stream sector chain");
+                    }
+                    int size = (int) Math.min(Math.min(length - count, miniSectorLength - rsectorPos), totalSize - readPos);
+                    if (size > miniStreamSize - rsector * miniSectorLength - rsectorPos) {
+                        throw new IOException("Mini-stream read exceeds root mini-stream size");
+                    }
+                    raf.seek(physicalPosition());
+                    raf.readFully(bytes, offset + count, size);
+                    rsectorPos += size;
+                    readPos += size;
+                    count += size;
                 }
-                if (rsector == ENDOFCHAIN) {
-                    return -1;
-                }
-                InputStream miniIs = getLargeStream(miniStreamStartingSector, miniStreamSize);
-                miniIs.skip(rsector * miniSectorLength + rsectorPos);
-                rsectorPos++;
-                readPos++;
-                return miniIs.read();
+                return count == 0 ? -1 : count;
             }
         };
     }
