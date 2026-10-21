@@ -1236,10 +1236,10 @@ public class TimelineConverter extends AbstractConverter {
                 fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00));
             }
         }
-        fg.write(0x00, 0x00);
+        fg.writeUI16(0); // Null child-object reference terminates the inherited object list.
         if (transformationPointX == null) {
-            fg.write(0x00, 0x00, 0x00, 0x80);
-            fg.write(0x00, 0x00, 0x00, 0x80);
+            fg.writeUI32(Integer.MIN_VALUE); // Transformation point X unspecified.
+            fg.writeUI32(Integer.MIN_VALUE); // Transformation point Y unspecified.
         } else {
             Point2D transformationPoint = new Point2D.Double(transformationPointX, transformationPointY);
             Point2D transformationPointTransformed = placeMatrix.transform(transformationPoint);
@@ -3597,15 +3597,14 @@ public class TimelineConverter extends AbstractConverter {
             currentFrame = 'X';
         }
 
-        fg.write(
-                0x00, 0x00,
-                0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00,
-                0x80);
+        fg.writeUI16(0); // Null layer reference terminates the CPicObj child list.
+        fg.writeUI32(Integer.MIN_VALUE); // Page transformation point X unspecified.
+        fg.writeUI32(Integer.MIN_VALUE); // Page transformation point Y unspecified.
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-            fg.write(0x00, 0x00);
+            fg.write(0, 0); // Two separate CPicObj extension bytes.
         }
         fg.write(flaFormatVersion.picPageRevision);
-        fg.write(nextLayerId, 0x00);
+        fg.writeUI16(nextLayerId);
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
             fg.writeUI16(nextFolderId);
         }
@@ -3632,7 +3631,7 @@ public class TimelineConverter extends AbstractConverter {
                     fg.writeUI32(value);
                 }
             } else {
-                fg.write(0x00, 0x00, 0x00, 0x00);
+                fg.writeUI32(0);
             }
         }
 

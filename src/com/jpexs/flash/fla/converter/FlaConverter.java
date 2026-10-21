@@ -485,14 +485,11 @@ public class FlaConverter extends AbstractConverter {
             linkageIdentifier = element.getAttribute("linkageIdentifier");
         }
 
-        dw.write(0x00, 0x00,
-                0x00, 0x00);
+        dw.writeUI32(0); // Library-item metadata value before the linkage block.
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
             dw.write(flaFormatVersion.libraryItemLinkageRevision);
 
-            dw.write((linkageExportForAS ? 1 : 0) + (linkageImportForRS ? 2 : 0));
-            dw.write(0x00, 0x00, 0x00
-            );
+            dw.writeUI32((linkageExportForAS ? 1 : 0) + (linkageImportForRS ? 2 : 0));
             dw.writeBomString(linkageIdentifier);
             dw.writeBomString(linkageURL);
         }
@@ -511,18 +508,25 @@ public class FlaConverter extends AbstractConverter {
             linkageFlags |= 2;
         }
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
-            dw.write(debugRandom ? 'X' : linkageFlags, //:-( sometimes, there's just no 4 flag, randomly
-                    flaFormatVersion.libraryItemLinkageAuxiliaryRevision, 0x00, 0x00, 0x00);
+            dw.write(debugRandom ? 'X' : linkageFlags); // Export flags are one byte.
+            dw.writeUI32(flaFormatVersion.libraryItemLinkageAuxiliaryRevision);
             dw.writeBomString("");
             dw.writeBomString(sourceLibraryItemHRef);
-            dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                    0xFF, 0xFF, 0xFF, 0xFF);
+            writeEmptyLinkageAuxiliaryTail(dw);
         }
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
             dw.write(0x00);
             dw.writeBomString(linkageBaseClass);
         }
+    }
+
+    /** Writes the fixed empty tail of an auxiliary linkage record. */
+    private void writeEmptyLinkageAuxiliaryTail(FlaWriter writer) throws IOException {
+        writer.writeUI32(0); // First auxiliary value; meaning unresolved.
+        writer.writeUI32(0); // Second auxiliary value; meaning unresolved.
+        writer.writeUI32(1); // Item-ID record marker.
+        writer.writeUI32(0); // Unset item ID, first part.
+        writer.writeUI32(0xFFFFFFFFL); // Unset item ID, second part.
     }
 
     private String getParentFolderItemID(Element document, String itemName) {
@@ -639,16 +643,16 @@ public class FlaConverter extends AbstractConverter {
 
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
                 fg.writeBomString("");
-                fg.write(0x01, 0x00, 0x00, 0x00, flaFormatVersion.symbolLibraryItemMetadataRevision);
-                fg.write(0x00);
-                fg.write(0x00, 0x00,
-                        0x01, 0x00, 0x00, 0x00);
+                fg.writeUI32(1); // CDocumentPage placeholder.
+                fg.writeUI32(flaFormatVersion.symbolLibraryItemMetadataRevision);
+                fg.writeUI32(1); // Parent item-ID record marker.
                 if (parentFolderItemId == null) {
-                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                    fg.writeUI32(0); // Empty parent item ID, first part.
+                    fg.writeUI32(0); // Empty parent item ID, second part.
                 } else {
                     fg.writeItemID(parentFolderItemId);
                 }
-                fg.write(0x01, 0x00, 0x00, 0x00);
+                fg.writeUI32(1); // Item-ID record marker.
 
                 fg.writeItemID(itemID);
 
@@ -670,26 +674,23 @@ public class FlaConverter extends AbstractConverter {
             if (flaFormatVersion.ordinal() == FlaFormatVersion.F5.ordinal()) {
                 fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x01);
             } else if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
-                fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
-                        0x01, 0x00, 0x00, 0x00,
-                        0x01, 0x00, 0x00, 0x00,
-                        flaFormatVersion.documentPageLinkageRevision);
-                fg.write(0x00, 0x00, 0x00);
+                fg.write(2); // Property-list revision.
+                fg.writeUI32(0); // Property count.
+                fg.writeUI32(1); // Property-list setting.
+                fg.writeUI32(1); // CDocumentPage metadata value.
+                fg.write(flaFormatVersion.documentPageLinkageRevision);
+                fg.writeUI32(0); // Linkage flags.
+                fg.writeBomString(""); // Linkage identifier.
+                fg.writeBomString(""); // Linkage URL.
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                    fg.write(0x00);
+                    fg.writeBomString(""); // ActionScript class name.
                 }
-                fg.writeBomString("");
-                fg.writeBomString("");
-                fg.writeBomString("");
 
-                fg.write(0x00,
-                        flaFormatVersion.documentPageLinkageAuxiliaryRevision,
-                        0x00, 0x00, 0x00);
+                fg.write(0); // Export flags.
+                fg.writeUI32(flaFormatVersion.documentPageLinkageAuxiliaryRevision);
                 fg.writeBomString("");
                 fg.writeBomString("");
-                fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0xFF, 0xFF, 0xFF, 0xFF);
+                writeEmptyLinkageAuxiliaryTail(fg);
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
 
@@ -697,13 +698,13 @@ public class FlaConverter extends AbstractConverter {
                         fg.write(0x00);
                         fg.writeBomString("");
                     }
-                    fg.write(
-                            flaFormatVersion.documentPageComponentMetadataRevision,
-                            0x00,
-                            0x00, 0x00, 0x00);
+                    fg.write(flaFormatVersion.documentPageComponentMetadataRevision);
+                    fg.writeUI32(0); // Component header value.
                     fg.writeBomString("");
-                    fg.write(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00);
+                    // Component metadata: three dwords; individual meanings are unresolved.
+                    fg.writeUI32(0);
+                    fg.writeUI32(1);
+                    fg.writeUI32(0);
                     fg.writeBomString("");
                     fg.write(0x03);
                     fg.writeBomString("");
@@ -748,17 +749,17 @@ public class FlaConverter extends AbstractConverter {
 
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
                 if (scaleGridLeft != 0f || scaleGridRight != 0f || scaleGridTop != 0f || scaleGridBottom != 0f) {
-                    fg.write(0x01, 0x00, 0x00, 0x00);
+                    fg.writeUI32(1); //Scale grid enabled.
                     fg.writeUI32(Math.round(scaleGridRight * 20));
                     fg.writeUI32(Math.round(scaleGridLeft * 20));
                     fg.writeUI32(Math.round(scaleGridBottom * 20));
                     fg.writeUI32(Math.round(scaleGridTop * 20));
                 } else {
-                    fg.write(0x00, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x80,
-                            0x00, 0x00, 0x00, 0x80,
-                            0x00, 0x00, 0x00, 0x80,
-                            0x00, 0x00, 0x00, 0x80);
+                    fg.writeUI32(0); // Scale grid disabled.
+                    fg.writeUI32(Integer.MIN_VALUE); // Right boundary unspecified.
+                    fg.writeUI32(Integer.MIN_VALUE); // Left boundary unspecified.
+                    fg.writeUI32(Integer.MIN_VALUE); // Bottom boundary unspecified.
+                    fg.writeUI32(Integer.MIN_VALUE); // Top boundary unspecified.
                 }
             }
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
@@ -892,12 +893,12 @@ public class FlaConverter extends AbstractConverter {
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
                     fg.writeBomString("");
-                    fg.write(0x01, 0x00, 0x00, 0x00, flaFormatVersion.sceneLibraryItemMetadataRevision,
-                            0x00,
-                            0x00, 0x00,
-                            0x01, 0x00, 0x00, 0x00,
-                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //parent folder id
-                            0x01, 0x00, 0x00, 0x00);
+                    fg.writeUI32(1); // CDocumentPage placeholder.
+                    fg.writeUI32(flaFormatVersion.sceneLibraryItemMetadataRevision);
+                    fg.writeUI32(1); // Parent item-ID record marker.
+                    fg.writeUI32(0); // Empty parent item ID, first part.
+                    fg.writeUI32(0); // Empty parent item ID, second part.
+                    fg.writeUI32(1); // Scene item-ID record marker.
 
                     String pageItemID = generateItemID(generatedItemIdOrder);
 
@@ -907,9 +908,8 @@ public class FlaConverter extends AbstractConverter {
                 }
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
-                    fg.write(flaFormatVersion.libraryItemLinkageRevision,
-                            0x00, //linkageExportForAS | linkageImportForRS
-                            0x00, 0x00, 0x00);
+                    fg.write(flaFormatVersion.libraryItemLinkageRevision);
+                    fg.writeUI32(0); // linkageExportForAS | linkageImportForRS.
                     fg.writeBomString(""); //linkageIdentifier
                     fg.writeBomString(""); //linkageURL
                 }
@@ -920,15 +920,11 @@ public class FlaConverter extends AbstractConverter {
 
                     fg.write(debugRandom ? 'X' : 0); //linkageFlags
 
-                    fg.write(flaFormatVersion.libraryItemLinkageAuxiliaryRevision);
-
-                    fg.write(0x00, 0x00, 0x00);
+                    fg.writeUI32(flaFormatVersion.libraryItemLinkageAuxiliaryRevision);
                     fg.writeBomString("");
                     fg.writeBomString(""); //sourceLibraryItemHRef
 
-                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0xFF, 0xFF, 0xFF, 0xFF);
+                    writeEmptyLinkageAuxiliaryTail(fg);
                 }
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
                     fg.write(0x00);
@@ -951,27 +947,23 @@ public class FlaConverter extends AbstractConverter {
                 if (flaFormatVersion.ordinal() == FlaFormatVersion.F5.ordinal()) {
                     fg.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x01);
                 } else if (flaFormatVersion.ordinal() >= flaFormatVersion.MX.ordinal()) {
-                    fg.write(0x02, 0x00, 0x00, 0x00, 0x00,
-                            debugRandom ? 'U' : 0x01, //NEW - different from sprite
-                            0x00, 0x00, 0x00,
-                            0x01, 0x00, 0x00, 0x00,
-                            flaFormatVersion.documentPageLinkageRevision);
-                    fg.write(0x00, 0x00, 0x00);
+                    fg.write(2); // Property-list revision.
+                    fg.writeUI32(0); // Property count.
+                    fg.writeUI32(debugRandom ? 'U' : 1); // Property-list setting.
+                    fg.writeUI32(1); // CDocumentPage metadata value.
+                    fg.write(flaFormatVersion.documentPageLinkageRevision);
+                    fg.writeUI32(0); // Linkage flags.
+                    fg.writeBomString(""); // Linkage identifier.
+                    fg.writeBomString(""); // Linkage URL.
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                        fg.write(0x00);
+                        fg.writeBomString(""); // ActionScript class name.
                     }
-                    fg.writeBomString("");
-                    fg.writeBomString("");
-                    fg.writeBomString("");
 
-                    fg.write(0x00,
-                            flaFormatVersion.documentPageLinkageAuxiliaryRevision,
-                            0x00, 0x00, 0x00);
+                    fg.write(0); // Export flags.
+                    fg.writeUI32(flaFormatVersion.documentPageLinkageAuxiliaryRevision);
                     fg.writeBomString("");
                     fg.writeBomString("");
-                    fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                            0xFF, 0xFF, 0xFF, 0xFF);
+                    writeEmptyLinkageAuxiliaryTail(fg);
 
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
 
@@ -979,13 +971,13 @@ public class FlaConverter extends AbstractConverter {
                             fg.write(0x00);
                             fg.writeBomString("");
                         }
-                        fg.write(
-                                flaFormatVersion.documentPageComponentMetadataRevision,
-                                0x00,
-                                0x00, 0x00, 0x00);
+                        fg.write(flaFormatVersion.documentPageComponentMetadataRevision);
+                        fg.writeUI32(0); // Component header value.
                         fg.writeBomString("");
-                        fg.write(0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-                                0x00, 0x00, 0x00, 0x00);
+                        // Component metadata: three dwords; individual meanings are unresolved.
+                        fg.writeUI32(0);
+                        fg.writeUI32(1);
+                        fg.writeUI32(0);
                         fg.writeBomString("");
                         fg.write(0x03);
                         fg.writeBomString("");
@@ -1031,11 +1023,11 @@ public class FlaConverter extends AbstractConverter {
                 }
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
-                    fg.write(0x00, 0x00, 0x00, 0x00, //scaleGrid toggle
-                            0x00, 0x00, 0x00, 0x80, //scaleGridRight
-                            0x00, 0x00, 0x00, 0x80, //scaleGridLeft
-                            0x00, 0x00, 0x00, 0x80, //scaleGridBottom
-                            0x00, 0x00, 0x00, 0x80); //scaleGridTop
+                    fg.writeUI32(0); // Scale grid disabled.
+                    fg.writeUI32(Integer.MIN_VALUE); // Right boundary unspecified.
+                    fg.writeUI32(Integer.MIN_VALUE); // Left boundary unspecified.
+                    fg.writeUI32(Integer.MIN_VALUE); // Bottom boundary unspecified.
+                    fg.writeUI32(Integer.MIN_VALUE); // Top boundary unspecified.
                 }
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
                     fg.write(0x00,
@@ -1378,7 +1370,7 @@ public class FlaConverter extends AbstractConverter {
                 fg.writeUI32(domFolderItems.size());
 
                 for (Element domFolderItem : domFolderItems) {
-                    fg.write(flaFormatVersion.libraryFolderRevision, 0x00, 0x00, 0x00);
+                    fg.writeUI32(flaFormatVersion.libraryFolderRevision);
                     String folderFullName = domFolderItem.getAttribute("name");
                     String folderName = folderFullName;
                     String parentFolder = "";
@@ -1387,10 +1379,12 @@ public class FlaConverter extends AbstractConverter {
                         parentFolder = folderFullName.substring(0, folderFullName.lastIndexOf("/"));
                     }
                     fg.writeBomString(folderName);
-                    fg.write(flaFormatVersion.folderLibraryItemMetadataRevision, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+                    fg.writeUI32(flaFormatVersion.folderLibraryItemMetadataRevision);
+                    fg.writeUI32(1); // Parent item-ID record marker.
 
                     if (parentFolder.isEmpty()) {
-                        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                        fg.writeUI32(0); // Empty parent item ID, first part.
+                        fg.writeUI32(0); // Empty parent item ID, second part.
                     } else {
                         boolean parentFound = false;
                         for (Element domFolderItem2 : domFolderItems) {
@@ -1402,11 +1396,12 @@ public class FlaConverter extends AbstractConverter {
                             }
                         }
                         if (!parentFound) {
-                            fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                            fg.writeUI32(0); // Empty parent item ID, first part.
+                            fg.writeUI32(0); // Empty parent item ID, second part.
                         }
                     }
 
-                    fg.write(0x01, 0x00, 0x00, 0x00);
+                    fg.writeUI32(1); // Item-ID record marker.
                     String itemID = generateItemID(generatedItemIdOrder);
                     if (domFolderItem.hasAttribute("itemID")) {
                         itemID = domFolderItem.getAttribute("itemID");
@@ -1422,7 +1417,8 @@ public class FlaConverter extends AbstractConverter {
                             0x00, 0x00);
 
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
-                        fg.write(flaFormatVersion.folderLibraryItemLinkageRevision, 0x00, 0x00, 0x00, 0x00);
+                        fg.write(flaFormatVersion.folderLibraryItemLinkageRevision);
+                        fg.writeUI32(0); // Linkage flags.
                         fg.writeBomString("");
                         fg.writeBomString("");
                     }
@@ -1434,12 +1430,10 @@ public class FlaConverter extends AbstractConverter {
                         fg.write(0x00);
                     }
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
-                        fg.write(flaFormatVersion.folderLibraryItemLinkageAuxiliaryRevision, 0x00, 0x00, 0x00);
+                        fg.writeUI32(flaFormatVersion.folderLibraryItemLinkageAuxiliaryRevision);
                         fg.writeBomString("");
                         fg.writeBomString("");
-                        fg.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                0xFF, 0xFF, 0xFF, 0xFF
-                        );
+                        writeEmptyLinkageAuxiliaryTail(fg);
                     }
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
                         fg.write(0x00);
@@ -1710,14 +1704,16 @@ public class FlaConverter extends AbstractConverter {
         }
 
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
-            dw.write(flaFormatVersion.soundLibraryItemMetadataRevision, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+            dw.writeUI32(flaFormatVersion.soundLibraryItemMetadataRevision);
+            dw.writeUI32(1); // Parent item-ID record marker.
             if (parentFolderItemID == null) {
-                dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                dw.writeUI32(0); // Empty parent item ID, first part.
+                dw.writeUI32(0); // Empty parent item ID, second part.
             } else {
                 dw.writeItemID(parentFolderItemID);
             }
 
-            dw.write(0x01, 0x00, 0x00, 0x00);
+            dw.writeUI32(1); // Item-ID record marker.
             String itemID = generateItemID(generatedItemIdOrder);
             if (domSoundItem.hasAttribute("itemID")) {
                 itemID = domSoundItem.getAttribute("itemID");
@@ -1803,32 +1799,34 @@ public class FlaConverter extends AbstractConverter {
         }
         dw.writeBomString(debugRandom ? "YYY" : importFilePath);
         writeTimeCreated(dw);
-        dw.write(flaFormatVersion.videoLibraryItemMetadataRevision, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+        dw.writeUI32(flaFormatVersion.videoLibraryItemMetadataRevision);
+        dw.writeUI32(1); // Parent item-ID record marker.
         if (parentFolderItemID == null) {
-            dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+            dw.writeUI32(0); // Empty parent item ID, first part.
+            dw.writeUI32(0); // Empty parent item ID, second part.
         } else {
             dw.writeItemID(parentFolderItemID);
         }
-        dw.write(0x01, 0x00, 0x00, 0x00);
+        dw.writeUI32(1); // Item-ID record marker.
         String itemID = generateItemID(generatedItemIdOrder);
         if (domVideoItem.hasAttribute("itemID")) {
             itemID = domVideoItem.getAttribute("itemID");
         }
         dw.writeItemID(itemID);
 
-        dw.write(0x00, 0x00, 0x00, 0x00, flaFormatVersion.videoLibraryItemLinkageRevision, 0x00, 0x00, 0x00, 0x00);
-        dw.writeBomString("");
-        dw.writeBomString("");
-        dw.writeBomString("");
+        dw.writeUI32(0); // Library-item metadata value before linkage.
+        dw.write(flaFormatVersion.videoLibraryItemLinkageRevision);
+        dw.writeUI32(0); // Linkage flags.
+        dw.writeBomString(""); // Linkage identifier.
+        dw.writeBomString(""); // Linkage URL.
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-            dw.write(0x00);
+            dw.writeBomString(""); // ActionScript class name.
         }
-        dw.write(flaFormatVersion.videoLibraryItemLinkageAuxiliaryRevision, 0x00, 0x00, 0x00);
+        dw.write(0); // Export flags.
+        dw.writeUI32(flaFormatVersion.videoLibraryItemLinkageAuxiliaryRevision);
         dw.writeBomString("");
         dw.writeBomString("");
-        dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-        dw.write(0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-        dw.write(0xFF, 0xFF, 0xFF, 0xFF);
+        writeEmptyLinkageAuxiliaryTail(dw);
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
             dw.write(0x00);
         }
@@ -1896,16 +1894,16 @@ public class FlaConverter extends AbstractConverter {
         } else {
             writeTimeCreated(dw);
         }
-        dw.write(flaFormatVersion.bitmapLibraryItemMetadataRevision);
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
-
-            dw.write(0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+            dw.writeUI32(flaFormatVersion.bitmapLibraryItemMetadataRevision);
+            dw.writeUI32(1); // Parent item-ID record marker.
             if (parentFolderItemID == null) {
-                dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                dw.writeUI32(0); // Empty parent item ID, first part.
+                dw.writeUI32(0); // Empty parent item ID, second part.
             } else {
                 dw.writeItemID(parentFolderItemID);
             }
-            dw.write(0x01, 0x00, 0x00, 0x00);
+            dw.writeUI32(1); // Item-ID record marker.
 
             String itemID = generateItemID(generatedItemIdOrder);
             if (domBitmapItem.hasAttribute("itemID")) {
@@ -1920,6 +1918,9 @@ public class FlaConverter extends AbstractConverter {
                 dw.write(0x01, 0x00, 0x00, 0x00);
             }
             dw.write(flaFormatVersion.mediaBitsRevision);
+        } else {
+            // Legacy bitmap layouts store this value as a single byte.
+            dw.write(flaFormatVersion.bitmapLibraryItemMetadataRevision);
         }
         
         boolean hasBinData = false;
@@ -2209,14 +2210,16 @@ public class FlaConverter extends AbstractConverter {
                 }
             }
 
-            dw.write(flaFormatVersion.fontLibraryItemMetadataRevision, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00);
+            dw.writeUI32(flaFormatVersion.fontLibraryItemMetadataRevision);
+            dw.writeUI32(1); // Parent item-ID record marker.
             if (parentFolderItemID == null) {
-                dw.write(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+                dw.writeUI32(0); // Empty parent item ID, first part.
+                dw.writeUI32(0); // Empty parent item ID, second part.
             } else {
                 dw.writeItemID(parentFolderItemID);
             }
 
-            dw.write(0x01, 0x00, 0x00, 0x00);
+            dw.writeUI32(1); // Item-ID record marker.
 
             dw.writeItemID(itemID);
             writeAsLinkage(dw, domFontItem);
