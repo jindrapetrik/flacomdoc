@@ -15,8 +15,8 @@ public class RadialGradientSwatchItem extends GradientSwatchItem {
 
     public RadialGradientSwatchItem(List<GradientEntry> entries, int spreadMethod, boolean interpolationMethodLinearRGB) {
         super(entries, spreadMethod, interpolationMethodLinearRGB);
-    }  
-    
+    }
+
     @Override
     public int getType() {
         return 0x12;

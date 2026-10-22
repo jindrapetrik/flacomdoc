@@ -5,6 +5,7 @@ package com.jpexs.flash.fla.script;
  * @author JPEXS
  */
 public class Precedence {
+
     public static final int PRECEDENCE_PRIMARY = 0;
 
     public static final int PRECEDENCE_POSTFIX = 1;

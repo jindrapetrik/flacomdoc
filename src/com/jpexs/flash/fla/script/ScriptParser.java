@@ -105,6 +105,19 @@ public class ScriptParser {
         return ret;
     }
 
+    /**
+     * Parses an entire historical action script, rejecting an unsupported
+     * suffix.
+     */
+    public List<AbstractCommand> parseComplete(String script) throws IOException, ScriptParseException, InterruptedException {
+        List<AbstractCommand> result = parse(script, false);
+        ParsedSymbol trailing = lex();
+        if (trailing.type != SymbolType.EOF) {
+            throw new ScriptParseException("Unconverted script token: " + trailing.type, lexer.yyline());
+        }
+        return result;
+    }
+
     public List<AbstractCommand> parse(String script, boolean debugRandom) throws IOException, ScriptParseException, InterruptedException {
         lexer = new ScriptLexer(new StringReader(script));
         List<AbstractCommand> ret = commands();

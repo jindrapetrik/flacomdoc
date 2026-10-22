@@ -15,16 +15,16 @@ public class IfFrameIsLoadedCommand extends AbstractCommand {
     public IfFrameIsLoadedCommand(int frameNum) {
         this.frameNum = frameNum;
     }
-    
+
     public IfFrameIsLoadedCommand(Expression frame) {
-        this.frame = frame;        
+        this.frame = frame;
     }
 
     @Override
     public int getActionKind() {
         return FLA3_ACTION_IF_FRAME_LOADED;
     }
-    
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         if (!frame.isRaw) {
@@ -32,17 +32,17 @@ public class IfFrameIsLoadedCommand extends AbstractCommand {
         }
         return FlaFormatVersion.F3;
     }
-    
+
     @Override
     public int getFrameNum() {
         return frameNum;
-    }        
+    }
 
     @Override
     public Expression getArg0() {
         return frame;
-    }            
-        
+    }
+
     @Override
     public String toString() {
         String ret = "If Frame Is Loaded (";
@@ -51,7 +51,7 @@ public class IfFrameIsLoadedCommand extends AbstractCommand {
         } else {
             ret += frame;
         }
-        ret += ")";        
+        ret += ")";
         return ret;
-    }        
+    }
 }

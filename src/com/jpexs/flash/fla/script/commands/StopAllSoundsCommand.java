@@ -17,11 +17,10 @@ public class StopAllSoundsCommand extends AbstractCommand {
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F2;
     }
-    
+
     @Override
     public String toString() {
         return "Stop All Sounds";
     }
 
-    
 }

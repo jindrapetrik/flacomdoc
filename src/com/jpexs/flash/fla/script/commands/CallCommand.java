@@ -19,12 +19,12 @@ public class CallCommand extends AbstractCommand {
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F4;
     }
-    
+
     @Override
     public Expression getArg0() {
         return frame;
     }
-    
+
     @Override
     public int getActionKind() {
         return FLA4_ACTION_CALL;
@@ -34,5 +34,5 @@ public class CallCommand extends AbstractCommand {
     public String toString() {
         return "Call (" + frame + ")";
     }
-    
+
 }

@@ -135,7 +135,7 @@ public class EdgeReader {
         boolean cs3OrHigher = false;
         File file = new File("testdata\\flang\\f4\\0007_symbols\\Symbol 3");
         //File file = new File("out\\f4\\S 1 1775898172");
-        
+
         FileInputStream fis = new FileInputStream(file);
         fis.skip(111);
         double x = 0;

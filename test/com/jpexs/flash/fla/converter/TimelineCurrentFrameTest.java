@@ -10,12 +10,13 @@ import org.testng.annotations.Test;
 import static org.testng.Assert.*;
 
 public class TimelineCurrentFrameTest {
+
     @Test
     public void currentFrameUsesItsOwnDword() throws Exception {
-        for (FlaFormatVersion version : new FlaFormatVersion[] {
+        for (FlaFormatVersion version : new FlaFormatVersion[]{
             FlaFormatVersion.F8, FlaFormatVersion.CS3, FlaFormatVersion.CS4
         }) {
-            for (int frame : new int[] {0, 3, 36, 255, 256, 4096}) {
+            for (int frame : new int[]{0, 3, 36, 255, 256, 4096}) {
                 byte[] bytes = timeline(version, frame);
                 ByteBuffer data = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
                 int tail = bytes.length - 13;
@@ -30,7 +31,7 @@ public class TimelineCurrentFrameTest {
 
     @Test
     public void olderPageRevisionsKeepTheirOriginalLayout() throws Exception {
-        for (FlaFormatVersion version : new FlaFormatVersion[] {FlaFormatVersion.MX, FlaFormatVersion.MX2004}) {
+        for (FlaFormatVersion version : new FlaFormatVersion[]{FlaFormatVersion.MX, FlaFormatVersion.MX2004}) {
             byte[] zero = timeline(version, 0);
             byte[] selected = timeline(version, 256);
             // Frame IDs are random, so check the page extension only.

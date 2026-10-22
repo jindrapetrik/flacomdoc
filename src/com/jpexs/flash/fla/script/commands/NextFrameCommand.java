@@ -17,9 +17,9 @@ public class NextFrameCommand extends AbstractCommand {
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F1;
     }
-    
+
     @Override
     public String toString() {
         return "Go to Next Frame";
-    }       
+    }
 }

@@ -101,8 +101,8 @@ public class FlaWriter {
     public static final int LAYERTYPE_GUIDE = 1;
     public static final int LAYERTYPE_GUIDED = 2;
     public static final int LAYERTYPE_FOLDER = 3;
-    public static final int LAYERTYPE_MASK = 4;   
-    
+    public static final int LAYERTYPE_MASK = 4;
+
     private String x = "0";
     private String y = "0";
     private int strokeStyle = 0;
@@ -233,16 +233,16 @@ public class FlaWriter {
     }
 
     private void transformEdgeValue(String[] edgeXY, int offset, Matrix transform) {
-        double parsedX = parseEdge(edgeXY[offset]);       
-        double parsedY = parseEdge(edgeXY[offset + 1]); 
-        
+        double parsedX = parseEdge(edgeXY[offset]);
+        double parsedY = parseEdge(edgeXY[offset + 1]);
+
         Matrix transform2 = new Matrix(transform.a, transform.b, transform.c, transform.d, transform.tx * 20, transform.ty * 20);
-        
+
         Point2D p = transform2.transform(parsedX, parsedY);
         edgeXY[offset] = numEdgeToString(p.getX());
         edgeXY[offset + 1] = numEdgeToString(p.getY());
     }
-    
+
     public void writeEdges(String edges, int strokeStyle, int fillStyle0, int fillStyle1, Matrix transform) throws IOException {
         setStrokeStyle(strokeStyle);
         setFillStyle0(fillStyle0);
@@ -275,10 +275,10 @@ public class FlaWriter {
             if (parts[1].contains("S")) {
                 selection = Integer.parseInt(parts[1].substring(parts[1].indexOf("S") + 1));
                 parts[1] = parts[1].substring(0, parts[1].indexOf("S"));
-            }                        
+            }
 
             try {
-                transformEdgeValue(parts, 0 , transform);
+                transformEdgeValue(parts, 0, transform);
                 moveTo(
                         selection,
                         parts[0],
@@ -296,7 +296,7 @@ public class FlaWriter {
                             throw new IllegalArgumentException(parts[i] + " requires two arguments");
                         }
                         try {
-                            transformEdgeValue(parts, i + 1 , transform);                
+                            transformEdgeValue(parts, i + 1, transform);
                             lineTo(
                                     parts[i + 1],
                                     parts[i + 2],
@@ -313,8 +313,8 @@ public class FlaWriter {
                         }
 
                         try {
-                            transformEdgeValue(parts, i + 1 , transform);                
-                            transformEdgeValue(parts, i + 3 , transform);                
+                            transformEdgeValue(parts, i + 1, transform);
+                            transformEdgeValue(parts, i + 3, transform);
                             curveTo(
                                     parts[i + 1],
                                     parts[i + 2],
@@ -664,7 +664,7 @@ public class FlaWriter {
                 (int) (dLong & 0xFF), (int) ((dLong >> 8) & 0xFF), (int) ((dLong >> 16) & 0xFF), (int) ((dLong >> 24) & 0xFF),
                 (int) (txLong & 0xFF), (int) ((txLong >> 8) & 0xFF), (int) ((txLong >> 16) & 0xFF), (int) ((txLong >> 24) & 0xFF),
                 (int) (tyLong & 0xFF), (int) ((tyLong >> 8) & 0xFF), (int) ((tyLong >> 16) & 0xFF), (int) ((tyLong >> 24) & 0xFF));
-    }    
+    }
 
     public void writeBitmapFill(
             int type,
@@ -691,12 +691,12 @@ public class FlaWriter {
             int flow,
             Matrix gradientMatrix,
             double focalRatio
-    ) throws IOException {        
+    ) throws IOException {
         //the purpose of these four is unknown, but it seems that if on last place we put 0, the fill is missing
         if (debugRandom) {
             write('U', 'U', 'U', 'U');
         } else {
-            write(0x00, 0x00, 0x00, 0xFF); 
+            write(0x00, 0x00, 0x00, 0xFF);
         }
         write(type, 0x00);
         writeMatrix(gradientMatrix);
@@ -884,7 +884,6 @@ public class FlaWriter {
         pos += len;
     }
 
-    
     public void write(int... values) throws IOException {
         for (int i : values) {
             if (i > 255) {
@@ -892,7 +891,7 @@ public class FlaWriter {
             }
             os.write(i);
             pos++;
-        }        
+        }
     }
 
     public void writeEncodedUI(int value) throws IOException {
@@ -937,7 +936,7 @@ public class FlaWriter {
                 writeUI32(commands.size());
             }
             for (AbstractCommand cmd : commands) {
-                switch(flaFormatVersion) {
+                switch (flaFormatVersion) {
                     case F1:
                         write(0x00);
                         break;
@@ -950,34 +949,34 @@ public class FlaWriter {
                     case F4:
                         write(0x09);
                         break;
-                }                
+                }
                 write(cmd.getActionKind());
                 writeString(cmd.getUrl().value);
                 writeString(cmd.getWindow().value); //max 19 in F1, max 24 in F2
                 writeString(cmd.getPage()); //max 21 in  F1, max 24 in F2                    
                 writeUI16(cmd.getFrameNum()); //max 16000   
-                
+
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F2.ordinal()) {
                     writeUI16(cmd.getWaitForExtraFrames());
                 }
-                
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {                
-                    writeString(cmd.getLabel());                    
+
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
+                    writeString(cmd.getLabel());
                     writeString(cmd.getArg0().value);
                     writeString(cmd.getArg1().value);
                     writeString(cmd.getTarget().value);
                     writeUI32(cmd.getLevel());
-                    write( 
-                                   cmd.onRelease() ? 0x01 : 0x00,0x00,0x00,0x00,
-                                     cmd.onPress() ? 0x01 : 0x00,0x00,0x00,0x00,
-                            cmd.onReleaseOutside() ? 0x01 : 0x00,0x00,0x00,0x00,
-                                  cmd.onRollOver() ? 0x01 : 0x00,0x00,0x00,0x00,
-                                   cmd.onRollOut() ? 0x01 : 0x00,0x00,0x00,0x00,
-                                  cmd.onDragOver() ? 0x01 : 0x00,0x00,0x00,0x00,
-                                   cmd.onDragOut() ? 0x01 : 0x00,0x00,0x00,0x00
+                    write(
+                            cmd.onRelease() ? 0x01 : 0x00, 0x00, 0x00, 0x00,
+                            cmd.onPress() ? 0x01 : 0x00, 0x00, 0x00, 0x00,
+                            cmd.onReleaseOutside() ? 0x01 : 0x00, 0x00, 0x00, 0x00,
+                            cmd.onRollOver() ? 0x01 : 0x00, 0x00, 0x00, 0x00,
+                            cmd.onRollOut() ? 0x01 : 0x00, 0x00, 0x00, 0x00,
+                            cmd.onDragOver() ? 0x01 : 0x00, 0x00, 0x00, 0x00,
+                            cmd.onDragOut() ? 0x01 : 0x00, 0x00, 0x00, 0x00
                     );
                 }
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {                
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
                     writeUI32(cmd.getProperty());
                     write(0x00, 0x00); //Uknown, but probably 2 strings
                     writeString(cmd.getDepth().value);
@@ -987,23 +986,23 @@ public class FlaWriter {
                     writeString(cmd.getArg2().value);
                     writeString(cmd.getArg3().value);
                     write(!cmd.getVariableName().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,
-                            !cmd.getUrl().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00, 
-                            !cmd.getArg0().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,                         
-                            !cmd.getArg1().isRaw ? 0x01 : 0x00, 0x00, 0x00,  0x00,
+                            !cmd.getUrl().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,
+                            !cmd.getArg0().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,
+                            !cmd.getArg1().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,
                             !cmd.getArg2().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,
                             !cmd.getArg3().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,
-                            !cmd.getWindow().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00, 
+                            !cmd.getWindow().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,
                             !cmd.getTarget().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,
                             !cmd.getDepth().isRaw ? 0x01 : 0x00, 0x00, 0x00, 0x00,
                             cmd.isStart() ? 0x01 : 0x00, 0x00, 0x00, 0x00,
-                            cmd.hasConstrainToRectangle() ? 0x01 : 0x00, 0x00, 0x00, 0x00, 
-                            cmd.hasLockMouseToCenter() ? 0x01 : 0x00, 0x00, 0x00, 0x00, 
+                            cmd.hasConstrainToRectangle() ? 0x01 : 0x00, 0x00, 0x00, 0x00,
+                            cmd.hasLockMouseToCenter() ? 0x01 : 0x00, 0x00, 0x00, 0x00,
                             cmd.onKeyPress() ? 0x01 : 0x00, 0x00, 0x00, 0x00);
-                     writeUI32(cmd.getKey());
-                     write(0x00, 0x00, 0x00, 0x00); //uknown, but probably boolean ?
+                    writeUI32(cmd.getKey());
+                    write(0x00, 0x00, 0x00, 0x00); //uknown, but probably boolean ?
                 }
             }
-            
+
         } catch (IOException | ScriptParseException | InterruptedException ex) {
             logger.log(Level.SEVERE, null, ex);
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
@@ -1017,7 +1016,7 @@ public class FlaWriter {
             }
         }
     }
-    
+
     public void writeUI32(long value) throws IOException {
         write((int) (value & 0xFF));
         write((int) ((value >> 8) & 0xFF));

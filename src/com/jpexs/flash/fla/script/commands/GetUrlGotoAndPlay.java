@@ -17,7 +17,7 @@ public class GetUrlGotoAndPlay extends AbstractCommand {
 
     public GetUrlGotoAndPlay(String url, String window, String page, int frameNum, int waitFrames) {
         this.url = url;
-        this.window = window; 
+        this.window = window;
         this.page = page;
         this.frameNum = frameNum;
         this.waitFrames = waitFrames;
@@ -25,13 +25,13 @@ public class GetUrlGotoAndPlay extends AbstractCommand {
 
     public GetUrlGotoAndPlay(String url, String window, String page, int frameNum) {
         this(url, window, page, frameNum, NO_WAIT);
-    }    
-    
+    }
+
     @Override
     public int getActionKind() {
         return FLA1_ACTION_GET_URL_GO_TO_PLAY;
     }
-    
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F1;
@@ -40,12 +40,12 @@ public class GetUrlGotoAndPlay extends AbstractCommand {
     @Override
     public Expression getUrl() {
         return new Expression(url, true);
-    }        
+    }
 
     @Override
     public Expression getWindow() {
         return new Expression(window, true);
-    }        
+    }
 
     @Override
     public int getFrameNum() {
@@ -55,13 +55,13 @@ public class GetUrlGotoAndPlay extends AbstractCommand {
     @Override
     public int getWaitForExtraFrames() {
         return waitFrames;
-    }        
+    }
 
     @Override
     public String getPage() {
         return page;
     }
-            
+
     @Override
     public String toString() {
         String ret = "Get URL, Goto And Play (";
@@ -76,5 +76,5 @@ public class GetUrlGotoAndPlay extends AbstractCommand {
         }
         ret += ")";
         return ret;
-    }        
+    }
 }

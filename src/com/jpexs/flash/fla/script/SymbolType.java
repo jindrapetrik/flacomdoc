@@ -158,7 +158,7 @@ public enum SymbolType {
     PREPROCESSOR(Precedence.PRECEDENCE_PRIMARY, false),
     FSCOMMAND2(Precedence.PRECEDENCE_PRIMARY, false),
     DIRECTIVE(Precedence.PRECEDENCE_PRIMARY, false);
-    
+
     private int precedence = Precedence.NOPRECEDENCE;
 
     private boolean binary = false;

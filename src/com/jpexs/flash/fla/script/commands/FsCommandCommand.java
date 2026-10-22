@@ -14,14 +14,14 @@ public class FsCommandCommand extends AbstractCommand {
 
     public FsCommandCommand(Expression command, Expression arguments) {
         this.command = command;
-        this.arguments = arguments;        
-    }            
-    
+        this.arguments = arguments;
+    }
+
     @Override
     public int getActionKind() {
         return FLA3_ACTION_FSCOMMAND;
     }
-    
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F3;
@@ -30,16 +30,16 @@ public class FsCommandCommand extends AbstractCommand {
     @Override
     public Expression getArg0() {
         return command;
-    }   
+    }
 
     @Override
     public Expression getArg1() {
         return arguments;
-    }        
+    }
 
     @Override
     public String toString() {
         return "FS Command (" + command + ", " + arguments + ")";
     }
-    
+
 }

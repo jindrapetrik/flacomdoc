@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="unqualified">
+  <xs:annotation><xs:documentation xml:lang="en"><div xmlns="http://www.w3.org/1999/xhtml">
+    <h1>Adobe Flash publish profiles</h1>
+    <p>Companion schema for namespace-free PublishSettings.xml. Author: Jindra Petrik (JPEXS). License: CC-BY-4.0, like xfl.xsd.</p>
+    <p>Scalar values remain strings because native profiles include empty numeric and enumeration fields.</p>
+    <h2>Changelog</h2><ul><li><b>2026-10-23 v2.1.0</b>: Added SWC publish fields (swc, swcDefaultName, swcFileName) and the newer CompressionType setting.</li><li><b>2026-10-22 v2.0.0</b>: Added publish profile groups, library metadata and accepted legacy library-path fields.</li></ul>
+  </div></xs:documentation></xs:annotation>
+  <xs:element name="flash_profiles"><xs:complexType><xs:sequence>
+    <xs:element name="flash_profile" minOccurs="0" maxOccurs="unbounded"><xs:complexType><xs:sequence>
+      <xs:element name="PublishFormatProperties" type="PublishFormatPropertiesType" minOccurs="0"/>
+      <xs:element name="PublishHtmlProperties" type="PublishHtmlPropertiesType" minOccurs="0"/>
+      <xs:element name="PublishFlashProperties" type="PublishFlashPropertiesType" minOccurs="0"/>
+      <xs:element name="PublishJpegProperties" type="PublishJpegPropertiesType" minOccurs="0"/>
+      <xs:element name="PublishRNWKProperties" type="PublishRNWKPropertiesType" minOccurs="0"/>
+      <xs:element name="PublishGifProperties" type="PublishGifPropertiesType" minOccurs="0"/>
+      <xs:element name="PublishPNGProperties" type="PublishPNGPropertiesType" minOccurs="0"/>
+      <xs:element name="PublishQTProperties" type="PublishQTPropertiesType" minOccurs="0"/>
+    </xs:sequence>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="current" type="xs:boolean" default="false"/>
+    </xs:complexType></xs:element>
+  </xs:sequence></xs:complexType></xs:element>
+  <xs:complexType name="PublishFormatPropertiesType"><xs:all>
+    <xs:element name="defaultNames" type="xs:string" minOccurs="0"/>
+    <xs:element name="flash" type="xs:string" minOccurs="0"/>
+    <xs:element name="projectorWin" type="xs:string" minOccurs="0"/>
+    <xs:element name="projectorMac" type="xs:string" minOccurs="0"/>
+    <xs:element name="html" type="xs:string" minOccurs="0"/>
+    <xs:element name="gif" type="xs:string" minOccurs="0"/>
+    <xs:element name="jpeg" type="xs:string" minOccurs="0"/>
+    <xs:element name="png" type="xs:string" minOccurs="0"/>
+    <xs:element name="qt" type="xs:string" minOccurs="0"/>
+    <xs:element name="rnwk" type="xs:string" minOccurs="0"/>
+    <xs:element name="swc" type="xs:string" minOccurs="0"/>
+    <xs:element name="flashDefaultName" type="xs:string" minOccurs="0"/>
+    <xs:element name="projectorWinDefaultName" type="xs:string" minOccurs="0"/>
+    <xs:element name="projectorMacDefaultName" type="xs:string" minOccurs="0"/>
+    <xs:element name="htmlDefaultName" type="xs:string" minOccurs="0"/>
+    <xs:element name="gifDefaultName" type="xs:string" minOccurs="0"/>
+    <xs:element name="jpegDefaultName" type="xs:string" minOccurs="0"/>
+    <xs:element name="pngDefaultName" type="xs:string" minOccurs="0"/>
+    <xs:element name="qtDefaultName" type="xs:string" minOccurs="0"/>
+    <xs:element name="rnwkDefaultName" type="xs:string" minOccurs="0"/>
+    <xs:element name="swcDefaultName" type="xs:string" minOccurs="0"/>
+    <xs:element name="flashFileName" type="xs:string" minOccurs="0"/>
+    <xs:element name="projectorWinFileName" type="xs:string" minOccurs="0"/>
+    <xs:element name="projectorMacFileName" type="xs:string" minOccurs="0"/>
+    <xs:element name="htmlFileName" type="xs:string" minOccurs="0"/>
+    <xs:element name="gifFileName" type="xs:string" minOccurs="0"/>
+    <xs:element name="jpegFileName" type="xs:string" minOccurs="0"/>
+    <xs:element name="pngFileName" type="xs:string" minOccurs="0"/>
+    <xs:element name="qtFileName" type="xs:string" minOccurs="0"/>
+    <xs:element name="rnwkFileName" type="xs:string" minOccurs="0"/>
+    <xs:element name="swcFileName" type="xs:string" minOccurs="0"/>
+  </xs:all><xs:attribute name="enabled" type="xs:boolean" default="true"/></xs:complexType>
+  <xs:complexType name="PublishHtmlPropertiesType"><xs:all>
+    <xs:element name="VersionDetectionIfAvailable" type="xs:string" minOccurs="0"/>
+    <xs:element name="VersionInfo" type="xs:string" minOccurs="0"/>
+    <xs:element name="UsingDefaultContentFilename" type="xs:string" minOccurs="0"/>
+    <xs:element name="UsingDefaultAlternateFilename" type="xs:string" minOccurs="0"/>
+    <xs:element name="ContentFilename" type="xs:string" minOccurs="0"/>
+    <xs:element name="AlternateFilename" type="xs:string" minOccurs="0"/>
+    <xs:element name="UsingOwnAlternateFile" type="xs:string" minOccurs="0"/>
+    <xs:element name="OwnAlternateFilename" type="xs:string" minOccurs="0"/>
+    <xs:element name="Width" type="xs:string" minOccurs="0"/>
+    <xs:element name="Height" type="xs:string" minOccurs="0"/>
+    <xs:element name="Align" type="xs:string" minOccurs="0"/>
+    <xs:element name="Units" type="xs:string" minOccurs="0"/>
+    <xs:element name="Loop" type="xs:string" minOccurs="0"/>
+    <xs:element name="StartPaused" type="xs:string" minOccurs="0"/>
+    <xs:element name="Scale" type="xs:string" minOccurs="0"/>
+    <xs:element name="HorizontalAlignment" type="xs:string" minOccurs="0"/>
+    <xs:element name="VerticalAlignment" type="xs:string" minOccurs="0"/>
+    <xs:element name="Quality" type="xs:string" minOccurs="0"/>
+    <xs:element name="DeblockingFilter" type="xs:string" minOccurs="0"/>
+    <xs:element name="WindowMode" type="xs:string" minOccurs="0"/>
+    <xs:element name="DisplayMenu" type="xs:string" minOccurs="0"/>
+    <xs:element name="DeviceFont" type="xs:string" minOccurs="0"/>
+    <xs:element name="TemplateFileName" type="xs:string" minOccurs="0"/>
+    <xs:element name="showTagWarnMsg" type="xs:string" minOccurs="0"/>
+  </xs:all><xs:attribute name="enabled" type="xs:boolean" default="true"/></xs:complexType>
+  <xs:complexType name="PublishFlashPropertiesType"><xs:all>
+    <xs:element name="TopDown" type="xs:string" minOccurs="0"/>
+    <xs:element name="FireFox" type="xs:string" minOccurs="0"/>
+    <xs:element name="Report" type="xs:string" minOccurs="0"/>
+    <xs:element name="Protect" type="xs:string" minOccurs="0"/>
+    <xs:element name="OmitTraceActions" type="xs:string" minOccurs="0"/>
+    <xs:element name="Quality" type="xs:string" minOccurs="0"/>
+    <xs:element name="DeblockingFilter" type="xs:string" minOccurs="0"/>
+    <xs:element name="StreamFormat" type="xs:string" minOccurs="0"/>
+    <xs:element name="StreamCompress" type="xs:string" minOccurs="0"/>
+    <xs:element name="EventFormat" type="xs:string" minOccurs="0"/>
+    <xs:element name="EventCompress" type="xs:string" minOccurs="0"/>
+    <xs:element name="OverrideSounds" type="xs:string" minOccurs="0"/>
+    <xs:element name="Version" type="xs:string" minOccurs="0"/>
+    <xs:element name="ExternalPlayer" type="xs:string" minOccurs="0"/>
+    <xs:element name="ActionScriptVersion" type="xs:string" minOccurs="0"/>
+    <xs:element name="PackageExportFrame" type="xs:string" minOccurs="0"/>
+    <xs:element name="PackagePaths" type="xs:string" minOccurs="0"/>
+    <xs:element name="AS3PackagePaths" type="xs:string" minOccurs="0"/>
+    <xs:element name="AS3ConfigConst" type="xs:string" minOccurs="0"/>
+    <xs:element name="DebuggingPermitted" type="xs:string" minOccurs="0"/>
+    <xs:element name="DebuggingPassword" type="xs:string" minOccurs="0"/>
+    <xs:element name="CompressMovie" type="xs:string" minOccurs="0"/>
+    <xs:element name="CompressionType" type="xs:string" minOccurs="0"/>
+    <xs:element name="InvisibleLayer" type="xs:string" minOccurs="0"/>
+    <xs:element name="DeviceSound" type="xs:string" minOccurs="0"/>
+    <xs:element name="StreamUse8kSampleRate" type="xs:string" minOccurs="0"/>
+    <xs:element name="EventUse8kSampleRate" type="xs:string" minOccurs="0"/>
+    <xs:element name="UseNetwork" type="xs:string" minOccurs="0"/>
+    <xs:element name="DocumentClass" type="xs:string" minOccurs="0"/>
+    <xs:element name="AS3Strict" type="xs:string" minOccurs="0"/>
+    <xs:element name="AS3Coach" type="xs:string" minOccurs="0"/>
+    <xs:element name="AS3AutoDeclare" type="xs:string" minOccurs="0"/>
+    <xs:element name="AS3Dialect" type="xs:string" minOccurs="0"/>
+    <xs:element name="AS3ExportFrame" type="xs:string" minOccurs="0"/>
+    <xs:element name="AS3Optimize" type="xs:string" minOccurs="0"/>
+    <xs:element name="ExportSwc" type="xs:string" minOccurs="0"/>
+    <xs:element name="ScriptStuckDelay" type="xs:string" minOccurs="0"/>
+    <xs:element name="IncludeXMP" type="xs:string" minOccurs="0"/>
+    <xs:element name="HardwareAcceleration" type="xs:string" minOccurs="0"/>
+    <xs:element name="AS3Flags" type="xs:string" minOccurs="0"/>
+    <xs:element name="DefaultLibraryLinkage" type="xs:string" minOccurs="0"/>
+    <xs:element name="RSLPreloaderMethod" type="xs:string" minOccurs="0"/>
+    <xs:element name="RSLPreloaderSWF" type="xs:string" minOccurs="0"/>
+    <xs:element name="LibraryPath" type="LibraryPathType" minOccurs="0"/>
+    <xs:element name="LibraryVersions" type="LibraryVersionsType" minOccurs="0"/>
+    <xs:element name="AS3LibraryPaths" type="xs:string" minOccurs="0"/>
+    <xs:element name="AS3ExternalLibraryPaths" type="xs:string" minOccurs="0"/>
+  </xs:all><xs:attribute name="enabled" type="xs:boolean" default="true"/></xs:complexType>
+  <xs:complexType name="PublishJpegPropertiesType"><xs:all>
+    <xs:element name="Width" type="xs:string" minOccurs="0"/>
+    <xs:element name="Height" type="xs:string" minOccurs="0"/>
+    <xs:element name="Progressive" type="xs:string" minOccurs="0"/>
+    <xs:element name="DPI" type="xs:string" minOccurs="0"/>
+    <xs:element name="Size" type="xs:string" minOccurs="0"/>
+    <xs:element name="Quality" type="xs:string" minOccurs="0"/>
+    <xs:element name="MatchMovieDim" type="xs:string" minOccurs="0"/>
+  </xs:all><xs:attribute name="enabled" type="xs:boolean" default="true"/></xs:complexType>
+  <xs:complexType name="PublishRNWKPropertiesType"><xs:all>
+    <xs:element name="exportFlash" type="xs:string" minOccurs="0"/>
+    <xs:element name="flashBitRate" type="xs:string" minOccurs="0"/>
+    <xs:element name="exportAudio" type="xs:string" minOccurs="0"/>
+    <xs:element name="audioFormat" type="xs:string" minOccurs="0"/>
+    <xs:element name="singleRateAudio" type="xs:string" minOccurs="0"/>
+    <xs:element name="realVideoRate" type="xs:string" minOccurs="0"/>
+    <xs:element name="speed28K" type="xs:string" minOccurs="0"/>
+    <xs:element name="speed56K" type="xs:string" minOccurs="0"/>
+    <xs:element name="speedSingleISDN" type="xs:string" minOccurs="0"/>
+    <xs:element name="speedDualISDN" type="xs:string" minOccurs="0"/>
+    <xs:element name="speedCorporateLAN" type="xs:string" minOccurs="0"/>
+    <xs:element name="speed256K" type="xs:string" minOccurs="0"/>
+    <xs:element name="speed384K" type="xs:string" minOccurs="0"/>
+    <xs:element name="speed512K" type="xs:string" minOccurs="0"/>
+    <xs:element name="exportSMIL" type="xs:string" minOccurs="0"/>
+  </xs:all><xs:attribute name="enabled" type="xs:boolean" default="true"/></xs:complexType>
+  <xs:complexType name="PublishGifPropertiesType"><xs:all>
+    <xs:element name="Width" type="xs:string" minOccurs="0"/>
+    <xs:element name="Height" type="xs:string" minOccurs="0"/>
+    <xs:element name="Animated" type="xs:string" minOccurs="0"/>
+    <xs:element name="MatchMovieDim" type="xs:string" minOccurs="0"/>
+    <xs:element name="Loop" type="xs:string" minOccurs="0"/>
+    <xs:element name="LoopCount" type="xs:string" minOccurs="0"/>
+    <xs:element name="OptimizeColors" type="xs:string" minOccurs="0"/>
+    <xs:element name="Interlace" type="xs:string" minOccurs="0"/>
+    <xs:element name="Smooth" type="xs:string" minOccurs="0"/>
+    <xs:element name="DitherSolids" type="xs:string" minOccurs="0"/>
+    <xs:element name="RemoveGradients" type="xs:string" minOccurs="0"/>
+    <xs:element name="TransparentOption" type="xs:string" minOccurs="0"/>
+    <xs:element name="TransparentAlpha" type="xs:string" minOccurs="0"/>
+    <xs:element name="DitherOption" type="xs:string" minOccurs="0"/>
+    <xs:element name="PaletteOption" type="xs:string" minOccurs="0"/>
+    <xs:element name="MaxColors" type="xs:string" minOccurs="0"/>
+    <xs:element name="PaletteName" type="xs:string" minOccurs="0"/>
+  </xs:all><xs:attribute name="enabled" type="xs:boolean" default="true"/></xs:complexType>
+  <xs:complexType name="PublishPNGPropertiesType"><xs:all>
+    <xs:element name="Width" type="xs:string" minOccurs="0"/>
+    <xs:element name="Height" type="xs:string" minOccurs="0"/>
+    <xs:element name="OptimizeColors" type="xs:string" minOccurs="0"/>
+    <xs:element name="Interlace" type="xs:string" minOccurs="0"/>
+    <xs:element name="Transparent" type="xs:string" minOccurs="0"/>
+    <xs:element name="Smooth" type="xs:string" minOccurs="0"/>
+    <xs:element name="DitherSolids" type="xs:string" minOccurs="0"/>
+    <xs:element name="RemoveGradients" type="xs:string" minOccurs="0"/>
+    <xs:element name="MatchMovieDim" type="xs:string" minOccurs="0"/>
+    <xs:element name="DitherOption" type="xs:string" minOccurs="0"/>
+    <xs:element name="FilterOption" type="xs:string" minOccurs="0"/>
+    <xs:element name="PaletteOption" type="xs:string" minOccurs="0"/>
+    <xs:element name="BitDepth" type="xs:string" minOccurs="0"/>
+    <xs:element name="MaxColors" type="xs:string" minOccurs="0"/>
+    <xs:element name="PaletteName" type="xs:string" minOccurs="0"/>
+  </xs:all><xs:attribute name="enabled" type="xs:boolean" default="true"/></xs:complexType>
+  <xs:complexType name="PublishQTPropertiesType"><xs:all>
+    <xs:element name="Width" type="xs:string" minOccurs="0"/>
+    <xs:element name="Height" type="xs:string" minOccurs="0"/>
+    <xs:element name="MatchMovieDim" type="xs:string" minOccurs="0"/>
+    <xs:element name="UseQTSoundCompression" type="xs:string" minOccurs="0"/>
+    <xs:element name="AlphaOption" type="xs:string" minOccurs="0"/>
+    <xs:element name="LayerOption" type="xs:string" minOccurs="0"/>
+    <xs:element name="QTSndSettings" type="xs:string" minOccurs="0"/>
+    <xs:element name="ControllerOption" type="xs:string" minOccurs="0"/>
+    <xs:element name="Looping" type="xs:string" minOccurs="0"/>
+    <xs:element name="PausedAtStart" type="xs:string" minOccurs="0"/>
+    <xs:element name="PlayEveryFrame" type="xs:string" minOccurs="0"/>
+    <xs:element name="Flatten" type="xs:string" minOccurs="0"/>
+  </xs:all><xs:attribute name="enabled" type="xs:boolean" default="true"/></xs:complexType>
+  <xs:complexType name="LibraryPathType"><xs:sequence>
+    <xs:element name="library-path-entry" minOccurs="0" maxOccurs="unbounded"><xs:complexType><xs:sequence>
+      <xs:element name="swc-path" type="xs:string"/>
+      <xs:element name="linkage"><xs:complexType><xs:simpleContent><xs:extension base="xs:string"><xs:attribute name="usesDefault" type="xs:boolean"/></xs:extension></xs:simpleContent></xs:complexType></xs:element>
+      <xs:choice minOccurs="0" maxOccurs="unbounded"><xs:element name="rsl-url" type="xs:string"/><xs:element name="policy-file-url" type="xs:string"/></xs:choice>
+    </xs:sequence></xs:complexType></xs:element>
+  </xs:sequence></xs:complexType>
+  <xs:complexType name="LibraryVersionsType"><xs:sequence>
+    <xs:element name="library-version" minOccurs="0" maxOccurs="unbounded"><xs:complexType><xs:sequence>
+      <xs:element name="swc-path" type="xs:string"/>
+      <xs:element name="feature" minOccurs="0" maxOccurs="unbounded"><xs:complexType>
+        <xs:attribute name="name" type="xs:string" use="required"/><xs:attribute name="majorVersion" type="xs:unsignedInt"/>
+        <xs:attribute name="minorVersion" type="xs:unsignedInt"/><xs:attribute name="build" type="xs:unsignedInt"/>
+      </xs:complexType></xs:element>
+      <xs:choice minOccurs="0" maxOccurs="unbounded"><xs:element name="rsl-url" type="xs:string"/><xs:element name="policy-file-url" type="xs:string"/></xs:choice>
+    </xs:sequence></xs:complexType></xs:element>
+  </xs:sequence></xs:complexType>
+</xs:schema>

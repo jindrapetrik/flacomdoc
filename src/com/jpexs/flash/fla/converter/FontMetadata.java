@@ -26,7 +26,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Reads the font classification needed by legacy FLA text runs from SFNT files. */
+/**
+ * Reads the font classification needed by legacy FLA text runs from SFNT files.
+ */
 final class FontMetadata {
 
     static final FontMetadata UNKNOWN = new FontMetadata(0, 0);
@@ -68,7 +70,9 @@ final class FontMetadata {
         return charSet;
     }
 
-    /** Reads only name-table data; classification tables are read on demand. */
+    /**
+     * Reads only name-table data; classification tables are read on demand.
+     */
     static Map<String, Long> readPostScriptNames(File file) throws IOException {
         Map<String, Long> names = new LinkedHashMap<>();
         try (RandomAccessFile in = new RandomAccessFile(file, "r")) {
@@ -292,6 +296,7 @@ final class FontMetadata {
     }
 
     private static final class Table {
+
         final long offset;
         final long length;
 

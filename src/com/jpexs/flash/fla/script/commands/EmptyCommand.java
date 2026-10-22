@@ -11,7 +11,7 @@ public class EmptyCommand extends AbstractCommand {
     @Override
     public int getActionKind() {
         return FLA1_ACTION_NONE;
-    }    
+    }
 
     @Override
     public FlaFormatVersion getMinFlaVersion() {
@@ -21,5 +21,5 @@ public class EmptyCommand extends AbstractCommand {
     @Override
     public String toString() {
         return "None";
-    }        
+    }
 }

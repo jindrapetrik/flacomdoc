@@ -26,7 +26,7 @@ public class FontMetadataTest {
 
     @DataProvider(name = "classifications")
     public Object[][] classifications() {
-        return new Object[][] {
+        return new Object[][]{
             // PANOSE family, serif style and proportion; post.isFixedPitch; expected LOGFONT byte.
             {2, 2, 3, 0, 0x12}, // Times New Roman
             {2, 11, 4, 0, 0x22}, // Arial
@@ -59,7 +59,7 @@ public class FontMetadataTest {
 
     @DataProvider(name = "charsets")
     public Object[][] charsets() {
-        return new Object[][] {
+        return new Object[][]{
             {1L, false, 0}, {2L, false, 238}, {4L, false, 204}, {8L, false, 161},
             {16L, false, 162}, {32L, false, 177}, {64L, false, 178}, {128L, false, 186},
             {256L, false, 163}, {1L << 16, false, 222}, {1L << 17, false, 128},
@@ -109,7 +109,7 @@ public class FontMetadataTest {
 
     @Test
     public void readsUnicodeAndMacintoshPostScriptNames() throws Exception {
-        for (int platform : new int[] {0, 1}) {
+        for (int platform : new int[]{0, 1}) {
             byte[] text = "PortablePS".getBytes(platform == 0 ? StandardCharsets.UTF_16BE : StandardCharsets.US_ASCII);
             ByteBuffer name = ByteBuffer.allocate(18 + text.length);
             name.putShort((short) 0).putShort((short) 1).putShort((short) 18)
@@ -246,7 +246,7 @@ public class FontMetadataTest {
             Files.write(font, sfnt(tables("SyntheticSymbolPS", 5, 0, 0, 0, 0x80000000L, true), true, 0));
             SystemFontFiles fonts = new SystemFontFiles(Collections.singletonList(dir.toFile()));
             for (FlaFormatVersion version : FlaFormatVersion.values()) {
-                for (String face : new String[] {"SyntheticSymbolPS", "Imported*", "MissingPS"}) {
+                for (String face : new String[]{"SyntheticSymbolPS", "Imported*", "MissingPS"}) {
                     if (face.equals("Imported*") && version.ordinal() < FlaFormatVersion.F5.ordinal()) {
                         continue; // These target versions do not support library font aliases.
                     }
@@ -258,7 +258,7 @@ public class FontMetadataTest {
                             + "<DOMTextAttrs face='" + face + "' fillColor='#123456'/>"
                             + "</textAttrs></DOMTextRun></textRuns></DOMStaticText></elements>"
                             + "</DOMFrame></frames></DOMLayer></layers></DOMTimeline>"), xml("<DOMDocument><fonts>"
-                            + "<DOMFontItem name='Imported' font='SyntheticSymbolPS'/></fonts></DOMDocument>"), out, null);
+                                    + "<DOMFontItem name='Imported' font='SyntheticSymbolPS'/></fonts></DOMDocument>"), out, null);
                     byte[] bytes = out.toByteArray();
                     int color = findColor(bytes);
                     assertTrue(color >= 0, version + ": text-run color");

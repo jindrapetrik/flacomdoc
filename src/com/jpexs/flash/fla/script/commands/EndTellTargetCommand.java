@@ -7,8 +7,7 @@ import com.jpexs.flash.fla.converter.FlaFormatVersion;
  * @author JPEXS
  */
 public class EndTellTargetCommand extends AbstractCommand {
-   
-    
+
     @Override
     public int getActionKind() {
         return FLA3_ACTION_END_TELL_TARGET;
@@ -18,9 +17,9 @@ public class EndTellTargetCommand extends AbstractCommand {
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F3;
     }
-    
+
     @Override
     public String toString() {
         return "End Tell Target";
-    }        
+    }
 }

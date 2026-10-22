@@ -33,7 +33,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-/** Finds SFNT fonts by PostScript name without native APIs or font substitutions. */
+/**
+ * Finds SFNT fonts by PostScript name without native APIs or font
+ * substitutions.
+ */
 final class SystemFontFiles {
 
     private final List<File> directories;
@@ -45,6 +48,7 @@ final class SystemFontFiles {
     }
 
     private static final class InstalledFonts {
+
         static final SystemFontFiles INSTANCE = new SystemFontFiles(getSystemFontDirectories());
     }
 
@@ -180,6 +184,7 @@ final class SystemFontFiles {
     }
 
     private static final class FontFile {
+
         final File file;
         final long offset;
 

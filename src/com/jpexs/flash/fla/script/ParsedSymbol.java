@@ -11,7 +11,7 @@ public class ParsedSymbol {
      * Position (characters) in source text
      */
     public int position;
-    
+
     public SymbolGroup group;
 
     public Object value;
@@ -30,8 +30,8 @@ public class ParsedSymbol {
         this.group = group;
         this.type = type;
         this.value = value;
-    }  
-    
+    }
+
     @Override
     public String toString() {
         return group.toString() + " " + type.toString() + " " + (value != null ? value.toString() : "");

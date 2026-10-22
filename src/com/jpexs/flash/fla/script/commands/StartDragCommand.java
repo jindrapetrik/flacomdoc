@@ -26,7 +26,7 @@ public class StartDragCommand extends AbstractCommand {
         this.rectBottom = rectBottom;
         this.lockMouseToCenter = lockMouseToCenter;
     }
-    
+
     public StartDragCommand(Expression target, boolean lockMouseToCenter) {
         this.target = target;
         this.constrainToRectangle = false;
@@ -36,12 +36,12 @@ public class StartDragCommand extends AbstractCommand {
         this.rectBottom = new Expression();
         this.lockMouseToCenter = lockMouseToCenter;
     }
-    
+
     @Override
     public int getActionKind() {
         return FLA4_ACTION_START_DRAG;
     }
-    
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F4;
@@ -92,5 +92,5 @@ public class StartDragCommand extends AbstractCommand {
         }
         ret += ")";
         return ret;
-    }        
+    }
 }

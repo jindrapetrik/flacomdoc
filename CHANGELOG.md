@@ -2,7 +2,14 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Added
+- One Convert button in the GUI, with all supported target versions and containers selectable in the save dialog.
+- Conversion to XFL (CS5, CS5.5, CS6)
+- Conversion between binary FLA format versions
+- Reports
+
 ### Fixed
+- Flash 5 output uses the original scene/symbol linkage layout, fixing Unexpected file format when converting newer documents.
 - F4 get/set property
 - F4 compound operators
 - F4 texts

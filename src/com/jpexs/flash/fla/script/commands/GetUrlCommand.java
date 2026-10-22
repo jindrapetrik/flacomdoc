@@ -16,22 +16,22 @@ public class GetUrlCommand extends AbstractCommand {
     public GetUrlCommand(Expression url, Expression window, String sendVariablesMethod) {
         this.url = url;
         this.window = window;
-        this.sendVariablesMethod = sendVariablesMethod;        
+        this.sendVariablesMethod = sendVariablesMethod;
     }
-    
+
     public GetUrlCommand(Expression url, Expression window) {
         this(url, window, "");
     }
 
     public GetUrlCommand(Expression url) {
         this(url, new Expression(), "");
-    }        
-    
+    }
+
     @Override
     public int getActionKind() {
         return FLA1_ACTION_GET_URL;
     }
-    
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         if (!url.isRaw || !window.isRaw || !sendVariablesMethod.isEmpty()) {
@@ -43,12 +43,12 @@ public class GetUrlCommand extends AbstractCommand {
     @Override
     public Expression getUrl() {
         return url;
-    }        
+    }
 
     @Override
     public Expression getWindow() {
         return window;
-    }        
+    }
 
     @Override
     public String getMethod() {
@@ -67,5 +67,5 @@ public class GetUrlCommand extends AbstractCommand {
         }
         ret += ")";
         return ret;
-    }        
+    }
 }

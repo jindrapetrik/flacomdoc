@@ -5,6 +5,7 @@ package com.jpexs.flash.fla.script;
  * @author JPEXS
  */
 public class Escaper {
+
     public static String escapeActionScriptString(String s) {
         StringBuilder ret = new StringBuilder(s.length());
         for (int i = 0; i < s.length(); i++) {

@@ -36,6 +36,7 @@ import org.w3c.dom.NodeList;
 
 /**
  * Converter - class with common methods for FlaConverter and TimelineConverter.
+ *
  * @author JPEXS
  */
 public abstract class AbstractConverter {
@@ -249,7 +250,7 @@ public abstract class AbstractConverter {
             fg.write(autoLabeling ? 0 : 1);
         }
     }
-        
+
     protected void useClass(String className, int defineNum, FlaWriter os,
             Map<String, Integer> definedClasses,
             Reference<Integer> totalObjectCount
@@ -258,10 +259,10 @@ public abstract class AbstractConverter {
             int cls = definedClasses.get(className);
             if (cls >= 0x7FFF) {
                 long val = 0x80000000L + cls;
-                os.write(0xFF, 0x7F);                
+                os.write(0xFF, 0x7F);
                 os.writeUI32(val);
             } else {
-                int val = 0x8000 + cls; 
+                int val = 0x8000 + cls;
                 os.write(val & 0xFF);
                 os.write((val >> 8) & 0xFF);
             }
@@ -273,7 +274,7 @@ public abstract class AbstractConverter {
             os.write(sbytes);
             definedClasses.put(className, 1 + definedClasses.size() + totalObjectCount.getVal());
         }
-        totalObjectCount.setVal(totalObjectCount.getVal() + 1);        
+        totalObjectCount.setVal(totalObjectCount.getVal() + 1);
     }
 
     protected void useClass(String className, FlaWriter os,
@@ -305,7 +306,7 @@ public abstract class AbstractConverter {
                 }
             }
         }
-        
+
         media.sort(new Comparator<Element>() {
             @Override
             public int compare(Element o1, Element o2) {
@@ -313,5 +314,5 @@ public abstract class AbstractConverter {
             }
         });
         return media;
-    }       
+    }
 }

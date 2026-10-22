@@ -12,7 +12,7 @@ public class LinearGradientSwatchItem extends GradientSwatchItem {
     public LinearGradientSwatchItem(GradientEntry... entries) {
         super(entries);
     }
-    
+
     public LinearGradientSwatchItem(List<GradientEntry> entries, int spreadMethod, boolean interpolationMethodLinearRGB) {
         super(entries, spreadMethod, interpolationMethodLinearRGB);
     }

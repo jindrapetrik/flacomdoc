@@ -19,14 +19,16 @@
 package com.jpexs.flash.fla;
 
 import com.jpexs.cfb.CompoundFileBinary;
-import com.jpexs.flash.fla.converter.FlaConverter;
+import com.jpexs.flash.fla.converter.XflReader;
+import com.jpexs.flash.fla.converter.BinaryFlaConverter;
+import com.jpexs.flash.fla.converter.BinaryFlaConversionResult;
 import com.jpexs.flash.fla.converter.FlaFormatVersion;
-import com.jpexs.flash.fla.converter.streams.CfbOutputStorage;
-import com.jpexs.flash.fla.converter.streams.DirectoryInputStorage;
-import com.jpexs.flash.fla.converter.streams.InputStorageInterface;
-import com.jpexs.flash.fla.converter.streams.OutputStorageInterface;
-import com.jpexs.flash.fla.converter.streams.ZippedInputStorage;
+import com.jpexs.flash.fla.converter.FlaTargetVersion;
 import com.jpexs.flash.fla.gui.Gui;
+import com.jpexs.flash.fla.reader.BinaryFlaReader;
+import com.jpexs.flash.fla.exporter.BinaryFlaToXflExporter;
+import com.jpexs.flash.fla.exporter.XflExportResult;
+import com.jpexs.flash.fla.exporter.XflVersionConverter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -121,27 +123,28 @@ public class Main {
             case "--help":
             case "help":
                 System.out.println("Usage:");
-                System.out.println("java -jar flacomdoc.jar convert [--format <format>] [--charset <charset>] inputfile.fla/xfl outputfile.fla");
+                System.out.println("java -jar flacomdoc.jar convert [--format <format>] [--charset <charset>] [--container fla|zip|xfl] inputfile.fla/xfl output");
                 System.out.println(" OR ");
                 System.out.println("java -jar flacomdoc.jar extract inputfile.fla outputdir");
                 System.out.println();
                 System.out.print("Available formats for --format: ");
                 boolean first = true;
-                for (FlaFormatVersion v : FlaFormatVersion.values()) {
+                for (FlaTargetVersion v : FlaTargetVersion.values()) {
                     if (!first) {
                         System.out.print(", ");
                     }
                     first = false;
-                    System.out.print(v.toString());                    
+                    System.out.print(v.toString());
                 }
                 System.out.println();
+                System.out.println("F1-CS4: binary FLA/SPA; CS5-CS6: XFL in ZIP FLA (default) or a new directory (--container xfl).");
                 break;
             case "convert": {
 
                 int pos = 1;
                 Map<String, String> options = new HashMap<>();
                 try {
-                    pos = parseOptions(args, "f:c:", Arrays.asList("format:", "charset:"), options);
+                    pos = parseOptions(args, "f:c:", Arrays.asList("format:", "charset:", "container:"), options);
                 } catch (IllegalArgumentException iex) {
                     System.err.println(iex.getMessage());
                     System.exit(1);
@@ -165,15 +168,15 @@ public class Main {
                 if (options.containsKey("charset")) {
                     charset = options.get("charset");
                     if (!Charset.isSupported(charset)) {
-                        System.err.println("The charset " + charset +" is NOT supported by Java");
+                        System.err.println("The charset " + charset + " is NOT supported by Java");
                         System.exit(1);
                     }
                 }
 
-                FlaFormatVersion flaFormatVersion = FlaFormatVersion.CS4;
+                FlaTargetVersion targetVersion = FlaTargetVersion.CS4;
                 if (options.containsKey("format")) {
                     try {
-                        flaFormatVersion = FlaFormatVersion.valueOf(options.get("format"));
+                        targetVersion = FlaTargetVersion.parse(options.get("format"));
                     } catch (IllegalArgumentException iex) {
                         System.err.println("Invalid --format value");
                         System.exit(1);
@@ -192,25 +195,42 @@ public class Main {
                     System.err.println("Input file does not exists");
                     System.exit(1);
                 }
-                if (inputFile.isDirectory()) {
-                    System.err.println("Input must be a regular file - it is a directory");
-                    System.exit(1);
-                }
-                
-                try {
-                    InputStorageInterface inputStorage;
-                    if (inputFile.getAbsolutePath().toLowerCase().endsWith(".xfl")) {
-                        inputStorage = new DirectoryInputStorage(inputFile.getParentFile());
-                    } else {
-                        inputStorage = new ZippedInputStorage(inputFile);
-                    }
-                    OutputStorageInterface outputStorage = new CfbOutputStorage(outputFile);
 
-                    FlaConverter contentsGenerator = new FlaConverter(flaFormatVersion, charset);
-                    contentsGenerator.convert(inputStorage, outputStorage);
-                    inputStorage.close();
-                    outputStorage.close();
-                    System.out.println("OK");
+                try {
+                    String container = options.getOrDefault("container", "fla").toLowerCase(java.util.Locale.ROOT);
+                    if (!Arrays.asList("fla", "zip", "xfl").contains(container)) {
+                        throw new IllegalArgumentException("Invalid --container value; use fla, zip or xfl");
+                    }
+                    boolean binaryInput = inputFile.isFile() && BinaryFlaConverter.isBinaryFla(inputFile);
+                    if (!targetVersion.isBinary()) {
+                        XflExportResult result = binaryInput
+                                ? new BinaryFlaToXflExporter(targetVersion.getXflVersion()).export(
+                                        new BinaryFlaReader(Charset.forName(charset)).read(inputFile))
+                                : new XflVersionConverter(targetVersion.getXflVersion()).convert(inputFile);
+                        if (container.equals("xfl")) {
+                            result.writeToDirectory(outputFile);
+                        } else {
+                            result.writeToZip(outputFile);
+                        }
+                        if (!result.getIssues().isEmpty()) {
+                            System.err.print(result.getReport());
+                        }
+                        System.out.println("OK (" + targetVersion + "; " + (container.equals("xfl") ? "XFL directory" : "ZIP FLA") + ")");
+                        break;
+                    }
+                    if (!container.equals("fla")) {
+                        throw new IllegalArgumentException("Flash 1 through CS4 targets use binary FLA; omit --container or use fla");
+                    }
+                    FlaFormatVersion flaFormatVersion = targetVersion.getBinaryVersion();
+                    com.jpexs.flash.fla.reader.BinaryFlaDocument source = binaryInput
+                            ? new BinaryFlaReader(Charset.forName(charset)).read(inputFile)
+                            : new XflReader(Charset.forName(charset)).read(inputFile);
+                    BinaryFlaConversionResult result = new BinaryFlaConverter(flaFormatVersion, charset).convert(source);
+                    result.writeToFile(outputFile);
+                    if (!result.getIssues().isEmpty()) {
+                        System.err.print(result.getReport());
+                    }
+                    System.out.println("OK (" + (binaryInput ? "binary" : "XFL model") + " conversion; limitations: " + result.getIssues().size() + ")");
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     System.err.println("Error: " + ex.getLocalizedMessage());
@@ -235,7 +255,7 @@ public class Main {
                     System.err.println("Input must be a regular file - it is a directory");
                     System.exit(1);
                 }
-                
+
                 if (!outputDir.exists()) {
                     outputDir.mkdirs();
                 }

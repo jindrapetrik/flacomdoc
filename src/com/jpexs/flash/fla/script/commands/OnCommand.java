@@ -19,8 +19,7 @@ public class OnCommand extends AbstractCommand {
     private final boolean onDragOut;
     private final boolean onKeyPress;
     private final int key;
-    
-    
+
     public static final String[] KEYNAMES = {
         null,
         "<Left>",
@@ -80,12 +79,12 @@ public class OnCommand extends AbstractCommand {
         this.key = key;
         this.onKeyPress = true;
     }
-    
+
     @Override
     public int getActionKind() {
         return FLA3_ACTION_ON;
-    }    
-    
+    }
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         if (onKeyPress) {
@@ -93,8 +92,8 @@ public class OnCommand extends AbstractCommand {
         }
         return FlaFormatVersion.F3;
     }
-    
-     /**
+
+    /**
      * Converts string to key code
      *
      * @param str String representation of key code
@@ -126,12 +125,12 @@ public class OnCommand extends AbstractCommand {
 
     @Override
     public boolean onReleaseOutside() {
-        return onReleaseOutside;        
-    }        
+        return onReleaseOutside;
+    }
 
     @Override
     public boolean onRollOver() {
-        return onRollOver;        
+        return onRollOver;
     }
 
     @Override
@@ -157,7 +156,7 @@ public class OnCommand extends AbstractCommand {
     @Override
     public int getKey() {
         return key;
-    }    
+    }
 
     @Override
     public String toString() {
@@ -195,6 +194,6 @@ public class OnCommand extends AbstractCommand {
         }
         ret += String.join(", ", events);
         ret += ")";
-        return ret;    
-    }        
+        return ret;
+    }
 }

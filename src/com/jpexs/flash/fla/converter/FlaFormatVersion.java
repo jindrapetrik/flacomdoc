@@ -21,11 +21,12 @@ package com.jpexs.flash.fla.converter;
 /**
  * Save-target constants for the binary FLA archive.
  *
- * <p>Each serialized class or nested record has its own revision. Base revisions
- * select the inherited CPicObj/CMediaElem layout; extension revisions select the
- * following derived record. Neither is an XFL symbol type or an MFC class tag.
- * Numeric values and enum ordering also cover legacy targets and are intentional.
- * The detailed semantics of some nested records remain unresolved.
+ * <p>
+ * Each serialized class or nested record has its own revision. Base revisions
+ * select the inherited CPicObj/CMediaElem layout; extension revisions select
+ * the following derived record. Neither is an XFL symbol type or an MFC class
+ * tag. Numeric values and enum ordering also cover legacy targets and are
+ * intentional. The detailed semantics of some nested records remain unresolved.
  *
  * @author JPEXS
  */
@@ -46,7 +47,6 @@ public enum FlaFormatVersion {
             0, // Accessibility
             0, 0 // Reference writer metadata
     ),
-
     F2(
             0x11, 0, false, // Contents and archive strings
             3, 0, 0, 0, 0, 0, // Scene and symbol descriptors
@@ -62,7 +62,6 @@ public enum FlaFormatVersion {
             0, // Accessibility
             0, 0 // Reference writer metadata
     ),
-
     F3(
             0x14, 0, false, // Contents and archive strings
             4, 0, 0, 0, 0, 0, // Scene and symbol descriptors
@@ -78,7 +77,6 @@ public enum FlaFormatVersion {
             0, // Accessibility
             0, 0 // Reference writer metadata
     ),
-
     F4(
             0x1B, 0, false, // Contents and archive strings
             8, 4, 4, 0, 0, 0, // Scene and symbol descriptors
@@ -94,10 +92,9 @@ public enum FlaFormatVersion {
             0, // Accessibility
             0, 0 // Reference writer metadata
     ),
-
     F5(
             0x20, 1, false, // Contents and archive strings
-            0x0C, 5, 5, 3, 1, 0, // Scene and symbol descriptors
+            0x0C, 5, 5, 0, 0, 0, // Scene and symbol descriptors
             1, 3, 1, 8, 1, 0x15, 0, // Timeline pages, layers and frames
             1, 2, 5, // Shapes and groups
             1, 8, 3, 5, 0, // Symbols, movie clips and buttons
@@ -110,7 +107,6 @@ public enum FlaFormatVersion {
             0, // Accessibility
             0, 0 // Reference writer metadata
     ),
-
     MX(
             0x29, 1, false, // Contents and archive strings
             0x11, 5, 5, 3, 1, 2, // Scene and symbol descriptors
@@ -126,7 +122,6 @@ public enum FlaFormatVersion {
             1, // Accessibility
             0, 0 // Reference writer metadata
     ),
-
     MX2004(
             0x38, 1, true, // Contents and archive strings
             0x16, 6, 6, 5, 2, 5, // Scene and symbol descriptors
@@ -142,7 +137,6 @@ public enum FlaFormatVersion {
             2, // Accessibility
             0, 0 // Reference writer metadata
     ),
-
     F8(
             0x3F, 1, true, // Contents and archive strings
             0x17, 6, 6, 7, 2, 6, // Scene and symbol descriptors
@@ -158,7 +152,6 @@ public enum FlaFormatVersion {
             2, // Accessibility
             9, 494 // Reference writer metadata
     ),
-
     CS3(
             0x43, 1, true, // Contents and archive strings
             0x18, 6, 6, 7, 2, 7, // Scene and symbol descriptors
@@ -174,7 +167,6 @@ public enum FlaFormatVersion {
             2, // Accessibility
             10, 544 // Reference writer metadata
     ),
-
     CS4(
             0x47, 1, true, // Contents and archive strings
             0x19, 6, 6, 7, 2, 7, // Scene and symbol descriptors
@@ -192,137 +184,258 @@ public enum FlaFormatVersion {
     );
 
     // Contents and archive strings
-    /** Contents stream format revision (V), independent of class-local revisions. */
+    /**
+     * Contents stream format revision (V), independent of class-local
+     * revisions.
+     */
     public final int contentsRevision;
-    /** Contents encoding/compatibility marker; not a record revision. */
+    /**
+     * Contents encoding/compatibility marker; not a record revision.
+     */
     public final int contentsCompatibilityMarker;
-    /** Whether this target uses Unicode archive strings in the converter. */
+    /**
+     * Whether this target uses Unicode archive strings in the converter.
+     */
     public final boolean unicodeStrings;
 
     // Scene and symbol descriptors
-    /** CDocumentPage descriptor revision in Contents, not the page-stream payload. */
+    /**
+     * CDocumentPage descriptor revision in Contents, not the page-stream
+     * payload.
+     */
     public final int documentPageRevision;
-    /** Scene descriptor library-item metadata revision. */
+    /**
+     * Scene descriptor library-item metadata revision.
+     */
     public final int sceneLibraryItemMetadataRevision;
-    /** Symbol descriptor library-item metadata revision. */
+    /**
+     * Symbol descriptor library-item metadata revision.
+     */
     public final int symbolLibraryItemMetadataRevision;
-    /** CDocumentPage linkage block revision. */
+    /**
+     * CDocumentPage linkage block revision.
+     */
     public final int documentPageLinkageRevision;
-    /** Auxiliary record inside document-page linkage; detailed semantics unresolved. */
+    /**
+     * Auxiliary record inside document-page linkage; detailed semantics
+     * unresolved.
+     */
     public final int documentPageLinkageAuxiliaryRevision;
-    /** CDocumentPage component metadata revision. */
+    /**
+     * CDocumentPage component metadata revision.
+     */
     public final int documentPageComponentMetadataRevision;
 
     // Timeline pages, layers and frames
-    /** CPicObj base revision used by CPicPage. */
+    /**
+     * CPicObj base revision used by CPicPage.
+     */
     public final int picPageBaseRevision;
-    /** CPicPage extension revision, after the CPicObj base and its children. */
+    /**
+     * CPicPage extension revision, after the CPicObj base and its children.
+     */
     public final int picPageRevision;
-    /** CPicObj base revision used by CPicLayer. */
+    /**
+     * CPicObj base revision used by CPicLayer.
+     */
     public final int picLayerBaseRevision;
-    /** CPicLayer extension revision. */
+    /**
+     * CPicLayer extension revision.
+     */
     public final int picLayerRevision;
-    /** CPicObj base revision used by CPicFrame. */
+    /**
+     * CPicObj base revision used by CPicFrame.
+     */
     public final int picFrameBaseRevision;
-    /** CPicFrame extension revision, after its inherited shape data. */
+    /**
+     * CPicFrame extension revision, after its inherited shape data.
+     */
     public final int picFrameRevision;
-    /** Frame ActionScript block revision, stored as a dword. */
+    /**
+     * Frame ActionScript block revision, stored as a dword.
+     */
     public final int frameActionScriptRevision;
 
     // Shapes and groups
-    /** CPicObj base revision used by CPicShape groups and floating-shape containers. */
+    /**
+     * CPicObj base revision used by CPicShape groups and floating-shape
+     * containers.
+     */
     public final int picGroupBaseRevision;
-    /** CPicShape wrapper revision; distinct from the inner ShapeData revision. */
+    /**
+     * CPicShape wrapper revision; distinct from the inner ShapeData revision.
+     */
     public final int picShapeRevision;
-    /** Inner ShapeData revision; not the CPicShape wrapper revision. */
+    /**
+     * Inner ShapeData revision; not the CPicShape wrapper revision.
+     */
     public final int shapeDataRevision;
 
     // Symbols, movie clips and buttons
-    /** CPicObj base revision shared by symbol, sprite and button instances. */
+    /**
+     * CPicObj base revision shared by symbol, sprite and button instances.
+     */
     public final int picSymbolBaseRevision;
-    /** CPicSymbol extension revision; not the movie clip/button/graphic type code. */
+    /**
+     * CPicSymbol extension revision; not the movie clip/button/graphic type
+     * code.
+     */
     public final int picSymbolRevision;
-    /** CPicSprite extension revision for movie clips; not the CPicSymbol revision. */
+    /**
+     * CPicSprite extension revision for movie clips; not the CPicSymbol
+     * revision.
+     */
     public final int picSpriteRevision;
-    /** CPicButton extension revision, after the inherited CPicSymbol fields. */
+    /**
+     * CPicButton extension revision, after the inherited CPicSymbol fields.
+     */
     public final int picButtonRevision;
-    /** Sprite/button ActionScript block revision, stored as a dword. */
+    /**
+     * Sprite/button ActionScript block revision, stored as a dword.
+     */
     public final int symbolActionScriptRevision;
 
     // Bitmap and video instances
-    /** CPicObj base revision used by CPicBitmap. */
+    /**
+     * CPicObj base revision used by CPicBitmap.
+     */
     public final int picBitmapBaseRevision;
-    /** CPicBitmap extension revision; not a bitmap type code. */
+    /**
+     * CPicBitmap extension revision; not a bitmap type code.
+     */
     public final int picBitmapRevision;
-    /** CPicObj base revision used by CPicVideoStream instances. */
+    /**
+     * CPicObj base revision used by CPicVideoStream instances.
+     */
     public final int picVideoStreamBaseRevision;
-    /** CPicVideoStream instance revision; not the separate media payload revision. */
+    /**
+     * CPicVideoStream instance revision; not the separate media payload
+     * revision.
+     */
     public final int picVideoStreamRevision;
 
     // Text and font library items
-    /** Base object revision written before CPicText instance fields. */
+    /**
+     * Base object revision written before CPicText instance fields.
+     */
     public final int picTextBaseRevision;
-    /** CPicText extension revision. */
+    /**
+     * CPicText extension revision.
+     */
     public final int picTextRevision;
-    /** Per-text-run style/font-info revision; independent of the CPicText revision. */
+    /**
+     * Per-text-run style/font-info revision; independent of the CPicText
+     * revision.
+     */
     public final int textRunStyleRevision;
-    /** Font library-item record revision. */
+    /**
+     * Font library-item record revision.
+     */
     public final int fontItemRevision;
-    /** Text-style/font-info record revision embedded in a font library item. */
+    /**
+     * Text-style/font-info record revision embedded in a font library item.
+     */
     public final int fontItemTextStyleRevision;
-    /** Font library-item metadata revision. */
+    /**
+     * Font library-item metadata revision.
+     */
     public final int fontLibraryItemMetadataRevision;
 
     // Media descriptors
-    /** CMediaElem base descriptor revision used by CMediaBits. */
+    /**
+     * CMediaElem base descriptor revision used by CMediaBits.
+     */
     public final int bitmapMediaBaseRevision;
-    /** CMediaBits descriptor extension revision; not the bitmap payload revision. */
+    /**
+     * CMediaBits descriptor extension revision; not the bitmap payload
+     * revision.
+     */
     public final int mediaBitsRevision;
-    /** Bitmap library-item metadata revision. */
+    /**
+     * Bitmap library-item metadata revision.
+     */
     public final int bitmapLibraryItemMetadataRevision;
-    /** CMediaElem base descriptor revision used by CMediaSound. */
+    /**
+     * CMediaElem base descriptor revision used by CMediaSound.
+     */
     public final int soundMediaBaseRevision;
-    /** CMediaSound descriptor extension revision. */
+    /**
+     * CMediaSound descriptor extension revision.
+     */
     public final int mediaSoundRevision;
-    /** Sound library-item metadata revision. */
+    /**
+     * Sound library-item metadata revision.
+     */
     public final int soundLibraryItemMetadataRevision;
-    /** CMediaElem descriptor revision used by CMediaVideoStream; not its payload revision. */
+    /**
+     * CMediaElem descriptor revision used by CMediaVideoStream; not its payload
+     * revision.
+     */
     public final int videoMediaBaseRevision;
-    /** Video library-item metadata revision. */
+    /**
+     * Video library-item metadata revision.
+     */
     public final int videoLibraryItemMetadataRevision;
-    /** Video library-item linkage revision. */
+    /**
+     * Video library-item linkage revision.
+     */
     public final int videoLibraryItemLinkageRevision;
-    /** Auxiliary record inside video linkage; detailed semantics unresolved. */
+    /**
+     * Auxiliary record inside video linkage; detailed semantics unresolved.
+     */
     public final int videoLibraryItemLinkageAuxiliaryRevision;
 
     // Shared library-item linkage
-    /** Library-item linkage revision, used by writeAsLinkage. */
+    /**
+     * Library-item linkage revision, used by writeAsLinkage.
+     */
     public final int libraryItemLinkageRevision;
-    /** Auxiliary record inside library-item linkage; detailed semantics unresolved. */
+    /**
+     * Auxiliary record inside library-item linkage; detailed semantics
+     * unresolved.
+     */
     public final int libraryItemLinkageAuxiliaryRevision;
 
     // Library folders
-    /** Library-folder record revision, preceding its name and library-item metadata. */
+    /**
+     * Library-folder record revision, preceding its name and library-item
+     * metadata.
+     */
     public final int libraryFolderRevision;
-    /** Folder library-item metadata revision. */
+    /**
+     * Folder library-item metadata revision.
+     */
     public final int folderLibraryItemMetadataRevision;
-    /** Folder library-item linkage revision. */
+    /**
+     * Folder library-item linkage revision.
+     */
     public final int folderLibraryItemLinkageRevision;
-    /** Auxiliary record inside folder linkage; detailed semantics unresolved. */
+    /**
+     * Auxiliary record inside folder linkage; detailed semantics unresolved.
+     */
     public final int folderLibraryItemLinkageAuxiliaryRevision;
 
     // Color swatches
-    /** CColorDef swatch record revision. */
+    /**
+     * CColorDef swatch record revision.
+     */
     public final int colorDefRevision;
 
     // Accessibility
-    /** Accessibility metadata revision, written as a word. */
+    /**
+     * Accessibility metadata revision, written as a word.
+     */
     public final int accessibilityRevision;
 
     // Reference writer metadata
-    /** Major version of the application that produced the reference saves, not the target format. */
+    /**
+     * Major version of the application that produced the reference saves, not
+     * the target format.
+     */
     public final int referenceWriterMajorVersion;
-    /** Build number of the application that produced the reference saves. */
+    /**
+     * Build number of the application that produced the reference saves.
+     */
     public final int referenceWriterBuild;
 
     FlaFormatVersion(
@@ -330,7 +443,6 @@ public enum FlaFormatVersion {
             int contentsRevision,
             int contentsCompatibilityMarker,
             boolean unicodeStrings,
-
             // Scene and symbol descriptors
             int documentPageRevision,
             int sceneLibraryItemMetadataRevision,
@@ -338,7 +450,6 @@ public enum FlaFormatVersion {
             int documentPageLinkageRevision,
             int documentPageLinkageAuxiliaryRevision,
             int documentPageComponentMetadataRevision,
-
             // Timeline pages, layers and frames
             int picPageBaseRevision,
             int picPageRevision,
@@ -347,25 +458,21 @@ public enum FlaFormatVersion {
             int picFrameBaseRevision,
             int picFrameRevision,
             int frameActionScriptRevision,
-
             // Shapes and groups
             int picGroupBaseRevision,
             int picShapeRevision,
             int shapeDataRevision,
-
             // Symbols, movie clips and buttons
             int picSymbolBaseRevision,
             int picSymbolRevision,
             int picSpriteRevision,
             int picButtonRevision,
             int symbolActionScriptRevision,
-
             // Bitmap and video instances
             int picBitmapBaseRevision,
             int picBitmapRevision,
             int picVideoStreamBaseRevision,
             int picVideoStreamRevision,
-
             // Text and font library items
             int picTextBaseRevision,
             int picTextRevision,
@@ -373,7 +480,6 @@ public enum FlaFormatVersion {
             int fontItemRevision,
             int fontItemTextStyleRevision,
             int fontLibraryItemMetadataRevision,
-
             // Media descriptors
             int bitmapMediaBaseRevision,
             int mediaBitsRevision,
@@ -385,23 +491,18 @@ public enum FlaFormatVersion {
             int videoLibraryItemMetadataRevision,
             int videoLibraryItemLinkageRevision,
             int videoLibraryItemLinkageAuxiliaryRevision,
-
             // Shared library-item linkage
             int libraryItemLinkageRevision,
             int libraryItemLinkageAuxiliaryRevision,
-
             // Library folders
             int libraryFolderRevision,
             int folderLibraryItemMetadataRevision,
             int folderLibraryItemLinkageRevision,
             int folderLibraryItemLinkageAuxiliaryRevision,
-
             // Color swatches
             int colorDefRevision,
-
             // Accessibility
             int accessibilityRevision,
-
             // Reference writer metadata
             int referenceWriterMajorVersion,
             int referenceWriterBuild

@@ -78,7 +78,7 @@ import org.w3c.dom.NodeList;
 public class TimelineConverter extends AbstractConverter {
 
     //https://stackoverflow.com/questions/4077200/whats-the-meaning-of-the-non-numerical-values-in-the-xfls-edge-definition
-    private static final Pattern CUBICS_PATTERN = Pattern.compile("^!(?<mx>-?[0-9]+) +(?<my>-?[0-9]+) *\\(((?<pBCPx>-?[0-9]+) *, *(?<pBCPy>-?[0-9]+))? *; *(?<x1>-?[0-9]+),(?<y1>-?[0-9]+) +(?<x2>-?[0-9]+),(?<y2>-?[0-9]+) +(?<ex>-?[0-9]+),(?<ey>-?[0-9]+) *(?<xy>-?([QqPp]? *-?[0-9]+ +-?[0-9]+)+) *\\)((?<nBCPx>-?[0-9]+) *, *(?<nBCPy>-?[0-9]+))? *; *$");
+    private static final Pattern CUBICS_PATTERN = Pattern.compile("^!(?<mx>-?[0-9]+) +(?<my>-?[0-9]+) *\\(((?<pBCPx>-?[0-9]+) *, *(?<pBCPy>-?[0-9]+))? *; *(?<x1>-?[0-9]+),(?<y1>-?[0-9]+) +(?<x2>-?[0-9]+),(?<y2>-?[0-9]+) +(?<ex>-?[0-9]+),(?<ey>-?[0-9]+) *(?<xy>([QqPp]? *-?[0-9]+ +-?[0-9]+)*) *\\)((?<nBCPx>-?[0-9]+) *, *(?<nBCPy>-?[0-9]+))? *; *$");
     private static final Pattern CUBICS_XY_PATTERN = Pattern.compile("(?<letter>[QqPp]?) *(?<x>-?[0-9]+) +(?<y>-?[0-9]+)");
     private final String title;
     private final SystemFontFiles systemFonts;
@@ -324,7 +324,7 @@ public class TimelineConverter extends AbstractConverter {
         if (!bitmapInstance.hasAttribute("libraryItemName")) {
             return;
         }
-       
+
         String libraryItemName = bitmapInstance.getAttribute("libraryItemName");
 
         List<Element> mediaItems = getMedia(document);
@@ -352,7 +352,7 @@ public class TimelineConverter extends AbstractConverter {
         useClass("CPicBitmap", fg, definedClasses, totalObjectCount);
         fg.write(flaFormatVersion.picBitmapBaseRevision);
         instanceHeader(bitmapInstance, fg, flaFormatVersion.picBitmapRevision, true, false);
-            
+
         if (flaFormatVersion == FlaFormatVersion.F1) {
             if (sourceDir.fileExists("bin/" + bitmapDataHRef)) {
                 OutputStream fgOs = new OutputStream() {
@@ -369,25 +369,23 @@ public class TimelineConverter extends AbstractConverter {
                     @Override
                     public void write(byte[] b, int off, int len) throws IOException {
                         fg.write(b, off, len);
-                    }                                                                                                
+                    }
                 };
                 if (isJPEG) {
-                    try (InputStream fis = sourceDir.readFile("bin/" + bitmapDataHRef)) {                    
+                    try (InputStream fis = sourceDir.readFile("bin/" + bitmapDataHRef)) {
                         JpegImageBinToFlash1Convertor convertor = new JpegImageBinToFlash1Convertor(fis);
                         convertor.convertTo(fgOs);
                     }
                 } else {
-                    try (InputStream fis = sourceDir.readFile("bin/" + bitmapDataHRef)) {                    
+                    try (InputStream fis = sourceDir.readFile("bin/" + bitmapDataHRef)) {
                         LosslessImageBinToFlash1Convertor convertor = new LosslessImageBinToFlash1Convertor(fis);
                         convertor.convertTo(fgOs);
                     }
                 }
             }
-        } else {        
+        } else {
             fg.writeUI16(bitmapId);
         }
-        
-        
 
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
             fg.write(0x00);
@@ -404,7 +402,7 @@ public class TimelineConverter extends AbstractConverter {
             InputStorageInterface sourceDir
     ) throws IOException {
         Element membersElement = getSubElementByName(element, "members");
-        if (membersElement != null) {           
+        if (membersElement != null) {
             List<Element> members = getAllSubElements(membersElement);
             useClass("CPicShape", fg, definedClasses, totalObjectCount);
             fg.write(flaFormatVersion.picGroupBaseRevision);
@@ -461,7 +459,7 @@ public class TimelineConverter extends AbstractConverter {
         for (int e = 0; e < elements.size(); e++) {
             Element element = elements.get(e);
             if ("DOMShape".equals(element.getNodeName())) {
-                if (element.getAttribute("isFloating").equals("true")) {                    
+                if (element.getAttribute("isFloating").equals("true")) {
                     isFloating = true;
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
                         useClass("CPicShape", fg, definedClasses, totalObjectCount);
@@ -473,21 +471,21 @@ public class TimelineConverter extends AbstractConverter {
                         boolean locked = false;
                         if (element.hasAttribute("locked")) {
                             locked = "true".equals(element.getAttribute("locked"));
-                        }                    
-                        fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00) + (isFloating /*???*/ ? 0x01 : 0x00));                        
+                        }
+                        fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00) + (isFloating /*???*/ ? 0x01 : 0x00));
                     }
                     shapeElement = element;
-                    
+
                 }
                 handleShape(element, document, fg, isFloating, definedClasses, totalObjectCount);
                 if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {
                     isFloating = false;
-                }                
+                }
                 hasShape = true;
                 break;
             }
         }
-        
+
         if (!hasShape || isFloating) {
             instanceHeader(shapeElement, fg, flaFormatVersion.picShapeRevision, false, flaFormatVersion.ordinal() < FlaFormatVersion.F4.ordinal());
             fg.write(flaFormatVersion.shapeDataRevision);
@@ -738,6 +736,8 @@ public class TimelineConverter extends AbstractConverter {
         return filterList;
     }
 
+    private final Map<String, Integer> symbolIdsByName = new HashMap<>();
+
     protected void handleSymbolInstance(
             Element symbolInstance,
             Element document,
@@ -756,8 +756,8 @@ public class TimelineConverter extends AbstractConverter {
         List<Element> includes = getSymbols(document);
 
         //Find index in library
-        int libraryItemIndex = -1;
-        for (int e = 0; e < includes.size(); e++) {
+        int libraryItemIndex = symbolIdsByName.containsKey(libraryItemName) ? symbolIdsByName.get(libraryItemName) : -1;
+        for (int e = 0; libraryItemIndex == -1 && e < includes.size(); e++) {
             Element include = includes.get(e);
             if (!include.hasAttribute("href")) {
                 continue;
@@ -845,7 +845,7 @@ public class TimelineConverter extends AbstractConverter {
         if (symbolInstance.hasAttribute("centerPoint3DZ")) {
             centerPoint3DZ = Double.parseDouble(symbolInstance.getAttribute("centerPoint3DZ"));
         }
-        
+
         ColorEffectInterface colorEffect = new NoColorEffect();
 
         Element colorElement = getSubElementByName(symbolInstance, "color");
@@ -958,7 +958,7 @@ public class TimelineConverter extends AbstractConverter {
 
         fg.write(flaFormatVersion.picSymbolBaseRevision);
         instanceHeader(symbolInstance, fg, flaFormatVersion.picSymbolRevision, true, false);
-        
+
         fg.write((firstFrame & 0xFF), ((firstFrame >> 8) & 0xFF));
         switch (symbolType) {
             case FlaWriter.SYMBOLTYPE_MOVIE_CLIP:
@@ -982,9 +982,8 @@ public class TimelineConverter extends AbstractConverter {
                 break;
         }
 
-        
         fg.write(0x00);
-        
+
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
             fg.write(0x01);
         }
@@ -999,36 +998,35 @@ public class TimelineConverter extends AbstractConverter {
             int blueOffset = colorEffect.getBlueOffset();
             int alphaOffset = colorEffect.getAlphaOffset();
             Color effectColor = colorEffect.getValueColor();
-            
 
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
                 fg.write(debugRandom ? 'X' : (alphaMultiplier & 0xFF), ((alphaMultiplier >> 8) & 0xFF), (alphaOffset & 0xFF), ((alphaOffset >> 8) & 0xFF));
             }
-            fg.write(                
+            fg.write(
                     debugRandom ? 'X' : (redMultiplier & 0xFF), ((redMultiplier >> 8) & 0xFF), (redOffset & 0xFF), ((redOffset >> 8) & 0xFF),
                     debugRandom ? 'X' : (greenMultiplier & 0xFF), ((greenMultiplier >> 8) & 0xFF), (greenOffset & 0xFF), ((greenOffset >> 8) & 0xFF),
                     debugRandom ? 'X' : (blueMultiplier & 0xFF), ((blueMultiplier >> 8) & 0xFF), (blueOffset & 0xFF), ((blueOffset >> 8) & 0xFF),
                     colorEffect.getType(), 0x00);
             if ((colorEffect instanceof NoColorEffect) && debugRandom) {
                 fg.write('X', 'X');
-                fg.write('X', 'X', 'X', 'X');                
+                fg.write('X', 'X', 'X', 'X');
             } else {
                 fg.writeUI16(colorEffect.getValuePercent());
                 fg.write(effectColor.getRed(), effectColor.getGreen(), effectColor.getBlue(), effectColor.getAlpha()); //why is there alpha for  F1, F2?            
             }
-        }        
-        
+        }
+
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
             fg.writeBomString("");
         }
-        
+
         if (debugRandom) {
             fg.write('X', 'X');
         } else {
             fg.writeUI16(libraryItemIndex);
         }
         fg.write(0x00, 0x00); //Is this an extension to the libraryItemIndex? 
-        
+
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
             fg.write(0x00, 0x00, 0x00);
         }
@@ -1110,14 +1108,13 @@ public class TimelineConverter extends AbstractConverter {
 
         if (flaFormatVersion == FlaFormatVersion.F5) {
             fg.write(0x00, 0x00);
-            fg.write(0x01, 0x00, 0x00, 0x00, 0x00);  
+            fg.write(0x01, 0x00, 0x00, 0x00, 0x00);
             fg.write(0x01, 0x00, 0x00, 0x00);
         }
-        
-        
+
         if (symbolType == FlaWriter.SYMBOLTYPE_GRAPHIC) {
             return;
-        }                
+        }
 
         if (symbolType == FlaWriter.SYMBOLTYPE_BUTTON) {
             switch (flaFormatVersion) {
@@ -1142,10 +1139,10 @@ public class TimelineConverter extends AbstractConverter {
             fg.write(flaFormatVersion.picSpriteRevision);
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
                 fg.write(flaFormatVersion.symbolActionScriptRevision, 0x00, 0x00, 0x00,
-                0x01, 0x00, 0x00, 0x00);
+                        0x01, 0x00, 0x00, 0x00);
             }
         }
-        
+
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
             fg.write((symbolInstanceId & 0xFF), ((symbolInstanceId >> 8) & 0xFF));
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
@@ -1175,7 +1172,7 @@ public class TimelineConverter extends AbstractConverter {
             return;
         }
         if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {
-            
+
         } else if (flaFormatVersion.ordinal() == FlaFormatVersion.F5.ordinal()) {
             fg.write(0x01, 0x00, 0x00, 0x00, 0x00);
         } else {
@@ -1198,7 +1195,7 @@ public class TimelineConverter extends AbstractConverter {
                 componentTxt = "YYY";
             }
             fg.writeBomString(componentTxt);
-        }                 
+        }
     }
 
     private void instanceHeader(Element element, FlaWriter fg, int recordRevision, boolean isInstance, boolean strippedMatrix) throws IOException {
@@ -1238,7 +1235,7 @@ public class TimelineConverter extends AbstractConverter {
         if (isInstance) {
             if (debugRandom) {
                 fg.write('X');
-            } else {            
+            } else {
                 fg.write((selected ? 0x02 : 0x00) + (locked ? 0x04 : 0x00));
             }
         }
@@ -1264,7 +1261,7 @@ public class TimelineConverter extends AbstractConverter {
                         (int) (tptY & 0xFF), (int) ((tptY >> 8) & 0xFF), (int) ((tptY >> 16) & 0xFF), (int) ((tptY >> 24) & 0xFF)
                 );
             }
-        }        
+        }
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F8.ordinal()) {
             fg.write(0x00, cacheAsBitmap ? 1 : 0);
         }
@@ -1272,8 +1269,8 @@ public class TimelineConverter extends AbstractConverter {
         if (strippedMatrix) {
             fg.writeMatrix(new Matrix());
         } else {
-            fg.writeMatrix(placeMatrix);        
-        }        
+            fg.writeMatrix(placeMatrix);
+        }
     }
 
     static int textCount = 0;
@@ -1394,7 +1391,7 @@ public class TimelineConverter extends AbstractConverter {
             int fontRenderingMode = FONTRENDERING_DEFAULT;
             boolean isSelectable = true;
             boolean includeOutlines = false;
-            
+
             float left = 0f;
             float width = 0f;
             float top = 0f;
@@ -1426,10 +1423,10 @@ public class TimelineConverter extends AbstractConverter {
                         break;
                 }
             }
-            
+
             if ("true".equals(element.getAttribute("includeOutlines"))) {
                 includeOutlines = true;
-            }                
+            }
 
             if (element.hasAttribute("left")) {
                 left = Float.parseFloat(element.getAttribute("left"));
@@ -1494,13 +1491,13 @@ public class TimelineConverter extends AbstractConverter {
             }
 
             fg.write(
-                autoExpand ? 0x01 : 0
-            );            
-            
+                    autoExpand ? 0x01 : 0
+            );
+
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
                 fg.write(0x00);
             }
-            
+
             Element fontsElement = getSubElementByName(document, "fonts");
             List<Element> domFontItems = new ArrayList<>();
 
@@ -1642,7 +1639,7 @@ public class TimelineConverter extends AbstractConverter {
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
                 fg.write(embedFlag);
             }
-            
+
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
                 if (!isStatic) {
                     fg.write(0);
@@ -1658,25 +1655,25 @@ public class TimelineConverter extends AbstractConverter {
                     fg.write(flags);
                 }
                 fg.write(0x00);
-            }            
-            
+            }
+
             if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
                 fg.writeUI16(maxCharacters);
-                fg.writeBomString(variableName);            
+                fg.writeBomString(variableName);
             }
             if (!embeddedCharacters.isEmpty()) {
                 fg.writeBomString(embeddedCharacters);
             }
             if (flaFormatVersion == FlaFormatVersion.CS4) {
                 fg.write(0x00);
-            }            
+            }
 
             /*
                             <DOMTextRun>
                                                        <characters>ABC</characters>
                                                        <textAttrs>
                                                             <DOMTextAttrs 
-                            aliasText="false"  ???
+                            aliasText="false"
                             rotation="true"    ???
                             alpha="0.8"
                             lineSpacing="1.65"
@@ -1779,7 +1776,7 @@ public class TimelineConverter extends AbstractConverter {
                     size = Float.parseFloat(domTextAttrs.getAttribute("size"));
                 }
 
-                int bitmapSize = (int) Math.round(size * 20);
+                int bitmapSize = domTextAttrs.hasAttribute("bitmapSize") ? Integer.parseInt(domTextAttrs.getAttribute("bitmapSize")) : (int) Math.round(size * 20);
                 float lineSpacing = 2f;
 
                 if (domTextAttrs.hasAttribute("lineSpacing")) {
@@ -1859,7 +1856,6 @@ public class TimelineConverter extends AbstractConverter {
                 }
 
                 //how about domTextAttrs attribute "useScreenSpacing"?
-                
                 boolean rotation = false;
                 if (domTextAttrs.hasAttribute("rotation")) {
                     rotation = "true".equals(domTextAttrs.getAttribute("rotation"));
@@ -1900,7 +1896,7 @@ public class TimelineConverter extends AbstractConverter {
                 fg.write(
                         debugRandom ? 'X' : (bold ? 1 : 0),
                         debugRandom ? 'X' : (italic ? 1 : 0),
-                        0x00,
+                        "true".equals(domTextAttrs.getAttribute("useScreenSpacing")) ? 1 : 0,
                         autoKern ? 1 : 0,
                         characterPosition,
                         alignment
@@ -1909,7 +1905,7 @@ public class TimelineConverter extends AbstractConverter {
                 fg.writeUI16((int) Math.round(indent * 20));
                 fg.writeUI16((int) Math.round(leftMargin * 20));
                 fg.writeUI16((int) Math.round(rightMargin * 20));
-                
+
                 if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {
                     fg.write(0x00);
                 } else {
@@ -1926,7 +1922,9 @@ public class TimelineConverter extends AbstractConverter {
                     fg.write(rightToLeft ? 1 : 0);
                     fg.write(rotation ? 1 : 0);
                     if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX2004.ordinal()) {
-                        fg.write(fontRenderingMode == FONTRENDERING_BITMAP ? 1 : 0);
+                        fg.write(domTextAttrs.hasAttribute("aliasText")
+                                ? ("true".equals(domTextAttrs.getAttribute("aliasText")) ? 1 : 0)
+                                : (fontRenderingMode == FONTRENDERING_BITMAP ? 1 : 0));
                     }
                     if (flaFormatVersion == FlaFormatVersion.CS4) {
                         fg.writeBomString(target);
@@ -2129,14 +2127,12 @@ public class TimelineConverter extends AbstractConverter {
 
     private void handleShape(Element element, Element document, FlaWriter fg, boolean isFloating, Map<String, Integer> definedClasses, Reference<Integer> totalObjectCount) throws IOException {
         instanceHeader(element, fg, flaFormatVersion.picShapeRevision, false, isFloating && flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal());
-        
-        
+
         Matrix edgeMatrix = parseMatrix(getSubElementByName(element, "matrix"));
         if (!isFloating || flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
             edgeMatrix = new Matrix();
         }
-        
-        
+
         fg.write(flaFormatVersion.shapeDataRevision);
         Node fillsNode = getSubElementByName(element, "fills");
         List<Element> fillStyles = new ArrayList<>();
@@ -2382,112 +2378,107 @@ public class TimelineConverter extends AbstractConverter {
         fg.write(0x00); //?
 
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
-            int totalCubicsCount = 0;
-
+            List<Matcher> cubicMatchers = new ArrayList<>();
             for (Element edge : edges) {
                 if (edge.hasAttribute("cubics")) {
-                    totalCubicsCount++;
+                    Matcher matcher = CUBICS_PATTERN.matcher(edge.getAttribute("cubics"));
+                    if (!matcher.matches()) {
+                        throw new IOException("Invalid cubic edge: " + edge.getAttribute("cubics"));
+                    }
+                    cubicMatchers.add(matcher);
                 }
             }
 
-            fg.writeUI32(totalCubicsCount);
-            for (Element edge : edges) {
-                if (edge.hasAttribute("cubics")) {
-                    String cubics = edge.getAttribute("cubics");
-                    Matcher cubicsMatcher = CUBICS_PATTERN.matcher(cubics);
-                    if (!cubicsMatcher.matches()) {
-                        Logger.getLogger(TimelineConverter.class.getName()).warning("Cubics pattern does not match for input string " + cubics);
-                        continue;
-                    }
-                    int mx = Integer.parseInt(cubicsMatcher.group("mx"));
-                    int my = Integer.parseInt(cubicsMatcher.group("my"));
-                    int x1 = Integer.parseInt(cubicsMatcher.group("x1"));
-                    int y1 = Integer.parseInt(cubicsMatcher.group("y1"));
-                    int x2 = Integer.parseInt(cubicsMatcher.group("x2"));
-                    int y2 = Integer.parseInt(cubicsMatcher.group("y2"));
-                    int ex = Integer.parseInt(cubicsMatcher.group("ex"));
-                    int ey = Integer.parseInt(cubicsMatcher.group("ey"));
+            fg.writeUI32(cubicMatchers.size());
+            for (Matcher cubicsMatcher : cubicMatchers) {
+                int mx = Integer.parseInt(cubicsMatcher.group("mx"));
+                int my = Integer.parseInt(cubicsMatcher.group("my"));
+                int x1 = Integer.parseInt(cubicsMatcher.group("x1"));
+                int y1 = Integer.parseInt(cubicsMatcher.group("y1"));
+                int x2 = Integer.parseInt(cubicsMatcher.group("x2"));
+                int y2 = Integer.parseInt(cubicsMatcher.group("y2"));
+                int ex = Integer.parseInt(cubicsMatcher.group("ex"));
+                int ey = Integer.parseInt(cubicsMatcher.group("ey"));
 
-                    Integer pBCPx = null;
-                    if (cubicsMatcher.group("pBCPx") != null) {
-                        pBCPx = Integer.parseInt(cubicsMatcher.group("pBCPx"));
+                Integer pBCPx = null;
+                if (cubicsMatcher.group("pBCPx") != null) {
+                    pBCPx = Integer.parseInt(cubicsMatcher.group("pBCPx"));
+                }
+                Integer pBCPy = null;
+                if (cubicsMatcher.group("pBCPy") != null) {
+                    pBCPy = Integer.parseInt(cubicsMatcher.group("pBCPy"));
+                }
+                Integer nBCPx = null;
+                if (cubicsMatcher.group("nBCPx") != null) {
+                    nBCPx = Integer.parseInt(cubicsMatcher.group("nBCPx"));
+                }
+                Integer nBCPy = null;
+                if (cubicsMatcher.group("nBCPy") != null) {
+                    nBCPy = Integer.parseInt(cubicsMatcher.group("nBCPy"));
+                }
+
+                String xy = cubicsMatcher.group("xy");
+                Matcher m2 = CUBICS_XY_PATTERN.matcher(xy);
+                List<String> letterList = new ArrayList<>();
+                List<Integer> xList = new ArrayList<>();
+                List<Integer> yList = new ArrayList<>();
+                String lastLetter = "q";
+                while (m2.find()) {
+                    xList.add(Integer.parseInt(m2.group("x")));
+                    yList.add(Integer.parseInt(m2.group("y")));
+                    String letter = m2.group("letter");
+                    if (letter == null || letter.isEmpty()) {
+                        letter = lastLetter;
                     }
-                    Integer pBCPy = null;
-                    if (cubicsMatcher.group("pBCPy") != null) {
-                        pBCPy = Integer.parseInt(cubicsMatcher.group("pBCPy"));
-                    }
-                    Integer nBCPx = null;
-                    if (cubicsMatcher.group("nBCPx") != null) {
-                        nBCPx = Integer.parseInt(cubicsMatcher.group("nBCPx"));
-                    }
-                    Integer nBCPy = null;
-                    if (cubicsMatcher.group("nBCPy") != null) {
-                        nBCPy = Integer.parseInt(cubicsMatcher.group("nBCPy"));
+                    lastLetter = letter;
+                    letterList.add(letter);
+                }
+
+                fg.writeUI32(mx);
+                fg.writeUI32(my);
+                fg.writeUI32(x1);
+                fg.writeUI32(y1);
+                fg.writeUI32(x2);
+                fg.writeUI32(y2);
+                fg.writeUI32(ex);
+                fg.writeUI32(ey);
+
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
+                    fg.write(letterList.size());
+                    for (int i = 0; i < letterList.size(); i++) {
+                        fg.writeUI32(xList.get(i));
+                        fg.writeUI32(yList.get(i));
+                        switch (letterList.get(i)) {
+                            case "Q":
+                                fg.write(0x01, 0x00);
+                                break;
+                            case "q":
+                                fg.write(0x00, 0x00);
+                                break;
+                            case "P":
+                                fg.write(0x01, 0x01);
+                                break;
+                            case "p":
+                                fg.write(0x00, 0x01);
+                                break;
+                        }
                     }
 
-                    String xy = cubicsMatcher.group("xy");
-                    Matcher m2 = CUBICS_XY_PATTERN.matcher(xy);
-                    List<String> letterList = new ArrayList<>();
-                    List<Integer> xList = new ArrayList<>();
-                    List<Integer> yList = new ArrayList<>();
-                    String lastLetter = "q";
-                    while (m2.find()) {
-                        xList.add(Integer.parseInt(m2.group("x")));
-                        yList.add(Integer.parseInt(m2.group("y")));
-                        String letter = m2.group("letter");
-                        if (letter == null || letter.isEmpty()) {
-                            letter = lastLetter;
-                        }
-                        lastLetter = letter;
-                        letterList.add(letter);
+                    int pnFlags = 0;
+                    if (pBCPx != null) {
+                        pnFlags |= 1;
                     }
-
-                    fg.writeUI32(mx);
-                    fg.writeUI32(my);
-                    fg.writeUI32(x1);
-                    fg.writeUI32(y1);
-                    fg.writeUI32(x2);
-                    fg.writeUI32(y2);
-                    fg.writeUI32(ex);
-                    fg.writeUI32(ey);
-
-                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
-                        fg.write(letterList.size());
-                        for (int i = 0; i < letterList.size(); i++) {
-                            fg.writeUI32(xList.get(i));
-                            fg.writeUI32(yList.get(i));
-                            switch (letterList.get(i)) {
-                                case "Q":
-                                    fg.write(0x01, 0x00);
-                                    break;
-                                case "q":
-                                    fg.write(0x00, 0x00);
-                                    break;
-                                case "P":
-                                    fg.write(0x01, 0x01);
-                                    break;
-                                case "p":
-                                    fg.write(0x00, 0x01);
-                                    break;
-                            }
-                        }
-
-                        int pnFlags = 0;
-                        if (pBCPx != null) {
-                            pnFlags |= 1;
-                        }
-                        if (nBCPx != null) {
-                            pnFlags |= 2;
-                        }
-                        fg.write(pnFlags);
-                        if (pBCPx != null) {
-                            fg.writeUI32(pBCPx);
-                            fg.writeUI32(pBCPy);
-                        }
-                        if (nBCPx != null) {
-                            fg.writeUI32(nBCPx);
-                            fg.writeUI32(nBCPy);
-                        }
+                    if (nBCPx != null) {
+                        pnFlags |= 2;
+                    }
+                    fg.write(pnFlags);
+                    if (pBCPx != null) {
+                        fg.writeUI32(pBCPx);
+                        fg.writeUI32(pBCPy);
+                    }
+                    if (nBCPx != null) {
+                        fg.writeUI32(nBCPx);
+                        fg.writeUI32(nBCPy);
                     }
                 }
             }
@@ -2532,7 +2523,7 @@ public class TimelineConverter extends AbstractConverter {
             Reference<Integer> totalFramesCountRef,
             Integer overrideLayerType,
             InputStorageInterface sourceDir
-    ) throws IOException {        
+    ) throws IOException {
         useClass("CPicLayer", fg, definedClasses, totalObjectCount);
         int result = definedClasses.size() + totalObjectCount.getVal();
         fg.write(flaFormatVersion.picLayerBaseRevision);
@@ -2570,7 +2561,7 @@ public class TimelineConverter extends AbstractConverter {
             for (int f = 0; f < frames.size(); f++) {
                 useClass("CPicFrame", fg, definedClasses, totalObjectCount);
                 fg.write(flaFormatVersion.picFrameBaseRevision);
-                fg.write(0x00);                
+                fg.write(0x00);
                 totalFramesCountRef.setVal(totalFramesCountRef.getVal() + 1);
                 Element frame = frames.get(f);
                 Element elementsNode = getSubElementByName(frame, "elements");
@@ -2594,7 +2585,7 @@ public class TimelineConverter extends AbstractConverter {
                 if (flaFormatVersion.ordinal() <= FlaFormatVersion.F8.ordinal()) {
                     keyMode = keyMode & ~0x2000;
                 }
-                
+
                 if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {
                     keyMode = keyMode & ~0x4000;
                 }
@@ -2692,7 +2683,7 @@ public class TimelineConverter extends AbstractConverter {
                  */
                 fg.writeUI16(keyMode);
                 fg.writeUI16(acceleration);
-                
+
                 int soundId = 0;
                 if (frame.hasAttribute("soundName")) {
                     String soundName = frame.getAttribute("soundName");
@@ -2711,7 +2702,7 @@ public class TimelineConverter extends AbstractConverter {
                 }
 
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F2.ordinal()) {
-                    fg.writeUI16(soundId);               
+                    fg.writeUI16(soundId);
                     if (soundId > 0 || (flaFormatVersion == FlaFormatVersion.F3 || flaFormatVersion == FlaFormatVersion.F4)) {
                         Element soundEnvelope = getSubElementByName(frame, "SoundEnvelope");
                         if (soundEnvelope == null) {
@@ -2778,9 +2769,9 @@ public class TimelineConverter extends AbstractConverter {
                     if (frame.hasAttribute("soundLoop")) {
                         soundLoop = Integer.parseInt(frame.getAttribute("soundLoop"));
                     }
-                    
+
                     //not a real condition, just for tests to pass
-                    if (soundId <= 0 && flaFormatVersion.ordinal() < FlaFormatVersion.F5.ordinal()) { 
+                    if (soundId <= 0 && flaFormatVersion.ordinal() < FlaFormatVersion.F5.ordinal()) {
                         soundLoop = 0;
                     }
 
@@ -2791,7 +2782,7 @@ public class TimelineConverter extends AbstractConverter {
                     if (loop) {
                         soundLoop = 32767;
                     }
-               
+
                     fg.writeUI16(soundLoop);
                     fg.write(soundSync);
                     fg.writeUI32(inPoint44);
@@ -2799,17 +2790,17 @@ public class TimelineConverter extends AbstractConverter {
                     fg.writeUI16(soundZoomLevel);
                 }
 
-                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {                
+                if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
                     fg.writeBomString(name);
                 }
-                                                               
+
                 if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {
                     fg.writeScript(actionScript);
                 }
                 if (flaFormatVersion == FlaFormatVersion.F4) {
                     //fg.write(0x00);
                 }
-                                
+
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
                     fg.write(flaFormatVersion.frameActionScriptRevision, 0x00, 0x00, 0x00);
                     fg.write(0x01); //set this to 0 to ommit following 7 bytes for F5
@@ -2823,7 +2814,7 @@ public class TimelineConverter extends AbstractConverter {
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.CS3.ordinal()) {
                     fg.write(0x00, 0x00, 0x00, 0x00);
                 }
-                
+
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
                     fg.writeBomString(actionScript);
                 }
@@ -2893,7 +2884,7 @@ public class TimelineConverter extends AbstractConverter {
                                 Element fill2 = fillStyles2.size() > i ? fillStyles2.get(i) : null;
                                 fills.add(fill1);
 
-                                if (!areElementsEqual(fill1, fill2, false)|| flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
+                                if (!areElementsEqual(fill1, fill2, false) || flaFormatVersion.ordinal() <= FlaFormatVersion.MX.ordinal()) {
                                     fills.add(fill2);
                                 }
                             }
@@ -2967,7 +2958,20 @@ public class TimelineConverter extends AbstractConverter {
                             }
                         }
 
-                        fg.writeUI16(0);
+                        Element hintsElement = getSubElementByName(morphShape, "morphHintsList");
+                        List<Element> morphHints = getAllSubElementsByName(hintsElement, "MorphHint");
+                        if (morphHints.size() < 0xFFFF) {
+                            fg.writeUI16(morphHints.size());
+                        } else {
+                            fg.writeUI16(0xFFFF);
+                            fg.writeUI32(morphHints.size());
+                        }
+                        for (Element hint : morphHints) {
+                            useClass("CMorphHintItem", fg, definedClasses, totalObjectCount);
+                            fg.writePoint(fg.parsePoint(hint.getAttribute("startPoint")));
+                            fg.writePoint(fg.parsePoint(hint.getAttribute("endPoint")));
+                            fg.writeUI32(hint.hasAttribute("key") ? Integer.parseInt(hint.getAttribute("key")) : -1);
+                        }
 
                         fg.writeUI16(fills.size());
                         for (Element fill : fills) {
@@ -3030,12 +3034,12 @@ public class TimelineConverter extends AbstractConverter {
                     fg.write(0x00, 0x00, 0x00, 0x00);
                     fg.writeBomString("");
                 }
-                
+
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.F5.ordinal()) {
                     fg.write(0x01, 0x00, 0x00, 0x00, soundEffect);
                     fg.write(0x00, 0x00, 0x00);
                 }
-                
+
                 if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
                     fg.write(anchor ? 1 : 0,
                             0x00, 0x00, 0x00);
@@ -3222,7 +3226,7 @@ public class TimelineConverter extends AbstractConverter {
                 fg.write(color.getBlue());
                 fg.write(0xFF);
                 fg.write(showOutlines ? 1 : 0);
-                fg.write(0x00, 0x00, 0x00, heightMultiplier, 0x00, 0x00, 0x00);                
+                fg.write(0x00, 0x00, 0x00, heightMultiplier, 0x00, 0x00, 0x00);
             }
             fg.write(layerType);
         }
@@ -3334,7 +3338,7 @@ public class TimelineConverter extends AbstractConverter {
         if (writtenLayers.contains(layerIndex)) {
             return;
         }
-        writtenLayers.add(layerIndex);                                       
+        writtenLayers.add(layerIndex);
         Element layer = layers.get(layerIndex);
 
         boolean autoNamed = true;
@@ -3401,30 +3405,27 @@ public class TimelineConverter extends AbstractConverter {
             }
         }
 
-        
-        if (flaFormatVersion.ordinal() <= FlaFormatVersion.F3.ordinal() 
-            && parentLayerIndex > -1 
-            && !writtenLayers.contains(parentLayerIndex)) {
+        if (flaFormatVersion.ordinal() <= FlaFormatVersion.F3.ordinal()
+                && parentLayerIndex > -1
+                && !writtenLayers.contains(parentLayerIndex)) {
             writeLayer(document, fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, layerIndexToMValue, true, sourceDir);
         }
-        
-        
-        
+
         int nValue = 1 + definedClasses.size() + totalObjectCount.getVal();
         int numObjects = totalObjectCount.getVal();
-        layerIndexToNValue.put(layerIndex, nValue);  
-                                
+        layerIndexToNValue.put(layerIndex, nValue);
+
         int layerObjectId = writeLayerContents(layer, document, fg, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, overrideLayerType, sourceDir);
         layerIndexToMValue.put(layerIndex, layerObjectId);
-        
+
         if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
             if (parentLayerType.equals("mask")) {
                 fg.write(0x00, 0x00);
             }
         }
-        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal() 
-            && parentLayerIndex > -1 
-            && !writtenLayers.contains(parentLayerIndex)) {
+        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()
+                && parentLayerIndex > -1
+                && !writtenLayers.contains(parentLayerIndex)) {
             writeLayer(document, fg, layers, parentLayerIndex, writtenLayers, definedClasses, totalObjectCount, copiedComponentPathRef, totalFramesCountRef, layerIndexToNValue, layerIndexToMValue, true, sourceDir);
         } else {
             final int NORMAL_COLOR = 0;
@@ -3433,41 +3434,41 @@ public class TimelineConverter extends AbstractConverter {
             final int BLUE_OUTLINE = 3;
             final int YELLOW_OUTLINE = 4;
             final int PURPLE_OUTLINE = 5;
-            
-            if (flaFormatVersion.ordinal() <= FlaFormatVersion.F3.ordinal()) {                                                                
+
+            if (flaFormatVersion.ordinal() <= FlaFormatVersion.F3.ordinal()) {
                 if (parentLayerIndex > -1) {
                     fg.writeEncodedUI(layerIndexToMValue.get(parentLayerIndex));
                 } else if (layerTypeStr.equals("")) {
                     fg.write(0x00, 0x00);
                 }
-                 
+
                 if (parentLayerType.equals("guide")) {
                     if (debugRandom) {
                         fg.write('X');
-                    } else {                    
+                    } else {
                         fg.write(NORMAL_COLOR);
                     }
-                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {                    
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
                         fg.write(0x00);
                     }
                     if (debugRandom) {
                         fg.write('X');
-                    } else {                    
+                    } else {
                         fg.write(NORMAL_COLOR);
                     }
-                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {                    
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
                         fg.write(0x00);
                     }
                 } else if (layerTypeStr.equals("")) {
                     if (debugRandom) {
                         fg.write('X');
-                    } else {                    
+                    } else {
                         fg.write(NORMAL_COLOR);
                     }
-                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {                    
+                    if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
                         fg.write(0x00);
                     }
-                }                
+                }
             } else {
                 if (parentLayerIndex > -1) {
                     fg.writeEncodedUI(layerIndexToNValue.get(parentLayerIndex));
@@ -3476,39 +3477,39 @@ public class TimelineConverter extends AbstractConverter {
                         fg.writeEncodedUI(layerIndexToMValue.get(layerIndex + 1));
                     } else {
                         fg.writeUI16(0);
-                    }                    
-                }                                              
+                    }
+                }
                 if (flaFormatVersion.ordinal() <= FlaFormatVersion.F5.ordinal()) {
                     if (parentLayerType.equals("mask")) {
                         fg.write(0x00);
-                    } else if (parentLayerType.equals("guide") || layerTypeStr.equals("")) {                    
+                    } else if (parentLayerType.equals("guide") || layerTypeStr.equals("")) {
                         fg.write(0x00);
-                        
+
                         if (debugRandom) {
                             fg.write('X');
-                        } else {                    
-                            fg.write(NORMAL_COLOR);                            
+                        } else {
+                            fg.write(NORMAL_COLOR);
                         }
 
-                        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {                    
+                        if (flaFormatVersion.ordinal() >= FlaFormatVersion.F3.ordinal()) {
                             fg.write(0x00);
-                        }                    
+                        }
                     }
                 }
-            }            
+            }
         }
 
         if (flaFormatVersion.ordinal() >= FlaFormatVersion.MX.ordinal()) {
             fg.write(open ? 1 : 0);
             fg.write(autoNamed ? 1 : 0);
         } else {
-            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {                                
+            if (flaFormatVersion.ordinal() >= FlaFormatVersion.F4.ordinal()) {
                 if (layerTypeStr.equals("mask")) {
                     fg.write(0x00, 0x00, 0x01);
                     if (hasChildren) {
                         fg.write(0x00);
                     }
-                } else if (layerTypeStr.equals("guide")) {                    
+                } else if (layerTypeStr.equals("guide")) {
                     fg.write(0x00, 0x00, 0x00);
                     if (hasChildren) {
                         fg.write(0x00, 0x00, 0x00);
@@ -3540,7 +3541,7 @@ public class TimelineConverter extends AbstractConverter {
                     pi = -1;
                 }
             }
-        }       
+        }
     }
 
     public void convert(Element domTimeLine, Element document, OutputStream os, InputStorageInterface sourceDir) throws SAXException, IOException, ParserConfigurationException {
@@ -3550,6 +3551,24 @@ public class TimelineConverter extends AbstractConverter {
         Map<String, Integer> definedClasses = new HashMap<>();
         Reference<Integer> totalObjectCount = new Reference<>(0);
 
+        symbolIdsByName.clear();
+        List<Element> symbolIncludes = getSymbols(document);
+        for (int i = 0; i < symbolIncludes.size(); i++) {
+            String href = symbolIncludes.get(i).getAttribute("href");
+            if (sourceDir == null || !sourceDir.fileExists("LIBRARY/" + href)) {
+                continue;
+            }
+            DocumentBuilderFactory symbolFactory = DocumentBuilderFactory.newInstance();
+            symbolFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            symbolFactory.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_DTD, "");
+            symbolFactory.setAttribute(javax.xml.XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+            try (InputStream in = sourceDir.readFile("LIBRARY/" + href)) {
+                Element symbol = symbolFactory.newDocumentBuilder().parse(in).getDocumentElement();
+                if (symbol.hasAttribute("name")) {
+                    symbolIdsByName.putIfAbsent(symbol.getAttribute("name"), i + 1);
+                }
+            }
+        }
         fg.write(0x01);
         useClass("CPicPage", fg, definedClasses, totalObjectCount);
         fg.write(flaFormatVersion.picPageBaseRevision);
@@ -3613,7 +3632,7 @@ public class TimelineConverter extends AbstractConverter {
                     if (guideline.hasAttribute("direction") && "v".equals(guideline.getAttribute("direction"))) {
                         direction = 1;
                     }
-                    long value = Long.parseLong(guideline.getTextContent()) * 20;
+                    long value = Math.round(Double.parseDouble(guideline.getTextContent()) * 20);
                     fg.writeUI32(direction);
                     fg.writeUI32(value);
                 }

@@ -15,5 +15,5 @@ public abstract class GradientSwatchItem extends ExtendedSwatchItem {
 
     public GradientSwatchItem(List<GradientEntry> entries, int spreadMethod, boolean interpolationMethodLinearRGB) {
         super(entries, spreadMethod, interpolationMethodLinearRGB);
-    }        
+    }
 }

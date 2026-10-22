@@ -8,7 +8,7 @@ import com.jpexs.flash.fla.converter.FlaFormatVersion;
  * @author JPEXS
  */
 public class SetVariableCommand extends AbstractCommand {
-   
+
     private final Expression variableName;
 
     private final Expression value;
@@ -17,12 +17,12 @@ public class SetVariableCommand extends AbstractCommand {
         this.variableName = variableName;
         this.value = value;
     }
-    
+
     @Override
     public int getActionKind() {
         return FLA4_ACTION_SET_VARIABLE;
     }
-    
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F4;
@@ -31,13 +31,13 @@ public class SetVariableCommand extends AbstractCommand {
     @Override
     public Expression getVariableName() {
         return variableName;
-    }   
-    
+    }
+
     @Override
     public Expression getArg0() {
         return value;
-    }            
-       
+    }
+
     @Override
     public String toString() {
         String ret = "Set Variable: ";
@@ -46,5 +46,5 @@ public class SetVariableCommand extends AbstractCommand {
         ret += value;
         return ret;
     }
-    
+
 }

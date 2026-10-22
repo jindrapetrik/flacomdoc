@@ -18,13 +18,13 @@ public class IfCommand extends AbstractCommand {
     @Override
     public Expression getArg0() {
         return expression;
-    }            
-    
+    }
+
     @Override
     public int getActionKind() {
         return FLA4_ACTION_IF;
     }
-    
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F4;
@@ -34,5 +34,5 @@ public class IfCommand extends AbstractCommand {
     public String toString() {
         return "If (" + expression + ")";
     }
-    
+
 }

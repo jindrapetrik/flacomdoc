@@ -17,9 +17,9 @@ public class PlayCommand extends AbstractCommand {
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F1;
     }
-    
+
     @Override
     public String toString() {
         return "Play";
-    }        
+    }
 }

@@ -27,7 +27,7 @@ public abstract class ParseException extends Exception {
      * Line number where the exception occurred.
      */
     public long line;
-    
+
     /**
      * Position in the code where the exception occurred. -1 where unknown
      */
@@ -50,7 +50,7 @@ public abstract class ParseException extends Exception {
         this.text = text;
         this.position = -1;
     }
-    
+
     /**
      * Constructs a new parse exception.
      *

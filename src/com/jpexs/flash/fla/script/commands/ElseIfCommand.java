@@ -14,12 +14,12 @@ public class ElseIfCommand extends AbstractCommand {
     public ElseIfCommand(Expression expression) {
         this.expression = expression;
     }
-    
+
     @Override
     public int getActionKind() {
         return FLA4_ACTION_ELSE_IF;
     }
-    
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F4;
@@ -28,11 +28,11 @@ public class ElseIfCommand extends AbstractCommand {
     @Override
     public Expression getArg0() {
         return expression;
-    }            
-        
+    }
+
     @Override
     public String toString() {
         return "Else If (" + expression + ")";
     }
-    
+
 }

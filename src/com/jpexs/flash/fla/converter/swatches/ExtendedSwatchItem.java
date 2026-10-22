@@ -19,7 +19,7 @@ public abstract class ExtendedSwatchItem {
         this.spreadMethod = spreadMethod;
         this.interpolationMethodLinearRGB = interpolationMethodLinearRGB;
     }
-    
+
     public ExtendedSwatchItem(GradientEntry... entries) {
         this.entries = Arrays.asList(entries);
     }

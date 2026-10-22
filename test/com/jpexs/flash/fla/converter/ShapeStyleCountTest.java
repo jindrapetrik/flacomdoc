@@ -14,6 +14,7 @@ import org.testng.annotations.Test;
 import static org.testng.Assert.*;
 
 public class ShapeStyleCountTest {
+
     @Test
     public void fillCountsCrossTheByteBoundary() throws Exception {
         checkShape(255, 0);

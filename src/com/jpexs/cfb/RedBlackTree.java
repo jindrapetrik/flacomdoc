@@ -18,17 +18,15 @@
  */
 package com.jpexs.cfb;
 
-
-
 public class RedBlackTree<T extends Comparable<T>> {
-    
-    
+
     public enum Color {
         RED, BLACK
     }
 
     // Node Class
     public static class Node<N extends Comparable<N>> {
+
         N data;
         Node<N> left;
         Node<N> right;
@@ -39,14 +37,14 @@ public class RedBlackTree<T extends Comparable<T>> {
         public Node(N data) {
             this.data = data;
 
-              // New nodes are always red when inserted
-            this.color = Color.RED; 
+            // New nodes are always red when inserted
+            this.color = Color.RED;
             this.left = null;
             this.right = null;
             this.parent = null;
         }
     }
-    
+
     private Node<T> root;
     private final Node<T> TNULL; // Sentinel node for null references
 
@@ -227,8 +225,8 @@ public class RedBlackTree<T extends Comparable<T>> {
 
     public Node<T> getRoot() {
         return root;
-    }       
-    
+    }
+
     // Main function to test the Red-Black Tree implementation
     public static void main(String[] args) {
         RedBlackTree<Integer> tree = new RedBlackTree<>();

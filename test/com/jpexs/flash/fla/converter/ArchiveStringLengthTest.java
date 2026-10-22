@@ -8,13 +8,14 @@ import org.testng.annotations.Test;
 import static org.testng.Assert.*;
 
 public class ArchiveStringLengthTest {
+
     @Test
     public void reservedUnicodeMarkerIsNeverUsedAsALength() throws Exception {
-        for (FlaFormatVersion version : new FlaFormatVersion[] {
+        for (FlaFormatVersion version : new FlaFormatVersion[]{
             FlaFormatVersion.F1, FlaFormatVersion.F5, FlaFormatVersion.MX,
             FlaFormatVersion.MX2004, FlaFormatVersion.CS4
         }) {
-            for (int length : new int[] {254, 255, 65533, 65534, 65535}) {
+            for (int length : new int[]{254, 255, 65533, 65534, 65535}) {
                 char[] chars = new char[length];
                 Arrays.fill(chars, 'A');
                 checkString(version, "windows-1250", new String(chars));

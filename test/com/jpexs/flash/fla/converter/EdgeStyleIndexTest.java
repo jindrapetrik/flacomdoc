@@ -7,13 +7,14 @@ import org.testng.annotations.Test;
 import static org.testng.Assert.*;
 
 public class EdgeStyleIndexTest {
+
     @Test
     public void styleIndicesAndSelectionBitsRoundTrip() throws Exception {
-        for (FlaFormatVersion version : new FlaFormatVersion[] {
+        for (FlaFormatVersion version : new FlaFormatVersion[]{
             FlaFormatVersion.F5, FlaFormatVersion.F8, FlaFormatVersion.CS3, FlaFormatVersion.CS4
         }) {
             for (int selection = 0; selection < 8; selection++) {
-                for (int index : new int[] {0, 255, 256, 32767}) {
+                for (int index : new int[]{0, 255, 256, 32767}) {
                     for (int position = 0; position < 3; position++) {
                         int[] styles = {1, 2, 3};
                         styles[position] = index;

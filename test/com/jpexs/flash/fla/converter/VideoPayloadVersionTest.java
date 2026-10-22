@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2026 JPEXS.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA 02110-1301  USA
+ */
 package com.jpexs.flash.fla.converter;
 
 import com.jpexs.flash.fla.converter.streams.InputStorageInterface;
@@ -12,6 +30,7 @@ import org.testng.annotations.Test;
 import static org.testng.Assert.*;
 
 public class VideoPayloadVersionTest {
+
     @Test
     public void existingVideoStreamsMatchAllTargetReferences() throws Exception {
         Path root = Paths.get(System.getProperty("flacomdoc.testdata", "testdata"), "fla");
@@ -23,7 +42,7 @@ public class VideoPayloadVersionTest {
         for (int i = 0; i < items.getLength(); i++) {
             String file = ((Element) items.item(i)).getAttribute("videoDataHRef");
             byte[] input = Files.readAllBytes(source.resolve("bin").resolve(file));
-            for (FlaFormatVersion version : new FlaFormatVersion[] {
+            for (FlaFormatVersion version : new FlaFormatVersion[]{
                 FlaFormatVersion.MX, FlaFormatVersion.MX2004, FlaFormatVersion.F8,
                 FlaFormatVersion.CS3, FlaFormatVersion.CS4
             }) {
@@ -37,8 +56,8 @@ public class VideoPayloadVersionTest {
     @Test
     public void variableRevisionThreeTailIsRemovedAtTheTrackBoundary() throws Exception {
         byte[] core = core(3);
-        for (boolean unicode : new boolean[] {false, true}) {
-            for (int length : new int[] {0, 255, 65534}) {
+        for (boolean unicode : new boolean[]{false, true}) {
+            for (int length : new int[]{0, 255, 65534}) {
                 ByteArrayOutputStream source = new ByteArrayOutputStream();
                 source.write(core);
                 FlaWriter tail = new FlaWriter(source, unicode ? FlaFormatVersion.CS4 : FlaFormatVersion.MX, "UTF-8");
@@ -62,7 +81,7 @@ public class VideoPayloadVersionTest {
         assertEquals(convert(FlaFormatVersion.MX, core), normalized(core, 2));
         ByteArrayOutputStream expected = new ByteArrayOutputStream();
         expected.write(normalized(core, 3));
-        expected.write(new byte[] {0, 0, 0, 0, (byte) 255, (byte) 254, (byte) 255, 0, 0, 0, 0, 0});
+        expected.write(new byte[]{0, 0, 0, 0, (byte) 255, (byte) 254, (byte) 255, 0, 0, 0, 0, 0});
         assertEquals(convert(FlaFormatVersion.CS4, core), expected.toByteArray());
     }
 
@@ -70,7 +89,7 @@ public class VideoPayloadVersionTest {
     public void truncatedTailIsRejected() throws Exception {
         ByteArrayOutputStream source = new ByteArrayOutputStream();
         source.write(core(3));
-        source.write(new byte[] {0, 0, 0, 0, (byte) 255, (byte) 254});
+        source.write(new byte[]{0, 0, 0, 0, (byte) 255, (byte) 254});
         convert(FlaFormatVersion.MX, source.toByteArray());
     }
 
@@ -110,7 +129,7 @@ public class VideoPayloadVersionTest {
         Element item = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
                 new ByteArrayInputStream("<DOMVideoItem name='video' videoDataHRef='video.dat'/>".getBytes("UTF-8")))
                 .getDocumentElement();
-        FlaConverter converter = new FlaConverter(version, "windows-1250");
+        LegacyFlaConverter converter = new LegacyFlaConverter(version, "windows-1250");
         converter.writeDomVideoItem(new FlaWriter(new ByteArrayOutputStream(), version, "windows-1250"),
                 item, new HashMap<String, Integer>(), new Reference<Integer>(0), 1,
                 new Reference<Long>(0L), storage, storage);
@@ -119,25 +138,43 @@ public class VideoPayloadVersionTest {
     }
 
     private static class MemoryStorage implements InputStorageInterface, OutputStorageInterface {
+
         private final byte[] input;
         private final Map<String, ByteArrayOutputStream> output = new HashMap<>();
-        MemoryStorage(byte[] input) { this.input = input; }
-        public boolean fileExists(String name) { return "bin/video.dat".equals(name); }
+
+        MemoryStorage(byte[] input) {
+            this.input = input;
+        }
+
+        public boolean fileExists(String name) {
+            return "bin/video.dat".equals(name);
+        }
+
         public InputStream readFile(String name) {
             // Exercise short reads as well as the usual file stream.
             return new ByteArrayInputStream(input) {
-                @Override public synchronized int read(byte[] b, int off, int len) {
+                @Override
+                public synchronized int read(byte[] b, int off, int len) {
                     return super.read(b, off, Math.min(len, 3));
                 }
             };
         }
+
         public OutputStream getOutputStream(String name) {
             ByteArrayOutputStream result = new ByteArrayOutputStream();
             output.put(name, result);
             return result;
         }
-        public void storeData(String name, byte[] bytes) throws IOException { getOutputStream(name).write(bytes); }
-        public void storeFile(String name, File file) { throw new UnsupportedOperationException(); }
-        public void close() { }
+
+        public void storeData(String name, byte[] bytes) throws IOException {
+            getOutputStream(name).write(bytes);
+        }
+
+        public void storeFile(String name, File file) {
+            throw new UnsupportedOperationException();
+        }
+
+        public void close() {
+        }
     }
 }

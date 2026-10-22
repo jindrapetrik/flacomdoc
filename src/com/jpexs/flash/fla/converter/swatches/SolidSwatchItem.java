@@ -24,6 +24,7 @@ public class SolidSwatchItem {
         this.brightness = brightness;
         this.alpha = 255;
     }
+
     public SolidSwatchItem(int red, int green, int blue, int alpha, int hue, int saturation, int brightness) {
         this.red = red;
         this.green = green;

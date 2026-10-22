@@ -8,6 +8,7 @@ import com.jpexs.flash.fla.converter.FlaFormatVersion;
  * @author JPEXS
  */
 public class DuplicateMovieClipCommand extends AbstractCommand {
+
     private final Expression target;
     private final Expression newName;
     private final Expression depth;
@@ -17,12 +18,12 @@ public class DuplicateMovieClipCommand extends AbstractCommand {
         this.newName = newName;
         this.depth = depth;
     }
-    
+
     @Override
     public int getActionKind() {
         return FLA4_ACTION_DUPLICATE_MOVIE_CLIP;
-    }   
-    
+    }
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F4;
@@ -41,9 +42,7 @@ public class DuplicateMovieClipCommand extends AbstractCommand {
     @Override
     public Expression getArg0() {
         return newName;
-    }                        
-    
-     
+    }
 
     @Override
     public String toString() {
@@ -54,8 +53,7 @@ public class DuplicateMovieClipCommand extends AbstractCommand {
         ret += ", ";
         ret += depth.toStringNumeric();
         ret += ")";
-        return ret;    
+        return ret;
     }
-    
-    
+
 }

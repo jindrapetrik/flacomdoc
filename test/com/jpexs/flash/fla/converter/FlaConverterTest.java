@@ -47,14 +47,13 @@ import org.xml.sax.SAXException;
 public class FlaConverterTest {
 
     private static final String ADD = "";
-    
+
     private static final String SOURCE_DIR = "testdata/fla" + ADD + "/cs5";
     private static final String SOURCE_DIR_NG = "testdata/flang/cs5";
 
-    private static final int NG_MAX_TEST_NUM = 19;            
-    
+    private static final int NG_MAX_TEST_NUM = 19;
+
     private static final List<Integer> NG_SKIP_TESTS = Arrays.asList();
-    
 
     private static final String EXPECTED_BASE_DIR = "testdata/fla" + ADD;
 
@@ -98,7 +97,7 @@ public class FlaConverterTest {
     public Object[][] provideFoldersF5() {
         return provideFolders(FlaFormatVersion.F5);
     }
-    
+
     @DataProvider(name = "folders-f4")
     public Object[][] provideFoldersF4() {
         return provideFolders(FlaFormatVersion.F4);
@@ -108,18 +107,16 @@ public class FlaConverterTest {
     public Object[][] provideFoldersF3() {
         return provideFolders(FlaFormatVersion.F3);
     }
-    
+
     @DataProvider(name = "folders-f2")
     public Object[][] provideFoldersF2() {
         return provideFolders(FlaFormatVersion.F2);
     }
-    
+
     @DataProvider(name = "folders-f1")
     public Object[][] provideFoldersF1() {
         return provideFolders(FlaFormatVersion.F1);
     }
-
-
 
     private Object[][] provideFolders(FlaFormatVersion flaFormatVersion) {
         String add = "";
@@ -151,16 +148,16 @@ public class FlaConverterTest {
                     continue;
                 }
             }
-            
+
             String numStr = name.substring(0, 4);
             int num = Integer.parseInt(numStr);
             if (flaFormatVersion.ordinal() <= FlaFormatVersion.F4.ordinal()) {
                 if (num > NG_MAX_TEST_NUM) {
-                    sourceFilesList.remove(i);  
+                    sourceFilesList.remove(i);
                     continue;
                 }
                 if (NG_SKIP_TESTS.contains(num)) {
-                    sourceFilesList.remove(i);  
+                    sourceFilesList.remove(i);
                 }
             }
         }
@@ -179,7 +176,7 @@ public class FlaConverterTest {
             add = "ng";
             sourceDir = SOURCE_DIR_NG;
         }
-        
+
         String outputDirParent = OUTPUT_BASE_DIR + add + "/" + flaFormatVersion.name().toLowerCase();
         String expectedDirParent = EXPECTED_BASE_DIR + add + "/" + flaFormatVersion.name().toLowerCase();
 
@@ -188,7 +185,7 @@ public class FlaConverterTest {
         if (!actualDir.exists()) {
             actualDir.mkdirs();
         }
-        FlaConverter contentsGenerator = new FlaConverter(flaFormatVersion, "WINDOWS-1250");
+        LegacyFlaConverter contentsGenerator = new LegacyFlaConverter(flaFormatVersion, "WINDOWS-1250");
         contentsGenerator.setDebugRandom(true);
 
         contentsGenerator.convert(new DirectoryInputStorage(new File(sourceDir + "/" + folderName)),
@@ -346,12 +343,12 @@ public class FlaConverterTest {
                 apos += 3 - 1;
                 continue;
             }
-            
+
             if (apos + 2 < actualData.length
                     && actualData[apos] == 'M'
                     && actualData[apos + 1] == 'M'
                     && actualData[apos + 2] == 'M') {
-                int numItems = (expectedData[epos] & 0xFF) + ((expectedData[epos+1] & 0xFF) << 8);
+                int numItems = (expectedData[epos] & 0xFF) + ((expectedData[epos + 1] & 0xFF) << 8);
                 epos += 2;
                 for (int i = 0; i < numItems; i++) {
                     epos = readString(expectedData, epos, flaFormatVersion);
@@ -416,8 +413,8 @@ public class FlaConverterTest {
         assertEquals(epos, expectedData.length, "The file " + actualFile + " is shorter than expected file");
 
     }
-    
-    private int readString(byte[] data, int pos, FlaFormatVersion flaFormatVersion) {        
+
+    private int readString(byte[] data, int pos, FlaFormatVersion flaFormatVersion) {
         if (flaFormatVersion.unicodeStrings) {
             pos += 3;
         }
@@ -428,10 +425,10 @@ public class FlaConverterTest {
             pos += 2;
         }
         if (len == 0xFFFF) {
-            len = (data[pos] & 0xFF) + ((data[pos + 1] & 0xFF) << 8)+ ((data[pos + 2] & 0xFF) << 16) + ((data[pos + 3] & 0xFF) << 24);
+            len = (data[pos] & 0xFF) + ((data[pos + 1] & 0xFF) << 8) + ((data[pos + 2] & 0xFF) << 16) + ((data[pos + 3] & 0xFF) << 24);
             pos += 4;
-        }      
-        
+        }
+
         if (flaFormatVersion.unicodeStrings) {
             len *= 2;
         }
@@ -445,7 +442,7 @@ public class FlaConverterTest {
         } else {
             System.out.println("STR: \"" + new String(subdata) +"\"");
         }*/
-        
+
         pos += len;
         return pos;
     }
@@ -479,7 +476,7 @@ public class FlaConverterTest {
     public void testConvertF5(String folder) throws Exception {
         convert(folder, FlaFormatVersion.F5);
     }
-    
+
     @Test(dataProvider = "folders-f4")
     public void testConvertF4(String folder) throws Exception {
         convert(folder, FlaFormatVersion.F4);
@@ -489,17 +486,16 @@ public class FlaConverterTest {
     public void testConvertF3(String folder) throws Exception {
         convert(folder, FlaFormatVersion.F3);
     }
-    
+
     @Test(dataProvider = "folders-f2")
     public void testConvertF2(String folder) throws Exception {
         convert(folder, FlaFormatVersion.F2);
     }
-    
+
     @Test(dataProvider = "folders-f1")
     public void testConvertF1(String folder) throws Exception {
         convert(folder, FlaFormatVersion.F1);
     }
-
 
     //@Test
     public void singleTest() throws Exception {
@@ -507,7 +503,7 @@ public class FlaConverterTest {
     }
 
     private void compareSpecific(FlaFormatVersion flaFormatVersion, String folderName, String actualFilename, String expectedFileName) throws IOException, SAXException, ParserConfigurationException {
-        FlaConverter contentsGenerator = new FlaConverter(flaFormatVersion, "WINDOWS-1250");
+        LegacyFlaConverter contentsGenerator = new LegacyFlaConverter(flaFormatVersion, "WINDOWS-1250");
         contentsGenerator.setDebugRandom(true);
 
         String outputDirParent = OUTPUT_BASE_DIR + "/" + flaFormatVersion.name().toLowerCase();
@@ -550,7 +546,7 @@ public class FlaConverterTest {
         }
         return baos.toByteArray();
     }
-       
+
     public static void main(String[] args) throws Exception {
         for (FlaFormatVersion flaFormatVersion : FlaFormatVersion.values()) {
             String add = "";

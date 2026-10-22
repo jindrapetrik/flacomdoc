@@ -20,9 +20,8 @@ public class SetPropertyCommand extends AbstractCommand {
     public static final int PROPERTY_HIGH_QUALITY = 16; //no target
     public static final int PROPERTY_SHOW_FOCUS_RECTANGLE = 17; //no target
     public static final int PROPERTY_SOUND_BUFFER_TIME = 18; //no target
-    
-    
-    private static final String[] PROPERTY_NAMES = new String[] {
+
+    private static final String[] PROPERTY_NAMES = new String[]{
         "X Position",
         "Y Position",
         "X Scale",
@@ -43,7 +42,7 @@ public class SetPropertyCommand extends AbstractCommand {
         "Show focus rectangle",
         "Sound buffer time"
     };
-    
+
     public static final String[] PROPERTY_IDENTIFIERS = new String[]{
         "_X",
         "_Y",
@@ -68,7 +67,7 @@ public class SetPropertyCommand extends AbstractCommand {
         "_xmouse",
         "_ymouse"
     };
-    
+
     private final int property;
 
     private final Expression target;
@@ -85,27 +84,27 @@ public class SetPropertyCommand extends AbstractCommand {
     public int getActionKind() {
         return FLA4_ACTION_SET_PROPERTY;
     }
-    
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F4;
     }
-    
+
     @Override
     public int getProperty() {
         return property;
-    }        
+    }
 
     @Override
     public Expression getTarget() {
         return target;
-    }    
-    
+    }
+
     @Override
     public Expression getArg0() {
         return value;
-    }            
-        
+    }
+
     @Override
     public String toString() {
         String ret = "Set Property (";
@@ -120,5 +119,5 @@ public class SetPropertyCommand extends AbstractCommand {
         ret += value;
         return ret;
     }
-    
+
 }

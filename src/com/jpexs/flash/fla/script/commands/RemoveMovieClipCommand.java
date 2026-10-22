@@ -14,12 +14,12 @@ public class RemoveMovieClipCommand extends AbstractCommand {
     public RemoveMovieClipCommand(Expression expression) {
         this.target = expression;
     }
-    
+
     @Override
     public int getActionKind() {
         return FLA4_ACTION_REMOVE_MOVIE_CLIP;
     }
-    
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F4;
@@ -28,11 +28,11 @@ public class RemoveMovieClipCommand extends AbstractCommand {
     @Override
     public Expression getTarget() {
         return target;
-    }                
-    
+    }
+
     @Override
     public String toString() {
         return "Remove Movie Clip (" + target + ")";
     }
-    
+
 }

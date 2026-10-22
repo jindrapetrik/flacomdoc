@@ -19,21 +19,21 @@ public class LoadMovieCommand extends AbstractCommand {
         this.url = url;
         this.level = level;
         this.variablesMethod = variablesMethod;
-        
+
     }
-    
+
     public LoadMovieCommand(Expression url, Expression levelOrTarget, boolean isTarget, String variablesMethod) {
         this.url = url;
         this.levelOrTarget = levelOrTarget;
         this.isTarget = isTarget;
         this.variablesMethod = variablesMethod;
     }
-    
+
     @Override
     public int getActionKind() {
         return FLA3_ACTION_LOAD_MOVIE;
     }
-    
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         if (!url.isRaw || !levelOrTarget.isRaw || !variablesMethod.isEmpty()) {
@@ -53,7 +53,7 @@ public class LoadMovieCommand extends AbstractCommand {
             return new Expression();
         }
         return levelOrTarget;
-    }        
+    }
 
     @Override
     public Expression getArg2() {
@@ -61,15 +61,15 @@ public class LoadMovieCommand extends AbstractCommand {
             return new Expression();
         }
         return levelOrTarget;
-    }       
-    
+    }
+
     @Override
     public String toString() {
         String ret = "Load Movie (";
         ret += url;
         ret += ", ";
         if (level > 0) {
-            ret += level;            
+            ret += level;
         } else {
             ret += levelOrTarget;
         }
@@ -77,6 +77,6 @@ public class LoadMovieCommand extends AbstractCommand {
             ret += ", vars=" + variablesMethod;
         }
         ret += ")";
-        return ret;    
-    }   
+        return ret;
+    }
 }

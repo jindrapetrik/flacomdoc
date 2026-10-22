@@ -1,0 +1,1321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:tns="http://ns.adobe.com/textLayout/2008" xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://ns.adobe.com/textLayout/2008" elementFormDefault="qualified">
+    <xs:annotation>
+        <xs:documentation xml:lang="en"><h2 xmlns="http://www.w3.org/1999/xhtml">Changelog</h2><h3 xmlns="http://www.w3.org/1999/xhtml">2026-10-22 v2.0.0</h3><ul xmlns="http://www.w3.org/1999/xhtml"><li>Support the shipped TLF flow hierarchy, lists, links, inline graphics, format dictionaries, inherited properties and fractional typography. Preserve documented character properties. User-style attributes are explicitly extensible, as in TLF.</li></ul></xs:documentation>
+    </xs:annotation>
+    <xs:simpleType name="ColorType">
+        <xs:annotation>
+            <xs:documentation xml:lang="en">
+                Color in hexadecimal format: #RRGGBB
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="#[0-9a-fA-F]{6}" />
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="TextAlignType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="start" />
+            <xs:enumeration value="end" />
+            <xs:enumeration value="left" />
+            <xs:enumeration value="center" />
+            <xs:enumeration value="right" />
+            <xs:enumeration value="justify" />
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:simpleType name="PercentOrInteger">
+        <xs:union memberTypes="xs:integer tns:PercentType" />
+    </xs:simpleType>
+    <xs:simpleType name="PercentType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d+%" />
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:attributeGroup name="CharacterLevelAttributeGroup">
+        <xs:attribute name="color">
+            <xs:annotation>
+                <xs:documentation>
+                    The color of the text. Default is #000000.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union memberTypes="tns:ColorType xs:unsignedInt">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="backgroundColor">
+            <xs:annotation>
+                <xs:documentation>
+                    Background color of the text. Can be either transparent, or an integer containing three 8-bit RGB components. Default is transparent. backgroundColor is non-inheriting.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union memberTypes="tns:ColorType xs:unsignedInt">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="transparent" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="lineThrough">
+            <xs:annotation>
+                <xs:documentation>
+                    true if text has strikethrough applied, false otherwise. Default is false.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union memberTypes="xs:boolean">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="textAlpha">
+            <xs:annotation>
+                <xs:documentation>
+                    The alpha value applied to the text. Default is 1.0.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="0" />
+                            <xs:maxInclusive value="1" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="backgroundAlpha">
+            <xs:annotation>
+                <xs:documentation>
+                    Alpha (transparency) value for the background. A value of 0 is fully transparent, and a value of 1 is fully opaque. Default value is 1. backgroundAlpha is non-inheriting.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="0" />
+                            <xs:maxInclusive value="1" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="fontSize">
+            <xs:annotation>
+                <xs:documentation>
+                    The size of the glyphs that is used to render the text, specified in pixels. Default is 12. Minimum 1 pixel. Maximum 720 pixels.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="1" />
+                            <xs:maxInclusive value="720" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="baselineShift">
+            <xs:annotation>
+                <xs:documentation>
+                    Indicates the baseline shift for the element in pixels. The element is shifted perpendicular to the baseline by this amount. In horizontal text, a positive baseline shift moves the element up and a negative baseline shift moves the element down. The default value is 0.0, indicating no shift. A value of "superscript" shifts the text up by an amount specified in the font, and applies a transform to the fontSize also based on preferences in the font. A value of "subscript" shifts the text down by an amount specified in the font, and also transforms the fontSize. Percent shifts the text by a percentage of the fontSize. Minimum/maximum are -1000/1000, min/max percentage values are -1000%/1000%.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="-1000" />
+                            <xs:maxInclusive value="1000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:pattern value="[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)%" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="superscript" />
+                            <xs:enumeration value="subscript" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="trackingLeft">
+            <xs:annotation>
+                <xs:documentation>
+                    space added to the left of each character. A Number tracks by a pixel amount, minimum/maximum values -100/1000. Percent is a percent of the current fontSize, and may be negative, to bring characters closer together. Legal values for percentages are -100% to 1000%. Default is 0.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="-1000" />
+                            <xs:maxInclusive value="1000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:pattern value="[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)%" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="trackingRight">
+            <xs:annotation>
+                <xs:documentation>
+                    space added to the right of each character. A Number tracks by a pixel amount, minimum/maximum values -100/1000. Percent is a percent of the current fontSize, and may be negative, to bring characters closer together. Legal values for percentages are -100% to 1000%. Default is 0.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="-1000" />
+                            <xs:maxInclusive value="1000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:pattern value="[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)%" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="lineHeight">
+            <xs:annotation>
+                <xs:documentation>
+                    The distance from the baseline of the previous or the next line to the baseline of the current line is equal to the maximum amount of the leading applied to any character in the line. This is either a number or a percent. This can be specified in absolute pixels, or as a percentage. Default is 120%. Minimum/maximum value for number is -720/720, Minimum/maximum value percent is -1000%/1000%.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="-720" />
+                            <xs:maxInclusive value="720" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:pattern value="[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)%" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="breakOpportunity">
+            <xs:annotation>
+                <xs:documentation>
+                    Controls where a line can legally break. Auto means line breaking opportunities are based on standard Unicode character properties, such as breaking between words and on hyphens. Any indicates that the line may end at any character. This value is typically used when Roman text is embedded in Asian text and it is desirable for breaks to happen in the middle of words. None means that no characters in the range are treated as line break opportunities. All means that all characters in the range are treated as mandatory line break opportunities, so you get one character per line. Useful for creating effects like text on a path. Default is auto.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="all" />
+                            <xs:enumeration value="any" />
+                            <xs:enumeration value="auto" />
+                            <xs:enumeration value="none" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="digitCase">
+            <xs:annotation>
+                <xs:documentation>
+                    Default uses the normal digit case from the font. Lining uses the lining digit case from the font. oldStyle uses the old style digit case from the font. Default is "default".
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="default" />
+                            <xs:enumeration value="lining" />
+                            <xs:enumeration value="oldStyle" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="digitWidth">
+            <xs:annotation>
+                <xs:documentation>
+                    Specifies how wide digits will be when the text is set. Proportional means that the proportional widths from the font are used, and different digits will have different widths. Tabular means that every digits has the same width. Default means that the normal width from the font is used. Default is "default".
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="default" />
+                            <xs:enumeration value="proportional" />
+                            <xs:enumeration value="tabular" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="dominantBaseline">
+            <xs:annotation>
+                <xs:documentation>
+                    Specifies which of the baselines of the element snaps to the alignmentBaseline to determine the vertical position of the element on the line. A value of "auto" gets resolved based on the textRotation of the span and the locale of the parent paragraph. A textRotation of "rotate270" resolves to ideographicCenter. A locale of Japanese ("ja") or Chinese ("zh-XX", "zh_XX", etc), resolves to ideographicCenter, whereas all others are resolved to roman. Default is auto.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="auto" />
+                            <xs:enumeration value="roman" />
+                            <xs:enumeration value="ascent" />
+                            <xs:enumeration value="descent" />
+                            <xs:enumeration value="ideographicTop" />
+                            <xs:enumeration value="ideographicCenter" />
+                            <xs:enumeration value="ideographicBottom" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="kerning">
+            <xs:annotation>
+                <xs:documentation>
+                    If on, pair kerns are honored. If off, there is no font-based kerning applied. If auto, kerning is applied to all characters except Kanji, Hiragana or Katakana. The default is auto. Otherwise characters are drawn with no pair kerning adjustments.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="on" />
+                            <xs:enumeration value="off" />
+                            <xs:enumeration value="auto" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="ligatureLevel">
+            <xs:annotation>
+                <xs:documentation>
+                    The ligature level used for this text. Controls which ligatures in the font will be used. Minimum turns on rlig, common is rlig + clig + liga, uncommon is rlig + clig + liga + dlig, exotic is rlig + clig + liga + dlig + hlig. There is no way to turn the various ligature features on independently. Default is common.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="minimum" />
+                            <xs:enumeration value="common" />
+                            <xs:enumeration value="uncommon" />
+                            <xs:enumeration value="exotic" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="alignmentBaseline">
+            <xs:annotation>
+                <xs:documentation>
+                    Specifies which of the baselines of the line containing the element the dominantBaseline snaps to, thus determining the vertical position of the element in the line. Default is useDominantBaseline.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="roman" />
+                            <xs:enumeration value="ascent" />
+                            <xs:enumeration value="descent" />
+                            <xs:enumeration value="ideographicTop" />
+                            <xs:enumeration value="ideographicCenter" />
+                            <xs:enumeration value="ideographicBottom" />
+                            <xs:enumeration value="useDominantBaseline" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="locale">
+            <xs:annotation>
+                <xs:documentation>
+                    The locale of the text. Controls case transformations and shaping. Standard locale identifiers as described in Unicode Technical Standard #35 are used. For example en, en_US and en-US are all English, ja is Japanese. Locale applied at the paragraph and higher level impacts resolution of "auto" values for dominantBaseline, justificationRule, justificationStyle and leadingModel. See individual attributes for resolution values.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union memberTypes="xs:string">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="typographicCase">
+            <xs:annotation>
+                <xs:documentation>
+                    Controls the case in which the text will appear.
+                    default is "normal" for the font that's chosen - i.e., its what you get without applying any features or case changes.
+                    smallCaps converts all characters to uppercase and applies c2sc.
+                    uppercase and lowercase are case conversions.
+                    caps turns on case.
+                    lowercaseToSmallCaps converts all characters to uppercase, and for those characters which have been converted, applies c2sc.
+                    Default is default.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="default" />
+                            <xs:enumeration value="capsToSmallCaps" />
+                            <xs:enumeration value="uppercase" />
+                            <xs:enumeration value="lowercase" />
+                            <xs:enumeration value="lowercaseToSmallCaps" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="fontFamily">
+            <xs:annotation>
+                <xs:documentation>
+                    The font family name used to render the text. The font family name may also be a comma-delimited list of font families, in which case the client should evaluate them in order. If no font is supplied, the client will pick one that is a variant of the Arial family, dependent on platform. Which font is used for rendering the text is up to the client and also depends on the glyphs that are being rendered and the fonts that are available. Default value is Arial.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union memberTypes="xs:string">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="textDecoration">
+            <xs:annotation>
+                <xs:documentation>
+                    The decoration to apply to the text. Default is none.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="none" />
+                            <xs:enumeration value="underline" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="fontWeight">
+            <xs:annotation>
+                <xs:documentation>
+                    The boldness or lightness of the glyphs that is used to render the text. Legal values are 'normal' and 'bold'. Default is normal.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="normal" />
+                            <xs:enumeration value="bold" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="fontStyle">
+            <xs:annotation>
+                <xs:documentation>
+                    The style of the glyphs that is used to render the text. Legal values are 'normal' and 'italic'. Default is normal.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="normal" />
+                            <xs:enumeration value="italic" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="whiteSpaceCollapse">
+            <xs:annotation>
+                <xs:documentation>
+                    This is an enumerated value. A value of "collapse" converts line feeds, newlines, and tabs to spaces and collapses adjacent spaces to one. See [Text collapse examples] for details on collapse handling. Updated:-Leading and trailing whitespace is trimmed. A value of "preserve" passes whitespace through unchanged,except as noted earlier, when the whitespace would result in an implied p and span that is all whitespace, in which case the whitespace is removed. Default is collapse.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="preserve" />
+                            <xs:enumeration value="collapse" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="renderingMode">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="normal" />
+                            <xs:enumeration value="cff" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="cffHinting">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="none" />
+                            <xs:enumeration value="horizontalStem" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="fontLookup">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="device" />
+                            <xs:enumeration value="embeddedCFF" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="textRotation">
+            <xs:annotation>
+                <xs:documentation>
+                    The rotation of the text, in ninety degree increments. Default is auto.
+                </xs:documentation>
+            </xs:annotation>
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="rotate0" />
+                            <xs:enumeration value="rotate180" />
+                            <xs:enumeration value="rotate270" />
+                            <xs:enumeration value="rotate90" />
+                            <xs:enumeration value="auto" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+    </xs:attributeGroup>
+    <xs:attributeGroup name="ParagraphLevelAttributeGroup">
+        <xs:attribute name="textIndent">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="-8000" />
+                            <xs:maxInclusive value="8000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="paragraphStartIndent">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="0" />
+                            <xs:maxInclusive value="8000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="paragraphEndIndent">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="0" />
+                            <xs:maxInclusive value="8000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="paragraphSpaceBefore">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="0" />
+                            <xs:maxInclusive value="8000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="paragraphSpaceAfter">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="0" />
+                            <xs:maxInclusive value="8000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="textAlign">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="left" />
+                            <xs:enumeration value="right" />
+                            <xs:enumeration value="center" />
+                            <xs:enumeration value="justify" />
+                            <xs:enumeration value="start" />
+                            <xs:enumeration value="end" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="textAlignLast">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="left" />
+                            <xs:enumeration value="right" />
+                            <xs:enumeration value="center" />
+                            <xs:enumeration value="justify" />
+                            <xs:enumeration value="start" />
+                            <xs:enumeration value="end" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="textJustify">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="interWord" />
+                            <xs:enumeration value="distribute" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="justificationRule">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="eastAsian" />
+                            <xs:enumeration value="space" />
+                            <xs:enumeration value="auto" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="justificationStyle">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="prioritizeLeastAdjustment" />
+                            <xs:enumeration value="pushInKinsoku" />
+                            <xs:enumeration value="pushOutOnly" />
+                            <xs:enumeration value="auto" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="direction">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="ltr" />
+                            <xs:enumeration value="rtl" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="wordSpacing">
+            <xs:simpleType>
+                <xs:union memberTypes="xs:string">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="tabStops">
+            <xs:simpleType>
+                <xs:union memberTypes="xs:string">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="leadingModel">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="romanUp" />
+                            <xs:enumeration value="ideographicTopUp" />
+                            <xs:enumeration value="ideographicCenterUp" />
+                            <xs:enumeration value="ideographicTopDown" />
+                            <xs:enumeration value="ideographicCenterDown" />
+                            <xs:enumeration value="approximateTextField" />
+                            <xs:enumeration value="ascentDescentUp" />
+                            <xs:enumeration value="box" />
+                            <xs:enumeration value="auto" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="clearFloats">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="start" />
+                            <xs:enumeration value="end" />
+                            <xs:enumeration value="left" />
+                            <xs:enumeration value="right" />
+                            <xs:enumeration value="both" />
+                            <xs:enumeration value="none" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+    </xs:attributeGroup>
+    <xs:attributeGroup name="ContainerLevelAttributeGroup">
+        <xs:attribute name="columnGap">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="0" />
+                            <xs:maxInclusive value="1000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="paddingLeft">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="-8000" />
+                            <xs:maxInclusive value="8000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="auto" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="paddingTop">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="-8000" />
+                            <xs:maxInclusive value="8000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="auto" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="paddingRight">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="-8000" />
+                            <xs:maxInclusive value="8000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="auto" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="paddingBottom">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="-8000" />
+                            <xs:maxInclusive value="8000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="auto" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="columnCount">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:integer">
+                            <xs:minInclusive value="1" />
+                            <xs:maxInclusive value="50" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="auto" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="columnWidth">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="0" />
+                            <xs:maxInclusive value="8000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="auto" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="firstBaselineOffset">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="0" />
+                            <xs:maxInclusive value="1000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="auto" />
+                            <xs:enumeration value="ascent" />
+                            <xs:enumeration value="lineHeight" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="verticalAlign">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="top" />
+                            <xs:enumeration value="middle" />
+                            <xs:enumeration value="bottom" />
+                            <xs:enumeration value="justify" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="blockProgression">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="rl" />
+                            <xs:enumeration value="tb" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="lineBreak">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="explicit" />
+                            <xs:enumeration value="toFit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="listAutoPadding">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:decimal">
+                            <xs:minInclusive value="-1000" />
+                            <xs:maxInclusive value="1000" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+    </xs:attributeGroup>
+    <xs:attributeGroup name="ListLevelAttributeGroup">
+        <xs:attribute name="listStyleType">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="upperAlpha" />
+                            <xs:enumeration value="lowerAlpha" />
+                            <xs:enumeration value="upperRoman" />
+                            <xs:enumeration value="lowerRoman" />
+                            <xs:enumeration value="none" />
+                            <xs:enumeration value="disc" />
+                            <xs:enumeration value="circle" />
+                            <xs:enumeration value="square" />
+                            <xs:enumeration value="box" />
+                            <xs:enumeration value="check" />
+                            <xs:enumeration value="diamond" />
+                            <xs:enumeration value="hyphen" />
+                            <xs:enumeration value="arabicIndic" />
+                            <xs:enumeration value="bengali" />
+                            <xs:enumeration value="decimal" />
+                            <xs:enumeration value="decimalLeadingZero" />
+                            <xs:enumeration value="devanagari" />
+                            <xs:enumeration value="gujarati" />
+                            <xs:enumeration value="gurmukhi" />
+                            <xs:enumeration value="kannada" />
+                            <xs:enumeration value="persian" />
+                            <xs:enumeration value="thai" />
+                            <xs:enumeration value="urdu" />
+                            <xs:enumeration value="cjkEarthlyBranch" />
+                            <xs:enumeration value="cjkHeavenlyStem" />
+                            <xs:enumeration value="hangul" />
+                            <xs:enumeration value="hangulConstant" />
+                            <xs:enumeration value="hiragana" />
+                            <xs:enumeration value="hiraganaIroha" />
+                            <xs:enumeration value="katakana" />
+                            <xs:enumeration value="katakanaIroha" />
+                            <xs:enumeration value="lowerGreek" />
+                            <xs:enumeration value="lowerLatin" />
+                            <xs:enumeration value="upperGreek" />
+                            <xs:enumeration value="upperLatin" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="listStylePosition">
+            <xs:simpleType>
+                <xs:union>
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                            <xs:enumeration value="inside" />
+                            <xs:enumeration value="outside" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+    </xs:attributeGroup>
+    <xs:attributeGroup name="StyleLevelAttributeGroup">
+        <xs:attribute name="styleName">
+            <xs:simpleType>
+                <xs:union memberTypes="xs:string">
+                    <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                            <xs:enumeration value="inherit" />
+                        </xs:restriction>
+                    </xs:simpleType>
+                </xs:union>
+            </xs:simpleType>
+        </xs:attribute>
+    </xs:attributeGroup>
+    <xs:attributeGroup name="FlowFormatAttributeGroup">
+        <xs:attributeGroup ref="tns:CharacterLevelAttributeGroup" />
+        <xs:attributeGroup ref="tns:ParagraphLevelAttributeGroup" />
+        <xs:attributeGroup ref="tns:ContainerLevelAttributeGroup" />
+        <xs:attributeGroup ref="tns:ListLevelAttributeGroup" />
+        <xs:attributeGroup ref="tns:StyleLevelAttributeGroup" />
+        <xs:attribute name="id" type="xs:string" />
+        <xs:attribute name="typeName" type="xs:string" />
+        <xs:anyAttribute namespace="##any" processContents="lax">
+            <xs:annotation>
+                <xs:documentation>TLF exports arbitrary userStyles as string attributes (including Flash customSource for inline children). Known format attributes above retain their declared types.</xs:documentation>
+            </xs:annotation>
+        </xs:anyAttribute>
+    </xs:attributeGroup>
+    <xs:element name="TextFlow" type="tns:TextFlowType" />
+    <xs:element name="p" type="tns:ParagraphType" />
+    <xs:element name="div" type="tns:DivisionType" />
+    <xs:element name="list" type="tns:ListType" />
+    <xs:element name="li" type="tns:ListItemType" />
+    <xs:element name="span" type="tns:SpanType" />
+    <xs:element name="a" type="tns:LinkType" />
+    <xs:element name="g" type="tns:InlineGroupType" />
+    <xs:element name="tcy" type="tns:InlineGroupType" />
+    <xs:element name="img" type="tns:ImageType" />
+    <xs:element name="br" type="tns:EmptyInlineType" />
+    <xs:element name="tab" type="tns:EmptyInlineType" />
+    <xs:element name="TextLayoutFormat" type="tns:FormatType" />
+    <xs:element name="ListMarkerFormat" type="tns:ListMarkerFormatType" />
+    <xs:complexType name="TextFlowType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="tns:p" />
+            <xs:element ref="tns:div" />
+            <xs:element ref="tns:list" />
+            <xs:element ref="tns:linkNormalFormat" />
+            <xs:element ref="tns:linkActiveFormat" />
+            <xs:element ref="tns:linkHoverFormat" />
+            <xs:element ref="tns:listMarkerFormat" />
+        </xs:choice>
+        <xs:attributeGroup ref="tns:FlowFormatAttributeGroup" />
+        <xs:attribute name="version" type="xs:string" />
+    </xs:complexType>
+    <xs:complexType name="DivisionType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="tns:p" />
+            <xs:element ref="tns:div" />
+            <xs:element ref="tns:list" />
+            <xs:element ref="tns:linkNormalFormat" />
+            <xs:element ref="tns:linkActiveFormat" />
+            <xs:element ref="tns:linkHoverFormat" />
+            <xs:element ref="tns:listMarkerFormat" />
+        </xs:choice>
+        <xs:attributeGroup ref="tns:FlowFormatAttributeGroup" />
+    </xs:complexType>
+    <xs:complexType name="ListType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="tns:li" />
+            <xs:element ref="tns:linkNormalFormat" />
+            <xs:element ref="tns:linkActiveFormat" />
+            <xs:element ref="tns:linkHoverFormat" />
+            <xs:element ref="tns:listMarkerFormat" />
+        </xs:choice>
+        <xs:attributeGroup ref="tns:FlowFormatAttributeGroup" />
+    </xs:complexType>
+    <xs:complexType name="ListItemType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="tns:p" />
+            <xs:element ref="tns:div" />
+            <xs:element ref="tns:list" />
+            <xs:element ref="tns:linkNormalFormat" />
+            <xs:element ref="tns:linkActiveFormat" />
+            <xs:element ref="tns:linkHoverFormat" />
+            <xs:element ref="tns:listMarkerFormat" />
+        </xs:choice>
+        <xs:attributeGroup ref="tns:FlowFormatAttributeGroup" />
+    </xs:complexType>
+    <xs:complexType name="ParagraphType" mixed="true">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="tns:span" />
+            <xs:element ref="tns:a" />
+            <xs:element ref="tns:g" />
+            <xs:element ref="tns:tcy" />
+            <xs:element ref="tns:img" />
+            <xs:element ref="tns:br" />
+            <xs:element ref="tns:tab" />
+            <xs:element ref="tns:linkNormalFormat" />
+            <xs:element ref="tns:linkActiveFormat" />
+            <xs:element ref="tns:linkHoverFormat" />
+            <xs:element ref="tns:listMarkerFormat" />
+        </xs:choice>
+        <xs:attributeGroup ref="tns:FlowFormatAttributeGroup" />
+    </xs:complexType>
+    <xs:complexType name="InlineGroupType" mixed="true">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="tns:span" />
+            <xs:element ref="tns:a" />
+            <xs:element ref="tns:g" />
+            <xs:element ref="tns:tcy" />
+            <xs:element ref="tns:img" />
+            <xs:element ref="tns:br" />
+            <xs:element ref="tns:tab" />
+            <xs:element ref="tns:linkNormalFormat" />
+            <xs:element ref="tns:linkActiveFormat" />
+            <xs:element ref="tns:linkHoverFormat" />
+            <xs:element ref="tns:listMarkerFormat" />
+        </xs:choice>
+        <xs:attributeGroup ref="tns:FlowFormatAttributeGroup" />
+    </xs:complexType>
+    <xs:complexType name="LinkType" mixed="true">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="tns:span" />
+            <xs:element ref="tns:g" />
+            <xs:element ref="tns:tcy" />
+            <xs:element ref="tns:img" />
+            <xs:element ref="tns:br" />
+            <xs:element ref="tns:tab" />
+            <xs:element ref="tns:linkNormalFormat" />
+            <xs:element ref="tns:linkActiveFormat" />
+            <xs:element ref="tns:linkHoverFormat" />
+            <xs:element ref="tns:listMarkerFormat" />
+        </xs:choice>
+        <xs:attributeGroup ref="tns:FlowFormatAttributeGroup" />
+        <xs:attribute name="href" type="xs:string" />
+        <xs:attribute name="target" type="xs:string" />
+    </xs:complexType>
+    <xs:complexType name="SpanType" mixed="true">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="tns:br" />
+            <xs:element ref="tns:tab" />
+        </xs:choice>
+        <xs:attributeGroup ref="tns:FlowFormatAttributeGroup" />
+    </xs:complexType>
+    <xs:complexType name="EmptyInlineType">
+        <xs:attributeGroup ref="tns:FlowFormatAttributeGroup" />
+    </xs:complexType>
+    <xs:complexType name="ImageType">
+        <xs:attributeGroup ref="tns:FlowFormatAttributeGroup" />
+        <xs:attribute name="source" type="xs:string" />
+        <xs:attribute name="width" type="tns:ImageDimensionType" />
+        <xs:attribute name="height" type="tns:ImageDimensionType" />
+        <xs:attribute name="float" type="tns:ImageFloatType" />
+        <xs:attribute name="rotation" type="xs:decimal" />
+    </xs:complexType>
+    <xs:complexType name="FormatType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="tns:linkNormalFormat" />
+            <xs:element ref="tns:linkActiveFormat" />
+            <xs:element ref="tns:linkHoverFormat" />
+            <xs:element ref="tns:listMarkerFormat" />
+        </xs:choice>
+        <xs:attributeGroup ref="tns:FlowFormatAttributeGroup" />
+    </xs:complexType>
+    <xs:complexType name="ListMarkerFormatType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element ref="tns:linkNormalFormat" />
+            <xs:element ref="tns:linkActiveFormat" />
+            <xs:element ref="tns:linkHoverFormat" />
+            <xs:element ref="tns:listMarkerFormat" />
+        </xs:choice>
+        <xs:attributeGroup ref="tns:FlowFormatAttributeGroup" />
+        <xs:attribute name="counterReset" type="xs:string" />
+        <xs:attribute name="counterIncrement" type="xs:string" />
+        <xs:attribute name="beforeContent" type="xs:string" />
+        <xs:attribute name="content" type="xs:string" />
+        <xs:attribute name="afterContent" type="xs:string" />
+        <xs:attribute name="suffix" type="xs:string" />
+    </xs:complexType>
+    <xs:element name="linkNormalFormat">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="tns:TextLayoutFormat" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="linkActiveFormat">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="tns:TextLayoutFormat" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="linkHoverFormat">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="tns:TextLayoutFormat" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="listMarkerFormat">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="tns:ListMarkerFormat" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:simpleType name="ImageDimensionType">
+        <xs:union memberTypes="xs:decimal tns:PercentType">
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="auto" />
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:union>
+    </xs:simpleType>
+    <xs:simpleType name="ImageFloatType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="none" />
+            <xs:enumeration value="left" />
+            <xs:enumeration value="right" />
+            <xs:enumeration value="start" />
+            <xs:enumeration value="end" />
+        </xs:restriction>
+    </xs:simpleType>
+</xs:schema>

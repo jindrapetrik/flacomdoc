@@ -43,7 +43,7 @@ public class DirectoryEntry implements Comparable<DirectoryEntry> {
     public Date modifiedTime;
     public long startingSectorLocation;
     public long streamSize;
-    
+
     public DirectoryEntry(long fileOffset, long directorySector, long streamId, String name, int objectType, int colorFlag, long leftSiblingId, long rightSiblingId, long childId, byte[] clsId, long stateBits, Date creationTime, Date modifiedTime, long startingSectorLocation, long streamSize) {
         this.fileOffset = fileOffset;
         this.directorySector = directorySector;

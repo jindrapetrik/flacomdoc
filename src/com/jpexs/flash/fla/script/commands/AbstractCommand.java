@@ -8,14 +8,12 @@ import com.jpexs.flash.fla.converter.FlaFormatVersion;
  * @author JPEXS
  */
 public abstract class AbstractCommand {
-    
+
     public static final int NO_WAIT = -16000;
     public static final int NO_FRAME = -1;
     public static final int NO_PROPERTY = -1;
     public static final int NO_KEY = -1;
-        
-    
-    
+
     public static final int FLA1_ACTION_NONE = 0;
     public static final int FLA1_ACTION_PLAY = 1;
     public static final int FLA1_ACTION_STOP = 2;
@@ -60,139 +58,135 @@ public abstract class AbstractCommand {
     public static final int FLA4_ACTION_COMMENT = 0x25; // (arg0)
     public static final int FLA4_ACTION_TRACE = 0x26; // (arg0)
 
+    public abstract int getActionKind();
 
-    
-    
-    public abstract int getActionKind();      
-    
     public abstract FlaFormatVersion getMinFlaVersion();
-    
+
     public String defaultPage = "";
-    public Expression defaultUrl = new Expression();    
+    public Expression defaultUrl = new Expression();
     public int defaultFrameNum = 1;
     public Expression defaultWindow = new Expression();
     public int defaultLevel = 1;
     public int defaultProperty = NO_PROPERTY;
     public int defaultKey = NO_KEY;
-    
+
     public Expression getUrl() {
         return defaultUrl;
     }
-    
+
     public Expression getWindow() {
         return defaultWindow;
     }
-    
+
     public String getPage() {
         return defaultPage;
     }
-    
+
     public int getFrameNum() {
-        return defaultFrameNum;        
+        return defaultFrameNum;
     }
-    
+
     public int getWaitForExtraFrames() {
         return NO_WAIT;
     }
-    
+
     public String getLabel() {
         return "";
     }
-    
+
     public Expression getArg0() {
         return new Expression();
     }
-    
+
     public Expression getArg1() {
         return new Expression();
     }
-    
+
     public Expression getTarget() {
         return new Expression();
     }
-    
+
     public int getLevel() {
         return defaultLevel;
     }
-    
+
     public boolean onPress() {
         return false;
     }
-    
+
     public boolean onRelease() {
         return false;
     }
-    
+
     public boolean onReleaseOutside() {
         return false;
     }
-    
+
     public boolean onRollOver() {
         return false;
     }
-    
+
     public boolean onRollOut() {
         return false;
     }
-    
+
     public boolean onDragOver() {
         return false;
     }
-    
+
     public boolean onDragOut() {
         return false;
     }
-    
-    
+
     public int getProperty() {
         return defaultProperty;
     }
-    
+
     public Expression getVariableName() {
         return new Expression();
     }
-    
+
     public Expression getDepth() {
         return new Expression();
     }
-    
+
     public boolean depthIsExpression() {
         return false;
     }
-    
+
     public Expression getArg2() {
         return new Expression();
     }
-    
+
     public Expression getArg3() {
         return new Expression();
-    }    
-    
+    }
+
     public boolean hasLockMouseToCenter() {
         return false;
     }
-    
+
     public boolean isStart() {
         return true;
     }
-    
+
     public boolean hasConstrainToRectangle() {
         return false;
     }
-    
+
     public String getMethod() {
         return "";
     }
-    
+
     public boolean onKeyPress() {
         return false;
-    }        
-    
+    }
+
     public int getKey() {
         return defaultKey;
     }
-    
+
     public boolean doesLoadVariables() {
         return false;
-    }      
+    }
 }

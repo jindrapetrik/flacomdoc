@@ -10,6 +10,7 @@ import java.io.OutputStream;
  * Track indices and compressed payloads are copied without re-encoding.
  */
 public class VideoBinConvertor {
+
     private final DataInputStream input;
     private final byte[] buffer = new byte[4096];
 
@@ -53,7 +54,7 @@ public class VideoBinConvertor {
             copy(tail, length);
         } else if (targetRevision == 3) {
             // Empty revision-3 extension: dword, Unicode String, byte-count.
-            output.write(new byte[] {0, 0, 0, 0, (byte) 255, (byte) 254, (byte) 255, 0, 0, 0, 0, 0});
+            output.write(new byte[]{0, 0, 0, 0, (byte) 255, (byte) 254, (byte) 255, 0, 0, 0, 0, 0});
         }
         if (input.read() != -1) {
             throw new IOException("Unexpected trailing data in video payload");

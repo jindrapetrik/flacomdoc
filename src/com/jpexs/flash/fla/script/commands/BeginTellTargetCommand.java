@@ -13,13 +13,13 @@ public class BeginTellTargetCommand extends AbstractCommand {
 
     public BeginTellTargetCommand(Expression target) {
         this.target = target;
-    }        
+    }
 
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F3;
-    }            
-    
+    }
+
     @Override
     public int getActionKind() {
         return FLA3_ACTION_BEGIN_TELL_TARGET;
@@ -28,10 +28,10 @@ public class BeginTellTargetCommand extends AbstractCommand {
     @Override
     public Expression getTarget() {
         return target;
-    }        
+    }
 
     @Override
     public String toString() {
         return "Begin Tell Target (" + target + ")";
-    }        
+    }
 }

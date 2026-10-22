@@ -7,13 +7,12 @@ import com.jpexs.flash.fla.converter.FlaFormatVersion;
  * @author JPEXS
  */
 public class ElseCommand extends AbstractCommand {
-   
-    
+
     @Override
     public int getActionKind() {
         return FLA4_ACTION_ELSE;
     }
-    
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F4;
@@ -22,5 +21,5 @@ public class ElseCommand extends AbstractCommand {
     @Override
     public String toString() {
         return "Else";
-    }        
+    }
 }

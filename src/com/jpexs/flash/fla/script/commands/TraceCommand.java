@@ -19,20 +19,20 @@ public class TraceCommand extends AbstractCommand {
     public int getActionKind() {
         return FLA4_ACTION_TRACE;
     }
-    
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F4;
     }
-    
+
     @Override
     public Expression getArg0() {
         return expression;
-    }            
-        
+    }
+
     @Override
     public String toString() {
         return "Trace (" + expression + ")";
     }
-    
+
 }

@@ -43,7 +43,7 @@ public class LosslessImageBinToFlash2Convertor {
     }
 
     public void convertTo(OutputStream os) throws IOException {
-        int major = readEx();       
+        int major = readEx();
         int minor = readEx();
         if (major > 0x03 || minor != 0x05) {
             throw new IOException("Invalid image");
@@ -72,7 +72,7 @@ public class LosslessImageBinToFlash2Convertor {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         InputStream uis = is;
-        
+
         if (minor > 1) {
             int variant = readEx();
 
@@ -87,19 +87,19 @@ public class LosslessImageBinToFlash2Convertor {
                     baos.write(chunk);
                 }
 
-                uis = new InflaterInputStream(new ByteArrayInputStream(baos.toByteArray()));            
+                uis = new InflaterInputStream(new ByteArrayInputStream(baos.toByteArray()));
             }
         }
-        
+
         baos = new ByteArrayOutputStream();
         byte[] buf = new byte[4096];
         int cnt;
         while ((cnt = uis.read(buf)) > 0) {
             baos.write(buf, 0, cnt);
-        }                
-        
+        }
+
         os.write(1); //compressed variant
-        
+
         baos = new ByteArrayOutputStream();
         DeflaterOutputStream def = new DeflaterOutputStream(baos, new Deflater(1));
         byte[] arr = baos.toByteArray();
@@ -107,7 +107,7 @@ public class LosslessImageBinToFlash2Convertor {
             def.write(0); //strip alpha data
             def.write(arr[i + 1]);
             def.write(arr[i + 2]);
-            def.write(arr[i + 3]);            
+            def.write(arr[i + 3]);
         }
         def.flush();
         def.finish();
@@ -132,19 +132,18 @@ public class LosslessImageBinToFlash2Convertor {
     private long readUI32() throws IOException {
         return (readEx() + (readEx() << 8) + (readEx() << 16) + (readEx() << 24)) & 0xffffffffL;
     }
-    
+
     private void writeUI16(OutputStream os, int val) throws IOException {
         os.write(val & 0xFF);
         os.write((val >> 8) & 0xFF);
     }
-    
+
     private void writeUI32(OutputStream os, long val) throws IOException {
         os.write((int) (val & 0xFF));
         os.write((int) ((val >> 8) & 0xFF));
         os.write((int) ((val >> 16) & 0xFF));
         os.write((int) ((val >> 24) & 0xFF));
     }
-    
 
     private int readEx() throws IOException {
         int ret = is.read();

@@ -17,21 +17,21 @@ public class GetUrlGotoAndStop extends AbstractCommand {
 
     public GetUrlGotoAndStop(String url, String window, String page, int frameNum, int waitFrames) {
         this.url = url;
-        this.window = window; 
-        this.page = page;                
+        this.window = window;
+        this.page = page;
         this.frameNum = frameNum;
         this.waitFrames = waitFrames;
     }
 
     public GetUrlGotoAndStop(String url, String window, String page, int frameNum) {
         this(url, window, page, frameNum, NO_WAIT);
-    }    
-    
+    }
+
     @Override
     public int getActionKind() {
         return FLA1_ACTION_GET_URL_GO_TO;
     }
-    
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F1;
@@ -40,12 +40,12 @@ public class GetUrlGotoAndStop extends AbstractCommand {
     @Override
     public Expression getUrl() {
         return new Expression(url, true);
-    }        
+    }
 
     @Override
     public Expression getWindow() {
         return new Expression(window, true);
-    }        
+    }
 
     @Override
     public int getFrameNum() {
@@ -55,13 +55,13 @@ public class GetUrlGotoAndStop extends AbstractCommand {
     @Override
     public int getWaitForExtraFrames() {
         return waitFrames;
-    }        
+    }
 
     @Override
     public String getPage() {
         return page;
-    }        
-    
+    }
+
     @Override
     public String toString() {
         String ret = "Get URL And Goto (";
@@ -76,5 +76,5 @@ public class GetUrlGotoAndStop extends AbstractCommand {
         }
         ret += ")";
         return ret;
-    }        
+    }
 }

@@ -11,8 +11,8 @@ public class StopCommand extends AbstractCommand {
     @Override
     public int getActionKind() {
         return FLA1_ACTION_STOP;
-    }    
-    
+    }
+
     @Override
     public FlaFormatVersion getMinFlaVersion() {
         return FlaFormatVersion.F1;
@@ -21,5 +21,5 @@ public class StopCommand extends AbstractCommand {
     @Override
     public String toString() {
         return "Stop";
-    }  
+    }
 }
