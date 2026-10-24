@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ## [3.0.0] - 2026-10-24
 ### Added
+- Renamed from FlaComDoc to JPEXS FLA Convert
 - One Convert button in the GUI, with all supported target versions and containers selectable in the save dialog.
 - Conversion to XFL (CS5, CS5.5, CS6)
 - Conversion between binary FLA format versions

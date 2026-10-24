@@ -68,7 +68,7 @@ public class MainMenuFrame extends JFrame {
                 Gui.saveConfig();
             }
         });
-        setTitle("FLA converter");
+        setTitle("JPEXS FLA convert");
         Container cnt = getContentPane();
         cnt.setLayout(new GridLayout(3, 1, 0, 4));
 

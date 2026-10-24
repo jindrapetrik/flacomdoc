@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="FlaComDoc" basedir="." default="build" xmlns:jacoco="antlib:org.jacoco.ant">
+<project name="jpexs-fla-converter" basedir="." default="build" xmlns:jacoco="antlib:org.jacoco.ant">
     <description>Builds project FlaComDoc</description>  
     <loadproperties srcfile="build.properties" />
     

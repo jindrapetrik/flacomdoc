@@ -1,4 +1,4 @@
-# FLA Compound Document Tools
+# JPEXS FLA Convert
 ![build status](https://github.com/jindrapetrik/flacomdoc/actions/workflows/main.yml/badge.svg)
 
 ## Goals
@@ -16,7 +16,7 @@ The app requires Java 8 or newer to run.
 Source code is available on GitHub, you can get it via following command
 
 ```
-git clone https://github.com/jindrapetrik/flacomdoc.git
+git clone https://github.com/jindrapetrik/jpexs-fla-convert.git
 ```
 
 The source directory contains Netbeans project which you can open and then build here.
