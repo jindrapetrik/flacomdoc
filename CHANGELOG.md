@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [3.0.0] - 2026-10-24
 ### Added
 - One Convert button in the GUI, with all supported target versions and containers selectable in the save dialog.
 - Conversion to XFL (CS5, CS5.5, CS6)
