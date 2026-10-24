@@ -1,5 +1,5 @@
 # JPEXS FLA Convert
-![build status](https://github.com/jindrapetrik/flacomdoc/actions/workflows/main.yml/badge.svg)
+![build status](https://github.com/jindrapetrik/jpexs-fla-convert/actions/workflows/main.yml/badge.svg)
 
 ## Goals
 This project has following goals:
