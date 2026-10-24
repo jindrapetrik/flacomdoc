@@ -26,7 +26,7 @@ Alternatively you can use `ant` command from commandline.
 
 You can run the app without arguments:
 ```
-java -jar flacomdoc.jar
+java -jar fla_convert.jar
 ```
 And graphics user interface (GUI) will show up where you can do the conversion and extraction.
 
@@ -40,7 +40,7 @@ CS5–CS6 offer compressed FLA and uncompressed XFL directory types. The correct
 
 To convert between FLA/XFL: versions:
 ```
-java -jar flacomdoc.jar convert [--format <format>] [--charset <charset>] [--container fla|zip|xfl] inputfile.fla/xfl output
+java -jar fla_convert.jar convert [--format <format>] [--charset <charset>] [--container fla|zip|xfl] inputfile.fla/xfl output
 ```
 
 For `--format` option you can choose: 
@@ -55,7 +55,7 @@ The charset setting selects the encoding of legacy ANSI strings and defaults to 
 To extract CS4 and lower FLA (ComDoc format):
 
 ```
-java -jar flacomdoc.jar extract inputfile.fla outputdir
+java -jar fla_convert.jar extract inputfile.fla outputdir
 ```
 
 Tests validate generated XML directly against an offline working-tree snapshot of
