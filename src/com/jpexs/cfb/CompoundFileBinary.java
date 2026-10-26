@@ -993,7 +993,7 @@ public class CompoundFileBinary implements AutoCloseable {
 
     private List<Long> allocateNewLength(long length) throws IOException {
 
-        int numSectors = (int) Math.ceil(length / (float) sectorLength);
+        long numSectors = length / sectorLength + (length % sectorLength == 0 ? 0 : 1);
 
         List<Long> newSectorIds = new ArrayList<>();
         long sectorId = 0;

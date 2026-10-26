@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- CFB: Prevent stream truncation caused by float rounding
+
 ## [3.0.0] - 2026-10-24
 ### Added
 - Renamed from FlaComDoc to JPEXS FLA Convert
