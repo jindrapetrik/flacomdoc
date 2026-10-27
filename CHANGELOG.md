@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Fixed
 - CFB: Prevent stream truncation caused by float rounding
+- CFB: Remove stale trailing data when overwriting an existing file, even if file deletion is denied.
 
 ## [3.0.0] - 2026-10-24
 ### Added

@@ -1,14 +1,46 @@
 package com.jpexs.cfb;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import static org.testng.Assert.*;
 
 public class CompoundFileBinaryTest {
+
+    @Test
+    public void creatingOverExistingFileTruncatesEvenIfDeletionIsDenied() throws Exception {
+        Path path = Files.createTempFile("cfb-overwrite-", ".cfb");
+        try {
+            byte[] previous = new byte[16385];
+            Arrays.fill(previous, (byte) 0x7f);
+            Files.write(path, previous);
+            File file = new File(path.toString()) {
+                @Override
+                public boolean delete() {
+                    // A file can allow writes while denying deletion (e.g. an open ZIP).
+                    return false;
+                }
+            };
+            try (CompoundFileBinary cfb = new CompoundFileBinary(file, true)) {
+                cfb.addFile("Contents", new byte[]{1, 2, 3});
+            }
+            assertEquals(Files.size(path), 4096L, "Old trailing bytes must be removed");
+            try (CompoundFileBinary cfb = new CompoundFileBinary(file);
+                    InputStream in = cfb.getEntryStream(cfb.getEntryByPath("Contents"))) {
+                assertEquals(in.read(), 1);
+                assertEquals(in.read(), 2);
+                assertEquals(in.read(), 3);
+                assertEquals(in.read(), -1);
+            }
+        } finally {
+            Files.deleteIfExists(path);
+        }
+    }
 
     @DataProvider(name = "streamLengths")
     public Object[][] streamLengths() {

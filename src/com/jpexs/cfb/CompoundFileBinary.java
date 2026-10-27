@@ -268,10 +268,8 @@ public class CompoundFileBinary implements AutoCloseable {
     }
 
     private void initNew(File file) throws IOException {
-        if (file.exists()) {
-            file.delete();
-        }
         raf = new RandomAccessFile(file, "rw");
+        raf.setLength(0);
         raf.write(SIGNATURE);       //0x00
         raf.write(CLSID_NULL);      //0x08
         writeUI16(0x003E); //minorVersion,  0x18
