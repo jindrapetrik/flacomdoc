@@ -127,6 +127,49 @@ public class XflComponentImportTest {
         expectFailure(input, "Unsupported Inspectable");
     }
 
+    @DataProvider(name = "f5InstanceParameters")
+    public Object[][] f5InstanceParameters() {
+        return new Object[][]{{true}, {false}};
+    }
+
+    @Test(dataProvider = "f5InstanceParameters")
+    public void flash5UsesNativeTypedListsAndSeparatesDefaultsFromInstanceValues(boolean explicit) throws Exception {
+        MemoryInput input = fixture();
+        if (!explicit) {
+            input.put("DOMDocument.xml", new String(input.files.get("DOMDocument.xml"), java.nio.charset.StandardCharsets.UTF_8)
+                    .replace(parameters("Hello"), ""));
+        }
+        BinaryFlaDocument source = new XflReader().read(input);
+        BinaryFlaDocument output = read(new BinaryFlaConverter(FlaFormatVersion.F5).convert(source));
+        FlaRecord descriptor = output.getLibraryDescriptors().get(0), instance = of(output, "CPicSprite").get(0);
+        for (FlaRecord properties : Arrays.asList(record(descriptor, "properties"), record(instance, "legacyProperties"))) {
+            assertEquals(((Number) properties.get("revision")).intValue(), 1);
+            List<FlaRecord> parameters = entries(properties);
+            assertEquals(parameters.size(), 4);
+            for (FlaRecord parameter : parameters) {
+                assertEquals(((Number) parameter.get("revision")).intValue(), 0);
+                assertNull(parameter.get("variableName"));
+                assertEquals(((Number) record(parameter, "value").get("revision")).intValue(), 1);
+            }
+            assertEquals(parameters.get(0).get("name"), "label", "F5 uses the variable name as its parameter name");
+            assertEquals(entries(record(parameters.get(0), "value")).get(0).get("value"), "Push Button");
+            assertEquals(entries(record(parameters.get(1), "value")).get(0).get("value"), "First,Item");
+            assertEquals(entries(record(parameters.get(1), "value")).get(1).get("value"), "Second");
+            assertEquals(entries(record(parameters.get(2), "value")).get(0).get("value"), "true");
+            assertEquals(((Number) record(parameters.get(3), "value").get("selectedIndex")).intValue(), 1);
+        }
+        List<FlaRecord> overrides = entries(record(instance, "properties"));
+        assertEquals(overrides.size(), explicit ? 4 : 0);
+        if (explicit) {
+            assertEquals(overrides.get(0).get("name"), "label");
+            assertEquals(entries(record(overrides.get(0), "value")).get(0).get("value"), "Hello");
+            assertEquals(((Number) overrides.get(0).get("revision")).intValue(), 0);
+        }
+        assertEquals(instance.get("legacyParametersAreLocked"), 1L);
+        assertEquals(instance.get("legacyCustomUISourceFilename"), "custom.swf");
+        assertEquals(instance.get("legacySymbolDescription"), "UI Components/FPushButton");
+    }
+
     @Test
     public void nativeMxPrivateAnonymousParameterSurvives() throws Exception {
         MemoryInput input = input(timeline("<DOMSymbolInstance libraryItemName='Private'><parametersAsXML><![CDATA[<property id=''><Inspectable name='' variable='' type='Default' defaultValue=''/></property>]]></parametersAsXML></DOMSymbolInstance>")

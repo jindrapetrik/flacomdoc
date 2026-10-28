@@ -833,7 +833,11 @@ public final class BinaryFlaToXflExporter {
                 if (!s(binding, "xml", "").isEmpty()) {
                     cdata(e, "dataBindingXML", text(s(binding, "xml", ""), binding));
                 }
-                new XflComponentWriter(this).parameters(e, record(r, "properties"));
+                FlaRecord parameters = record(r, "properties");
+                if (records(parameters, "entries").isEmpty()) {
+                    parameters = record(r, "legacyProperties");
+                }
+                new XflComponentWriter(this).parameters(e, parameters);
             }
             if (n(r, "timelineEffectPresent", 0) != 0) {
                 issue("TIMELINE_EFFECT", r, "Legacy timeline-effect authoring metadata has no confirmed native XFL representation; source fields are retained in the reader.");

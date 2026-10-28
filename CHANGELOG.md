@@ -3,10 +3,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Added
-- XFL imports preserve editable components, previews, built-in icons and typed instance parameters in MX and later binary FLA output.
+- XFL imports preserve editable Flash 5 Smart Clips and MX components, including typed instance parameters; MX and later output also retains component previews and built-in icons.
 - XFL imports support compiled SWC component definitions and instances in MX 2004 and later binary FLA output, including primary SWF data, custom icons, recursive dependency metadata, bindings and parameters.
 
 ### Fixed
+- Flash 5 output preserves native typed Smart Clip parameter lists and their legacy instance layout, fixing crashes when reopening CS6 FLA/XFL conversions in Flash 5.
+- Smart Clip defaults and edited instance values, arrays and enumeration selections survive Flash 5 to CS6 export and binary format conversions.
 - CFB: Prevent stream truncation caused by float rounding
 - CFB: Remove stale trailing data when overwriting an existing file, even if file deletion is denied.
 - MX component export to CS5-CS6 supplies minimum version attributes, fixing "Could not load scene into memory. Your document may be damaged."

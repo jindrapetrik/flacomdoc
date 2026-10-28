@@ -515,11 +515,40 @@ final class BinaryLibraryWriter {
         }
     }
 
+    void legacyInstance(FlaRecord r) {
+        FlaRecord properties = w.record(r, "legacyProperties");
+        if (properties != null) {
+            w.strings(r, "legacyCustomUISourceFilename", "legacySymbolDescription");
+            properties(properties);
+            w.u32(r, "legacyParametersAreLocked");
+            return;
+        }
+        FlaRecord descriptor = null;
+        for (FlaRecord item : w.session.source.getLibraryDescriptors()) {
+            if (w.n(item, "libraryId", -1) == w.n(r, "libraryId", -2)) {
+                descriptor = item;
+                break;
+            }
+        }
+        FlaRecord component = w.record(descriptor, "component");
+        List<FlaRecord> movies = w.records(component, "movies");
+        w.string(movies.size() > 2 ? w.s(movies.get(2), "name") : w.s(descriptor, "legacyCustomUISourceFilename"));
+        w.string(component == null ? w.s(descriptor, "legacySymbolDescription") : w.s(component, "symbolDescription"));
+        // The symbol base holds the definition/defaults. The movie-clip tail
+        // separately holds edited instance values.
+        properties = w.record(component == null ? descriptor : component, "properties");
+        if (w.records(properties, "entries").isEmpty()) {
+            properties = w.record(r, "properties");
+        }
+        properties(properties);
+        w.u32(w.n(component, "parametersAreLocked", w.n(descriptor, "legacyParametersAreLocked", 1)));
+    }
+
     void properties(FlaRecord r) {
-        // Typed property lists already exist in Flash MX. Downgrading the
-        // document does not imply downgrading every parameter to R0 text.
-        boolean upgrade = w.session.source.getContentsRevision() <= t.contentsRevision;
-        int v = w.revision(r, "revision", upgrade || t.ordinal() >= FlaFormatVersion.MX.ordinal() ? 2 : 0);
+        // Flash 5 Smart Clips already use typed lists (R1), with R0 property
+        // metadata. Only pre-F5 targets require the scalar-only list layout.
+        int maximum = t.ordinal() < FlaFormatVersion.F5.ordinal() ? 0 : t == FlaFormatVersion.F5 ? 1 : 2;
+        int v = w.revision(r, "revision", maximum);
         List<FlaRecord> entries = w.records(r, "entries");
         w.u32(entries.size());
         for (FlaRecord e : entries) {
@@ -544,8 +573,12 @@ final class BinaryLibraryWriter {
     }
 
     private void property(FlaRecord r) {
-        int v = w.revision(r, "revision", t.ordinal() <= FlaFormatVersion.MX.ordinal() ? 1 : 3);
-        w.string(r, "name");
+        int v = w.revision(r, "revision", t.ordinal() < FlaFormatVersion.MX.ordinal() ? 0 : t == FlaFormatVersion.MX ? 1 : 3);
+        String name = w.s(r, "name");
+        if (t == FlaFormatVersion.F5 && !w.s(r, "variableName").isEmpty()) {
+            name = w.s(r, "variableName");
+        }
+        w.string(name);
         propertyValue(w.record(r, "value"));
         if (v >= 1) {
             w.string(r, "variableName");

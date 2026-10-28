@@ -445,9 +445,7 @@ final class BinaryObjectWriter {
         }
         w.u32(r, "libraryId");
         if (v == 8 || v == 9) {
-            w.strings(r, "legacyCustomUISourceFilename", "legacySymbolDescription");
-            new BinaryLibraryWriter(w).properties(w.record(r, "legacyProperties"));
-            w.u32(r, "legacyParametersAreLocked");
+            new BinaryLibraryWriter(w).legacyInstance(r);
             if (v == 9) {
                 w.string(r, "legacyComponentName");
             }
@@ -512,7 +510,13 @@ final class BinaryObjectWriter {
             }
             w.string(r, "instanceName");
             if (sv >= 3) {
-                new BinaryLibraryWriter(w).properties(w.record(r, "properties"));
+                FlaRecord properties = w.record(r, "properties"), legacy = w.record(r, "legacyProperties");
+                if (v != 8 && v != 9 && w.records(properties, "entries").isEmpty()
+                        && !w.records(legacy, "entries").isEmpty()) {
+                    // Unedited F5 Smart Clips inherit their base defaults.
+                    properties = legacy;
+                }
+                new BinaryLibraryWriter(w).properties(properties);
             }
             if (sv >= 6) {
                 new BinaryLibraryWriter(w).accessibility(w.record(r, "accessibility"), sv >= 7);
