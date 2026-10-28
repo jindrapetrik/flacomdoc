@@ -29,7 +29,7 @@ import java.util.*;
 final class BinaryObjectWriter {
 
     static final Set<String> CLASSES = new HashSet<>(Arrays.asList("CDocumentPage", "CColorDef", "CColorList",
-            "CQTAudioSettings", "CPicObj", "CPicPage", "CPicLayer", "CPicFrame", "CPicShape", "CPicRect", "CPicOval",
+            "CQTAudioSettings", "CPicObj", "CCommandObj", "CPicPage", "CPicLayer", "CPicFrame", "CPicShape", "CPicRect", "CPicOval",
             "CPicSymbol", "CPicShapeObj", "CPicSprite", "CPicButton", "CPicBitmap", "CPicText", "CPicVideoStream",
             "CMediaElem", "CMediaBits", "CMediaSound", "CMediaVideoStream", "CPicMorphShape", "CMorphSegment",
             "CMorphCurve", "CMorphHintItem", "CPicSwf", "CSwfPage", "CPicScreen", "CPicFont", "CPicSoundCreator", "CPicVideo", "CMediaVideo", "CPicTempClipboardObj"));

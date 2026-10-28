@@ -765,6 +765,13 @@ public final class BinaryFlaToXflExporter {
                     case "CPicSwf":
                         clipWriter.instance(parent, r);
                         break;
+                    case "CCommandObj":
+                        issue("GENERATOR_COMMAND", r, "Flash Generator commands have no supported CS5-CS6 XFL representation; command omitted: "
+                                + s(r, "command", ""));
+                        for (FlaRecord c : r.getChildren()) {
+                            element(parent, c, depth + 1);
+                        }
+                        break;
                     case "CPicText":
                         textWriter.text(parent, r);
                         break;

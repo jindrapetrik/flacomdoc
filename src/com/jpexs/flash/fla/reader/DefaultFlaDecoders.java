@@ -46,6 +46,7 @@ final class DefaultFlaDecoders {
         result.put("CColorDef", ColorRecordDecoder::color);
         result.put("CColorList", ColorRecordDecoder::list);
         result.put("CPicObj", DefaultFlaDecoders::picBase);
+        result.put("CCommandObj", AuxiliaryObjectRecordDecoder::generatorCommand);
         result.put("CPicPage", DefaultFlaDecoders::picPage);
         result.put("CPicLayer", DefaultFlaDecoders::picLayer);
         result.put("CPicShape", DefaultFlaDecoders::picShape);

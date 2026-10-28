@@ -111,6 +111,7 @@ public final class BinaryFlaConverter {
         boolean supports(FlaRecord r) {
             String c = r.getClassName();
             boolean supported = !dropped.contains(r) && BinaryObjectWriter.CLASSES.contains(c)
+                    && (!c.equals("CCommandObj") || target.ordinal() >= FlaFormatVersion.F4.ordinal())
                     && (!c.equals("CPicScreen") || target.ordinal() >= FlaFormatVersion.MX2004.ordinal())
                     && (!c.equals("CPicFont") || target.ordinal() >= FlaFormatVersion.F5.ordinal())
                     && (!(c.equals("CPicVideo") || c.equals("CMediaVideo")) || target.ordinal() >= FlaFormatVersion.MX.ordinal())

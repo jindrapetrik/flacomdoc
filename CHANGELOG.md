@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Added
+- Read and preserve Flash Generator `CCommandObj` records in binary FLA conversions,  CS5-CS6 XFL export reports unsupported Generator content explicitly.
 - XFL imports preserve editable Flash 5 Smart Clips and MX components, including typed instance parameters; MX and later output also retains component previews and built-in icons.
 - XFL imports support compiled SWC component definitions and instances in MX 2004 and later binary FLA output, including primary SWF data, custom icons, recursive dependency metadata, bindings and parameters.
 

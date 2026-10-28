@@ -35,6 +35,17 @@ final class BinaryAuxiliaryWriter {
 
     void write(FlaRecord r, String type) throws IOException {
         BinaryObjectWriter objects = new BinaryObjectWriter(w);
+        if (type.equals("CCommandObj")) {
+            objects.base(r, w.target().picGroupBaseRevision);
+            int v = w.revision(r, "revision", 1);
+            w.words(r, "matrixWords", 6, true);
+            w.words(r, "bounds", 4);
+            w.string(r, "command");
+            if (v >= 1) {
+                w.string(r, "displayLabel");
+            }
+            return;
+        }
         if (type.equals("CPicScreen")) {
             objects.symbol(r, "CPicSprite");
             int v = w.revision(r, "screenRevision", 3);

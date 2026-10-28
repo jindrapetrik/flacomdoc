@@ -31,6 +31,18 @@ final class AuxiliaryObjectRecordDecoder {
     private AuxiliaryObjectRecordDecoder() {
     }
 
+    /** Flash Generator object; Flash 4 and 5 use the same revision-one tail. */
+    static void generatorCommand(MfcArchive a, FlaRecord r) throws IOException {
+        DefaultFlaDecoders.picBase(a, r);
+        int revision = DefaultFlaDecoders.revision(a, r, "revision", 1);
+        r.set("matrixWords", DefaultFlaDecoders.integers(a, 6));
+        r.set("bounds", DefaultFlaDecoders.integers(a, 4));
+        r.set("command", a.readString());
+        if (revision >= 1) {
+            r.set("displayLabel", a.readString());
+        }
+    }
+
     static void asObject(MfcArchive a, FlaRecord r) throws IOException {
         DefaultFlaDecoders.picBase(a, r);
         int revision = DefaultFlaDecoders.revision(a, r, "asObjectRevision", 5);
