@@ -37,6 +37,7 @@ final class BinaryLibraryWriter {
 
     void page(FlaRecord r) throws IOException {
         int v = w.revision(r, "revision", t.documentPageRevision);
+        FlaRecord component = v < 18 ? w.record(r, "component") : null;
         w.streamName(w.s(r, "streamName"), v >= 21);
         w.string(r, "name");
         if (v >= 2) {
@@ -69,11 +70,18 @@ final class BinaryLibraryWriter {
             }
         }
         if (v >= 10) {
-            w.strings(r, "legacyCustomUISourceFilename", "legacySymbolDescription");
-            properties(w.record(r, "properties"));
+            if (component == null) {
+                w.strings(r, "legacyCustomUISourceFilename", "legacySymbolDescription");
+                properties(w.record(r, "properties"));
+            } else {
+                List<FlaRecord> movies = w.records(component, "movies");
+                w.string(movies.size() > 2 ? w.s(movies.get(2), "name") : "");
+                w.string(component, "symbolDescription");
+                properties(w.record(component, "properties"));
+            }
         }
         if (v >= 11) {
-            w.u32(r, "legacyParametersAreLocked");
+            w.u32(component == null ? w.n(r, "legacyParametersAreLocked", 0) : w.n(component, "parametersAreLocked", 1));
         }
         if (v >= 12) {
             linkage(w.record(r, "linkage"), t.documentPageLinkageRevision);
@@ -82,18 +90,31 @@ final class BinaryLibraryWriter {
             w.string(r, "legacyComponentName");
         }
         if (v >= 15 && v <= 17) {
-            List<FlaRecord> movies = w.records(r, "legacyMovies");
-            for (int i = 0; i < 2; i++) {
-                movie(i < movies.size() ? movies.get(i) : null);
+            if (component == null) {
+                List<FlaRecord> movies = w.records(r, "legacyMovies");
+                for (int i = 0; i < 2; i++) {
+                    movie(i < movies.size() ? movies.get(i) : null);
+                }
+            } else {
+                // MX stores Custom UI then live preview, unlike the later
+                // primary compiled movie / live preview / Custom UI order.
+                List<FlaRecord> movies = w.records(component, "movies");
+                movie(movies.size() > 2 ? movies.get(2) : null);
+                movie(movies.size() > 1 ? movies.get(1) : null);
             }
         }
         if (v >= 16 && v <= 17) {
-            w.u32(r, "legacyDescriptionType");
+            w.u32(component == null ? w.n(r, "legacyDescriptionType", 0) : w.n(component, "descriptionType", 0));
         }
         if (v == 17) {
-            w.u32(r, "legacyComponentEnabled");
-            w.string(r, "legacyComponentTooltip");
-            w.u32(r, "legacyComponentIconId");
+            w.u32(component == null ? w.n(r, "legacyComponentEnabled", 0) : w.n(component, "componentEnabled", 0));
+            w.string(component == null ? w.s(r, "legacyComponentTooltip") : w.s(component, "tooltip"));
+            long icon = component == null ? w.n(r, "legacyComponentIconId", 0) : w.n(component, "customIconId", 0);
+            if (component != null && icon >= 25) {
+                w.issue("COMPONENT_ICON", component, "customIconId", "MX supports only its built-in component icons.");
+                icon = 0;
+            }
+            w.u32(icon);
         }
         if (v >= 18) {
             component(w.record(r, "component"));
@@ -495,8 +516,10 @@ final class BinaryLibraryWriter {
     }
 
     void properties(FlaRecord r) {
-        boolean upgrade = w.session.source.getContentsRevision() <= w.target().contentsRevision;
-        int v = w.revision(r, "revision", upgrade ? 2 : 0);
+        // Typed property lists already exist in Flash MX. Downgrading the
+        // document does not imply downgrading every parameter to R0 text.
+        boolean upgrade = w.session.source.getContentsRevision() <= t.contentsRevision;
+        int v = w.revision(r, "revision", upgrade || t.ordinal() >= FlaFormatVersion.MX.ordinal() ? 2 : 0);
         List<FlaRecord> entries = w.records(r, "entries");
         w.u32(entries.size());
         for (FlaRecord e : entries) {
@@ -521,7 +544,7 @@ final class BinaryLibraryWriter {
     }
 
     private void property(FlaRecord r) {
-        int v = w.revision(r, "revision", 3);
+        int v = w.revision(r, "revision", t.ordinal() <= FlaFormatVersion.MX.ordinal() ? 1 : 3);
         w.string(r, "name");
         propertyValue(w.record(r, "value"));
         if (v >= 1) {
@@ -537,7 +560,10 @@ final class BinaryLibraryWriter {
     }
 
     private void propertyValue(FlaRecord r) {
-        int v = w.revision(r, "revision", 8), type = (int) w.n(r, "type", 0);
+        int maximum = t.ordinal() <= FlaFormatVersion.MX.ordinal() ? 1
+                : t.ordinal() <= FlaFormatVersion.F8.ordinal() ? 5
+                : t == FlaFormatVersion.CS3 ? 6 : 8;
+        int v = w.revision(r, "revision", maximum), type = (int) w.n(r, "type", 0);
         w.u16(type);
         if (v >= 8 && type == 17) {
             w.u16(r, "selectionWord");
@@ -675,7 +701,8 @@ final class BinaryLibraryWriter {
         } else {
             media(r, "CMediaVideoStream");
             component(w.record(r, "component"));
-            int v = w.revision(r, "revision", t.ordinal() >= FlaFormatVersion.CS4.ordinal() ? 5 : 4);
+            int maximum = t == FlaFormatVersion.MX2004 ? 3 : t.ordinal() >= FlaFormatVersion.CS4.ordinal() ? 5 : 4;
+            int v = w.revision(r, "revision", maximum);
             if (v >= 1) {
                 w.string(r, "sourceName");
             }

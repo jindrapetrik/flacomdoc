@@ -63,12 +63,12 @@ final class XflCompiledClipWriter {
         item.setAttribute("swfScmHRef", swf);
         session.attribute(item, "actionscriptClass", s(component, "actionScriptClass", s(r, "sourceName", "")), component);
         session.attribute(item, "rootSymbolLinkageID", s(r, "sourceName", ""), r);
-        if (r.get("playerVersion") instanceof Number) {
-            item.setAttribute("playerVersion", Long.toString(n(r, "playerVersion", 9)));
-        }
-        if (r.get("actionScriptVersion") instanceof Number) {
-            item.setAttribute("actionscriptVersion", Long.toString(n(r, "actionScriptVersion", 3)));
-        }
+        XflComponentWriter.minimumVersions(item, component);
+        // Before descriptor revision 4, compiled clips use AS2 and have no
+        // explicit target versions. Retain the primary SWF's player version.
+        // CS6 requires both target attributes even for these older clips.
+        item.setAttribute("playerVersion", Long.toString(n(r, "playerVersion", signature[3] & 255)));
+        item.setAttribute("actionscriptVersion", Long.toString(n(r, "actionScriptVersion", 2)));
         FlaRecord libraryMetadata = record(r, "libraryMetadata");
         FlaLinkage linkage = libraryMetadata == null ? null : libraryMetadata.getLinkage();
         if (linkage != null) {
@@ -89,7 +89,7 @@ final class XflCompiledClipWriter {
                 item.setAttribute(attrs[i], ((List<?>) bounds).get(i).toString());
             }
         }
-        child(item, "classProperties").setTextContent(session.text(s(component, "classPropertiesXml", ""), component));
+        cdata(item, "classProperties", session.text(s(component, "classPropertiesXml", ""), component));
         writeIcon(item, raster, image);
         FlaRecord metadata = record(r, "metadata");
         swcItem(item, "SwcItem", metadata, s(r, "sourceName", ""),
@@ -265,7 +265,7 @@ final class XflCompiledClipWriter {
         e.setAttribute("locked", Boolean.toString((n(r, "flags", 0) & 4) != 0));
         FlaRecord binding = record(r, "componentXml");
         if (binding != null) {
-            e.setAttribute("uniqueID", Long.toString(n(binding, "value", 0)));
+            e.setAttribute("uniqueID", Long.toString(n(binding, "uniqueId", 0)));
         }
         matrix(e, r.getMatrix());
         XflObjectWriter.transformPoint(session, e, r);
@@ -273,7 +273,7 @@ final class XflCompiledClipWriter {
         new XflActionWriter(session).actions(e, record(r, "actions"));
         XflPersistentDataWriter.write(session, e, r);
         if (!s(binding, "xml", "").isEmpty()) {
-            child(e, "dataBindingXML").setTextContent(session.text(s(binding, "xml", ""), binding));
+            cdata(e, "dataBindingXML", session.text(s(binding, "xml", ""), binding));
         }
         new XflComponentWriter(session).parameters(e, record(r, "properties"));
     }

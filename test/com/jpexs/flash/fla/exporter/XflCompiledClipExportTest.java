@@ -26,11 +26,21 @@ public class XflCompiledClipExportTest {
         assertFalse(has(result, "MISSING_COMPILED_CLIP"), result.getReport());
         FlaRecord descriptor = doc.getMedia().get(0).getDescriptor(), component = XflXml.record(descriptor, "component");
         assertEquals(result.getFiles().get("bin/" + item.getAttribute("swfScmHRef")).toByteArray(), ((BinaryData) XflXml.records(component, "movies").get(0).get("data")).toByteArray());
-        assertEquals(elements(item, "classProperties").get(0).getTextContent(), component.get("classPropertiesXml"));
+        assertEquals(elements(item, "classProperties").get(0).getTextContent(), normalized((String) component.get("classPropertiesXml")));
+        assertEquals(elements(item, "classProperties").get(0).getFirstChild().getNodeType(), org.w3c.dom.Node.CDATA_SECTION_NODE);
+        for (String attr : Arrays.asList("requiredMinimumPlayerVersion", "requiredMinimumASVersion")) {
+            assertEquals(item.getAttribute(attr), Long.toString(XflXml.n(component, attr, 0)));
+        }
+        BinaryData movie = (BinaryData) XflXml.records(component, "movies").get(0).get("data");
+        assertEquals(item.getAttribute("playerVersion"), Long.toString(XflXml.n(descriptor, "playerVersion", movie.toByteArray()[3] & 255)));
+        assertEquals(item.getAttribute("actionscriptVersion"), Long.toString(XflXml.n(descriptor, "actionScriptVersion", 2)));
         Element instance = elements(root, "DOMCompiledClipInstance").get(0);
         assertEquals(instance.getAttribute("libraryItemName"), item.getAttribute("name"));
         FlaRecord original = records(doc, "CPicSwf").get(0);
-        assertEquals(elements(instance, "dataBindingXML").get(0).getTextContent(), XflXml.record(original, "componentXml").get("xml"));
+        FlaRecord binding = XflXml.record(original, "componentXml");
+        assertEquals(instance.getAttribute("uniqueID"), Long.toString(XflXml.n(binding, "uniqueId", 0)));
+        assertEquals(elements(instance, "dataBindingXML").get(0).getTextContent(), normalized((String) binding.get("xml")));
+        assertEquals(elements(instance, "dataBindingXML").get(0).getFirstChild().getNodeType(), org.w3c.dom.Node.CDATA_SECTION_NODE);
         if (version.equals("cs4")) {
             Element paired = reference("0024_compiled_clips-todo"), pairedItem = elements(paired, "DOMCompiledClipItem").get(0);
             for (String attr : Arrays.asList("name", "actionscriptClass", "playerVersion", "actionscriptVersion", "rootSymbolLinkageID", "movieRectRight", "movieRectBottom")) {
@@ -43,6 +53,10 @@ public class XflCompiledClipExportTest {
             assertEquals(point.getAttribute("x"), "42.5");
             assertEquals(point.getAttribute("y"), "32.5");
         }
+    }
+
+    private static String normalized(String text) {
+        return text.replace("\r\n", "\n").replace('\r', '\n');
     }
 
     @Test(dataProvider = "versions")

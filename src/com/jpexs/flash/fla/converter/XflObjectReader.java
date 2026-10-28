@@ -86,10 +86,7 @@ final class XflObjectReader {
                 }
                 result.set("rotation3D", Arrays.asList(d(e, "rotationX", 0), d(e, "rotationY", 0), d(e, "rotationZ", 0)));
                 result.set("centerPoint3D", Arrays.asList(twips(d(e, "centerPoint3DX", 0)), twips(d(e, "centerPoint3DY", 0)), twips(d(e, "centerPoint3DZ", 0))));
-                result.set("properties", properties(child(e, "parameters")));
-                if (child(e, "parametersAsXML") != null) {
-                    s.issue(e, "Component Inspectable parameters are not imported yet");
-                }
+                result.set("properties", new XflComponentReader(s).parameters(e));
                 break;
             case "DOMBitmapInstance":
             case "DOMVideoInstance":
@@ -103,8 +100,20 @@ final class XflObjectReader {
             case "DOMRectangleObject":
             case "DOMOvalObject":
                 return new XflPrimitiveReader(s).read(e);
-            case "DOMTLFText":
             case "DOMCompiledClipInstance":
+                FlaRecord compiled = s.media.get(s(e, "libraryItemName", ""));
+                if (compiled == null || !compiled.getClassName().equals("CSwfPage")) {
+                    throw new IOException("Unknown compiled clip instance: " + s(e, "libraryItemName", ""));
+                }
+                Element bindings = child(e, "dataBindingXML");
+                result = r("CPicSwf", "revision", 7, "mediaId", compiled.get("mediaId"), "mediaPresent", 1L,
+                        "instanceName", s(e, "name", ""), "actions", actions(e),
+                        "properties", new XflComponentReader(s).parameters(e),
+                        "componentXml", r("componentXml", "revision", 0, "uniqueId", timestamp(e, "uniqueID"),
+                                "xml", bindings == null ? "" : bindings.getTextContent()));
+                placement(result, e);
+                break;
+            case "DOMTLFText":
                 s.issue(e, "XFL import of this object is not implemented yet; omitted");
                 return null;
             default:

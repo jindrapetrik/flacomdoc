@@ -113,7 +113,7 @@ final class XflActionWriter {
             integerListAttribute(actionscript, "breakpoints", record, "breakpointIndices");
             integerListAttribute(actionscript, "offsets", record, "codeCollapseRangeWords");
         }
-        child(actionscript, "script").setTextContent(session.text(source, record));
+        cdata(actionscript, "script", session.text(source, record));
     }
 
     private void integerListAttribute(Element out, String attribute, FlaRecord record, String field) {

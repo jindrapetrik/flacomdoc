@@ -460,7 +460,8 @@ public class BinaryFlaToXflExporterTest {
         Element d = xml(result, "DOMDocument.xml");
         assertTrue(has(result, "XML_CHARACTER"));
         assertEquals(first(d, "DOMTimeline").getAttribute("name"), "bad\uFFFD\uFFFDname");
-        assertEquals(first(d, "script").getTextContent(), "trace(\"]]> & <\");\r\n");
+        // Native CDATA payloads use XML's normalized line endings.
+        assertEquals(first(d, "script").getTextContent(), "trace(\"]]> & <\");\n");
     }
 
     @Test

@@ -47,6 +47,8 @@ final class XflMediaReader {
                 sound(e);
             } else if (kind.equals("DOMVideoItem")) {
                 video(e);
+            } else if (kind.equals("DOMCompiledClipItem")) {
+                new XflCompiledClipReader(s).item(this, e);
             } else {
                 s.issue(e, "Unsupported library media item omitted");
             }

@@ -75,6 +75,12 @@ final class XflPublishWriter {
                 continue;
             }
             Map<String, String> values = values(profile);
+            // Empty legacy profiles otherwise inherit CS6's AS3 default,
+            // disabling the old document's component and instance scripts.
+            int revision = session.source.getContentsRevision();
+            if (revision <= 0x3F && key(values, "PublishFlashProperties", "ActionScriptVersion") == null) {
+                values.put("Vector::ActionScriptVersion", revision <= 0x29 ? "1" : "2");
+            }
             String name = values.get("PublishProfileProperties::name");
             if (name == null || name.isEmpty()) {
                 name = "Recovered profile " + (i + 1);

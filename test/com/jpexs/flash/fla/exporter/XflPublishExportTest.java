@@ -49,6 +49,16 @@ public class XflPublishExportTest {
     }
 
     @Test
+    public void emptyLegacyProfilesRetainTheirActionScriptGeneration() throws Exception {
+        for (String version : Arrays.asList("mx", "mx2004", "f8")) {
+            BinaryFlaDocument source = nativeFile(version, "0020_document_params");
+            profile(source).set("entries", Collections.emptyList());
+            Element result = publish(new BinaryFlaToXflExporter().export(source));
+            assertEquals(result.getElementsByTagName("ActionScriptVersion").item(0).getTextContent(), version.equals("mx") ? "1" : "2");
+        }
+    }
+
+    @Test
     public void everyOriginalAdobePublishDocumentValidatesIncludingLibraryMetadata() throws Exception {
         int count = 0;
         try (java.util.stream.Stream<Path> paths = Files.walk(Paths.get("testdata/fla/cs5"))) {

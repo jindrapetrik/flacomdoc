@@ -78,6 +78,14 @@ final class XflXml {
         return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
     }
 
+    static void cdata(Element parent, String name, String text) {
+        // Adobe reads these payloads from CDATA nodes. Escaped text is valid
+        // XML but silently loses component parameters and scripts.
+        // XML normalizes CDATA line endings on input. Normalize before writing
+        // too, so Windows transformers cannot turn CRLF into CRCRLF.
+        child(parent, name).appendChild(parent.getOwnerDocument().createCDATASection(text.replace("\r\n", "\n").replace('\r', '\n')));
+    }
+
     static String integerPointCoordinate(int value) {
         return "#" + Integer.toHexString(value >>> 8 & 0xFFFFFF).toUpperCase(Locale.ROOT)
                 + "." + String.format(Locale.ROOT, "%02X", value & 255);

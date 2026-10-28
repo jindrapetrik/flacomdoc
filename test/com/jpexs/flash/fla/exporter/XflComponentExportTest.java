@@ -51,6 +51,8 @@ public class XflComponentExportTest {
         }
         assertEquals(elements(placement, "dataBindingXML").get(0).getTextContent(), elements(expectedPlacement, "dataBindingXML").get(0).getTextContent());
         assertEquals(elements(placement, "parametersAsXML").size(), 1);
+        assertEquals(elements(placement, "parametersAsXML").get(0).getFirstChild().getNodeType(), org.w3c.dom.Node.CDATA_SECTION_NODE);
+        assertEquals(elements(component, "parametersAsXML").get(0).getFirstChild().getNodeType(), org.w3c.dom.Node.CDATA_SECTION_NODE);
         XflSchemaTestSupport.validate(Files.readAllBytes(Paths.get("testdata/fla/cs5/0025_components-todo/DOMDocument.xml")));
     }
 
@@ -153,6 +155,8 @@ public class XflComponentExportTest {
         }
         assertNotNull(item);
         assertEquals(item.getLocalName(), "DOMComponentItem");
+        assertEquals(item.getAttribute("requiredMinimumPlayerVersion"), "0");
+        assertEquals(item.getAttribute("requiredMinimumASVersion"), "0");
         assertEquals(item.getAttribute("customIconID"), "0");
         assertEquals(item.getAttribute("symbolDescription"), "Legacy component description");
         assertEquals(item.getAttribute("descriptionType"), "text");
@@ -169,6 +173,28 @@ public class XflComponentExportTest {
         }
         assertNull(descriptor.get("component"));
         assertEquals(descriptor.get("legacyComponentName"), "discarded old name");
+    }
+
+    @Test
+    public void nativeMxComponentsSupplyVersionRequirementsForCs6Loading() throws Exception {
+        XflExportResult result = new BinaryFlaToXflExporter().export(nativeFile("mx", "0025_components-todo"));
+        int components = 0;
+        for (Map.Entry<String, BinaryData> file : result.getFiles().entrySet()) {
+            if (!file.getKey().startsWith("LIBRARY/") || !file.getKey().endsWith(".xml")) {
+                continue;
+            }
+            Element item = parse(file.getValue().toByteArray());
+            if (!item.getLocalName().equals("DOMComponentItem")) {
+                continue;
+            }
+            components++;
+            // XSD validation alone accepts omissions; the CS6 loader does not.
+            assertEquals(item.getAttribute("requiredMinimumPlayerVersion"), "0", item.getAttribute("name"));
+            assertEquals(item.getAttribute("requiredMinimumASVersion"), "0", item.getAttribute("name"));
+            XflSchemaTestSupport.validate(file.getValue().toByteArray());
+        }
+        assertTrue(components > 0, result.getReport());
+        assertFalse(elements(xml(result), "DOMComponentInstance").isEmpty());
     }
 
     @Test

@@ -180,7 +180,7 @@ public final class BinaryFlaToXflExporter {
                     timeline(child(item, "timeline"), page);
                     String bindings = s(descriptor, "dataBindingXml", "");
                     if (!bindings.isEmpty()) {
-                        child(item, "dataBindingXML").setTextContent(text(bindings, descriptor));
+                        cdata(item, "dataBindingXML", text(bindings, descriptor));
                     }
                     if (component) {
                         componentWriter.children(item, page.getDescriptor(), ordinal + 1);
@@ -831,7 +831,7 @@ public final class BinaryFlaToXflExporter {
                     e.setAttribute("uniqueID", Long.toString(n(binding, "uniqueId", 0)));
                 }
                 if (!s(binding, "xml", "").isEmpty()) {
-                    child(e, "dataBindingXML").setTextContent(text(s(binding, "xml", ""), binding));
+                    cdata(e, "dataBindingXML", text(s(binding, "xml", ""), binding));
                 }
                 new XflComponentWriter(this).parameters(e, record(r, "properties"));
             }

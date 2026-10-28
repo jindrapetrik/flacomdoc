@@ -246,7 +246,7 @@ public class XflRecoveredFieldExportTest {
         assertEquals(out.getAttribute("breakpoints"), "1,-1,1");
         assertEquals(out.getAttribute("offsets"), expected);
         assertEquals(out.hasAttribute("offsets"), !expected.isEmpty());
-        assertEquals(elements(out, "script").get(0).getTextContent(), script);
+        assertEquals(elements(out, "script").get(0).getTextContent(), script.replace("\r\n", "\n"));
         assertEquals(action.get("source"), script);
         assertEquals(has(result, "ACTION_EDITOR_METADATA"), issue);
         validate(result);

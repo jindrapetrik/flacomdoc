@@ -201,9 +201,7 @@ public final class XflReader {
             if (tag(e).equals("DOMTimeline")) {
                 r.set("name", s(e, "name", "Scene 1"));
             }
-            if (child(e, "parametersAsXML") != null) {
-                issue(e, "Component definition parameters are not imported yet");
-            }
+            r.set("component", new XflComponentReader(this).component(e));
             r.set("libraryMetadata", metadata(e));
             r.set("linkage", linkage(e));
             r.set("lastUniqueIdentifier", (long) i(e, "lastUniqueIdentifier", 0));

@@ -2,9 +2,20 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Added
+- XFL imports preserve editable components, previews, built-in icons and typed instance parameters in MX and later binary FLA output.
+- XFL imports support compiled SWC component definitions and instances in MX 2004 and later binary FLA output, including primary SWF data, custom icons, recursive dependency metadata, bindings and parameters.
+
 ### Fixed
 - CFB: Prevent stream truncation caused by float rounding
 - CFB: Remove stale trailing data when overwriting an existing file, even if file deletion is denied.
+- MX component export to CS5-CS6 supplies minimum version attributes, fixing "Could not load scene into memory. Your document may be damaged."
+- XFL: Write component parameters, bindings and scripts as CDATA so Adobe editors load them correctly; prevent doubled script line breaks on Windows.
+- Publishing: Preserve AS1/AS2 for older documents without a stored ActionScript version instead of inheriting the AS3 default.
+- Compiled SWC components from MX 2004 and later retain target versions, minimum version requirements, CDATA class definitions and bindings, and instance IDs, fixing scene loading and invisible components in CS5-CS6 exports.
+- AS2 components no longer disappear from the stage when converting CS6 FLA/XFL documents to MX 2004; their placements and editable instance parameters are preserved.
+- MX 2004 output uses its supported compiled-clip record revision, fixing "Unexpected file format" when converting newer SWC components.
+- XFL transformation points are converted from local to placed coordinates, preventing enlarged component bounds and distorted previews after binary conversion.
 
 ## [3.0.0] - 2026-10-24
 ### Added

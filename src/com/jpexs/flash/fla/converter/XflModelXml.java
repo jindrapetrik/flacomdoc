@@ -188,8 +188,12 @@ final class XflModelXml {
         r.set("flags", (b(e, "isFloating", false) ? 1 : 0) | (b(e, "selected", false) ? 2 : 0) | (b(e, "locked", false) ? 4 : 0));
         r.set("matrixWords", matrix(e));
         Element p = nested(e, "transformationPoint", "Point");
-        r.set("transformationPointX", p == null ? Integer.MIN_VALUE : twips(d(p, "x", 0)));
-        r.set("transformationPointY", p == null ? Integer.MIN_VALUE : twips(d(p, "y", 0)));
+        // XFL stores the pivot in local coordinates; the binary base record
+        // stores it after the placement matrix. A local (0,0) must not become
+        // the document origin and enlarge a compiled component's bounds.
+        double[] point = p == null ? null : r.getMatrix().transformPixels(d(p, "x", 0), d(p, "y", 0));
+        r.set("transformationPointX", point == null ? Integer.MIN_VALUE : twips(point[0]));
+        r.set("transformationPointY", point == null ? Integer.MIN_VALUE : twips(point[1]));
     }
 
     static byte[] bytes(InputStream in) throws IOException {

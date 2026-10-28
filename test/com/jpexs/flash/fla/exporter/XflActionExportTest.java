@@ -61,7 +61,23 @@ public class XflActionExportTest {
         }
         assertFalse(scripts.isEmpty());
         for (Element script : scripts) {
+            assertEquals(script.getFirstChild().getNodeType(), Node.CDATA_SECTION_NODE);
             new ScriptParser(FlaFormatVersion.F4).parse(script.getTextContent(), false);
+        }
+    }
+
+    @Test
+    public void adobeTextPayloadsUseCdataAndPreserveSectionTerminators() throws Exception {
+        Document source = XflXml.document("DOMComponentItem");
+        String text = "a < b && c > d;\r\ntrace(\"]]>\");\nnext();\rlast();";
+        for (String tag : Arrays.asList("script", "parametersAsXML", "classProperties", "dataBindingXML")) {
+            XflXml.cdata(source.getDocumentElement(), tag, text);
+        }
+        Element result = parse(XflXml.serialize(source));
+        for (String tag : Arrays.asList("script", "parametersAsXML", "classProperties", "dataBindingXML")) {
+            Element payload = elements(result, tag).get(0);
+            assertEquals(payload.getTextContent(), text.replace("\r\n", "\n").replace('\r', '\n'));
+            assertEquals(payload.getFirstChild().getNodeType(), Node.CDATA_SECTION_NODE);
         }
     }
 

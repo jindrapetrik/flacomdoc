@@ -96,13 +96,10 @@ final class XflComponentWriter {
             session.attribute(item, "requiredMinimumPlayerVersionName", s(c, "requiredMinimumPlayerVersionName", ""), c);
         }
         item.setAttribute("customIconID", Long.toString(n(c, "customIconId", 0)));
-        String[] attrs = {"editFrameIndex", "requiredMinimumPlayerVersion", "requiredMinimumASVersion"};
-        String[] fields = {"editFrameIndex", "requiredMinimumPlayerVersion", "requiredMinimumASVersion"};
-        for (int i = 0; i < attrs.length; i++) {
-            if (c.get(fields[i]) instanceof Number) {
-                item.setAttribute(attrs[i], Long.toString(n(c, fields[i], 0)));
-            }
+        if (c.get("editFrameIndex") instanceof Number) {
+            item.setAttribute("editFrameIndex", Long.toString(n(c, "editFrameIndex", 0)));
         }
+        minimumVersions(item, c);
         item.setAttribute("parametersAreLocked", Boolean.toString(n(c, "parametersAreLocked", 1) != 0));
         descriptionType(item, c, "descriptionType");
         FlaRecord props = record(c, "properties");
@@ -146,7 +143,7 @@ final class XflComponentWriter {
         }
         parameters(item, record(c, "properties"));
         if (!s(c, "classPropertiesXml", "").isEmpty()) {
-            child(item, "classProperties").setTextContent(session.text(s(c, "classPropertiesXml", ""), c));
+            cdata(item, "classProperties", session.text(s(c, "classPropertiesXml", ""), c));
         }
         List<FlaRecord> tasks = records(c, "tasks");
         if (!tasks.isEmpty()) {
@@ -183,6 +180,7 @@ final class XflComponentWriter {
     }
 
     private void legacyAttributes(Element item, FlaRecord descriptor, int ordinal) {
+        minimumVersions(item, null);
         session.attribute(item, "tooltip", s(descriptor, "legacyComponentTooltip", ""), descriptor);
         // The native loader discards icon selectors outside its 25 built-in icons.
         long icon = n(descriptor, "legacyComponentIconId", 0);
@@ -222,6 +220,13 @@ final class XflComponentWriter {
                 }
             }
         }
+    }
+
+    static void minimumVersions(Element item, FlaRecord component) {
+        // CS6 cannot load a component without these attributes, even for old
+        // descriptors that predate version requirements. Native upgrades use 0.
+        item.setAttribute("requiredMinimumPlayerVersion", Long.toString(n(component, "requiredMinimumPlayerVersion", 0)));
+        item.setAttribute("requiredMinimumASVersion", Long.toString(n(component, "requiredMinimumASVersion", 0)));
     }
 
     void parameters(Element parent, FlaRecord properties) {
@@ -273,7 +278,7 @@ final class XflComponentWriter {
             for (Node n = d.getDocumentElement().getFirstChild(); n != null; n = n.getNextSibling()) {
                 t.transform(new javax.xml.transform.dom.DOMSource(n), new javax.xml.transform.stream.StreamResult(text));
             }
-            child(parent, "parametersAsXML").setTextContent(text.toString());
+            cdata(parent, "parametersAsXML", text.toString());
         } catch (Exception ex) {
             session.issue("COMPONENT_PARAMETERS", properties, "Complete parameter list omitted: " + ex.getMessage());
         }
