@@ -70,7 +70,8 @@ public class XflCompiledControlExportTest {
     @DataProvider(name = "control")
     public Object[][] control() {
         return new Object[][]{
-            {new Command[]{new Command(28, 2, " A\r\nB\nC ").commentStyle(1), c(1)}, "/* A\r\nB\nC */\nplay();\n"},
+            // CDATA/XML normalizes the mixed input line endings to LF.
+            {new Command[]{new Command(28, 2, " A\r\nB\nC ").commentStyle(1), c(1)}, "/* A\nB\nC */\nplay();\n"},
             {new Command[]{new Command(28, 2, "A\r\nB").commentStyle(0)}, "// A\n// B\n"},
             {new Command[]{new Command(28, 2, "preserved").commentStyle(0x80000000L)}, "/*preserved*/\n"},
             {new Command[]{new Command(28, 1, "legacy")}, "// legacy\n"},
@@ -138,6 +139,7 @@ public class XflCompiledControlExportTest {
         Element frame = frame(result);
         NodeList scripts = frame.getElementsByTagNameNS("http://ns.adobe.com/xfl/2008/", "script");
         assertEquals(scripts.getLength(), 1, result.getReport());
+        assertEquals(scripts.item(0).getFirstChild().getNodeType(), Node.CDATA_SECTION_NODE);
         assertEquals(scripts.item(0).getTextContent(), expected);
         assertFalse(result.getIssues().stream().anyMatch(i -> i.getCode().equals("COMPILED_SCRIPT")), result.getReport());
     }
@@ -186,7 +188,10 @@ public class XflCompiledControlExportTest {
         Command close = new Command(end, 2).suppressed();
         open.text(prefix, header, " ");
         XflExportResult result = export(new Command[]{open, body, close});
-        assertEquals(frame(result).getElementsByTagNameNS("http://ns.adobe.com/xfl/2008/", "script").item(0).getTextContent(), prefix + header + " \tstop();" + suffix);
+        Node script = frame(result).getElementsByTagNameNS("http://ns.adobe.com/xfl/2008/", "script").item(0);
+        assertEquals(script.getFirstChild().getNodeType(), Node.CDATA_SECTION_NODE);
+        // Preserve comments, tabs and unbraced syntax, with XML-normalized newlines.
+        assertEquals(script.getTextContent(), "/*Žluťoučký*/\n" + header + " \tstop(); // trailing\n");
         assertFalse(result.getIssues().stream().anyMatch(i -> i.getCode().equals("COMPILED_SCRIPT")), result.getReport());
     }
 
