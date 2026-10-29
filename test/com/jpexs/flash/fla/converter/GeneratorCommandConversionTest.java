@@ -14,8 +14,8 @@ public class GeneratorCommandConversionTest {
     @DataProvider(name = "nativeTargets")
     public Object[][] nativeTargets() {
         List<Object[]> cases = new ArrayList<>();
-        for (String source : Arrays.asList("f4-list", "f5-list")) {
-            for (FlaFormatVersion target : Arrays.asList(FlaFormatVersion.F4, FlaFormatVersion.F5,
+        for (String source : Arrays.asList("f3-chart", "f4-list", "f5-list")) {
+            for (FlaFormatVersion target : Arrays.asList(FlaFormatVersion.F3, FlaFormatVersion.F4, FlaFormatVersion.F5,
                     FlaFormatVersion.MX, FlaFormatVersion.MX2004, FlaFormatVersion.F8,
                     FlaFormatVersion.CS3, FlaFormatVersion.CS4)) {
                 cases.add(new Object[]{source, target});
@@ -77,13 +77,13 @@ public class GeneratorCommandConversionTest {
 
     @Test
     public void xflReportsGeneratorContentAsUnsupportedWithoutBreakingTheScene() throws Exception {
-        for (String fixture : Arrays.asList("f4-list", "f5-list")) {
+        for (String fixture : Arrays.asList("f3-chart", "f4-list", "f5-list")) {
             BinaryFlaDocument original = new BinaryFlaReader().read(new File("testdata/generator/" + fixture + ".fla"));
             for (XflFormatVersion target : XflFormatVersion.values()) {
                 XflExportResult result = new BinaryFlaToXflExporter(target).export(original);
                 assertNotNull(result.getFiles().get("DOMDocument.xml"));
                 assertTrue(result.getIssues().stream().anyMatch(issue -> issue.getCode().equals("GENERATOR_COMMAND")
-                        && issue.getMessage().contains("com.macromedia.generator.commands.ListCommand")));
+                        && issue.getMessage().contains(of(original, "CCommandObj").get(0).get("command").toString())));
                 assertFalse(result.getIssues().stream().anyMatch(issue -> issue.getCode().equals("PARSE_ISSUE")
                         || issue.getCode().equals("DISPLAY_OBJECT")), result.getReport());
                 assertFalse(of(original, "CCommandObj").isEmpty(), "XFL export must not modify the input model");
