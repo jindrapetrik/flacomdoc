@@ -37,6 +37,11 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Locale;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
@@ -118,7 +123,13 @@ public class MainMenuFrame extends JFrame {
         }
 
         File inputFile = ch.getSelectedFile();
-        JFileChooser ch2 = new JFileChooser(Gui.getConfigByKey(KEY_CONVERT_DST_DIR, "")) {
+        class ConversionFileChooser extends JFileChooser {
+            boolean overwriteDirectory;
+
+            ConversionFileChooser() {
+                super(Gui.getConfigByKey(KEY_CONVERT_DST_DIR, ""));
+            }
+
             @Override
             public void approveSelection() {
                 File selected = getSelectedFile();
@@ -126,22 +137,35 @@ public class MainMenuFrame extends JFrame {
                     return;
                 }
                 ConversionFileFilter format = (ConversionFileFilter) getFileFilter();
-                File destination = format.destination(selected);
-                setSelectedFile(destination);
-                if (format.directoryOutput && destination.exists()) {
-                    JOptionPane.showMessageDialog(this, "Choose a new directory for the XFL project.",
-                            "Directory already exists", JOptionPane.WARNING_MESSAGE);
+                File selectedFile = format.destination(selected);
+                setSelectedFile(selectedFile);
+                String projectName = ConversionFileFilter.baseName(selectedFile.getName());
+                if (format.directoryOutput && (projectName.isEmpty() || projectName.equals(".") || projectName.equals(".."))) {
+                    JOptionPane.showMessageDialog(this, "Enter a project file name.",
+                            "Invalid XFL file name", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
-                if (!format.directoryOutput && destination.isFile()
-                        && JOptionPane.showConfirmDialog(this, "Replace " + destination.getName() + "?",
+                File destination = format.output(selectedFile);
+                overwriteDirectory = false;
+                if (format.directoryOutput && destination.exists() && !destination.isDirectory()) {
+                    JOptionPane.showMessageDialog(this, "A file already exists at " + destination + ".",
+                            "Cannot create XFL directory", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                if (destination.exists()
+                        && JOptionPane.showConfirmDialog(this, format.directoryOutput
+                                ? "Replace the directory " + destination + " and all its contents?"
+                                : "Replace " + destination.getName() + "?",
                                 "Confirm overwrite", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) {
                     return;
                 }
+                overwriteDirectory = format.directoryOutput && destination.exists();
                 super.approveSelection();
             }
-        };
+        }
+        ConversionFileChooser ch2 = new ConversionFileChooser();
         ch2.setDialogTitle("Save converted document");
+        ch2.setFileSelectionMode(JFileChooser.FILES_ONLY);
         ch2.setAcceptAllFileFilterUsed(false);
         FlaTargetVersion[] versions = FlaTargetVersion.values();
         for (int i = versions.length - 1; i >= 0; i--) {
@@ -151,10 +175,6 @@ public class MainMenuFrame extends JFrame {
             }
         }
         ch2.setFileFilter(ch2.getChoosableFileFilters()[0]);
-        ch2.addPropertyChangeListener(JFileChooser.FILE_FILTER_CHANGED_PROPERTY, e -> {
-            ConversionFileFilter format = (ConversionFileFilter) ch2.getFileFilter();
-            ch2.setFileSelectionMode(format.directoryOutput ? JFileChooser.DIRECTORIES_ONLY : JFileChooser.FILES_ONLY);
-        });
         ch2.setSelectedFile(new File(ch2.getCurrentDirectory(), ConversionFileFilter.baseName(inputFile.getName())));
         installFileTypeIcons(ch2);
         if (ch2.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
@@ -165,7 +185,7 @@ public class MainMenuFrame extends JFrame {
         FlaTargetVersion targetVersion = format.version;
         boolean directoryOutput = format.directoryOutput;
         FlaFormatVersion flaFormatVersion = targetVersion.isBinary() ? targetVersion.getBinaryVersion() : null;
-        File outputFile = ch2.getSelectedFile().getAbsoluteFile();
+        File outputFile = format.output(ch2.getSelectedFile().getAbsoluteFile());
 
         Gui.setConfigByKey(KEY_CONVERT_SRC_DIR, inputFile.getAbsoluteFile().getParentFile().getAbsolutePath());
         Gui.setConfigByKey(KEY_CONVERT_DST_DIR, outputFile.getParentFile().getAbsolutePath());
@@ -177,7 +197,7 @@ public class MainMenuFrame extends JFrame {
                         ? new BinaryFlaToXflExporter(targetVersion.getXflVersion()).export(new BinaryFlaReader().read(inputFile))
                         : new XflVersionConverter(targetVersion.getXflVersion()).convert(inputFile);
                 if (directoryOutput) {
-                    result.writeToDirectory(outputFile);
+                    writeXflDirectory(result, outputFile, ch2.overwriteDirectory);
                 } else {
                     result.writeToZip(outputFile);
                 }
@@ -196,6 +216,46 @@ public class MainMenuFrame extends JFrame {
             return;
         }
 
+    }
+
+    static void writeXflDirectory(XflExportResult result, File directory, boolean overwrite) throws IOException {
+        Path destination = directory.toPath().toAbsolutePath().normalize();
+        Path temporary = Files.createTempDirectory(destination.getParent(), ".flacomdoc-");
+        try {
+            Path project = temporary.resolve("project");
+            result.writeToDirectory(project.toFile());
+            if (overwrite) {
+                if (Files.exists(destination) && !Files.isDirectory(destination)) {
+                    throw new IOException("Cannot replace XFL directory: " + destination);
+                }
+                deleteDirectory(destination);
+            }
+            Files.move(project, destination);
+        } finally {
+            deleteDirectory(temporary);
+        }
+    }
+
+    private static void deleteDirectory(Path directory) throws IOException {
+        if (!Files.exists(directory)) {
+            return;
+        }
+        Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) throws IOException {
+                Files.delete(file);
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir, IOException exception) throws IOException {
+                if (exception != null) {
+                    throw exception;
+                }
+                Files.delete(dir);
+                return FileVisitResult.CONTINUE;
+            }
+        });
     }
 
     private static void installFileTypeIcons(Container container) {
@@ -223,7 +283,7 @@ public class MainMenuFrame extends JFrame {
     }
 
     /** A save-dialog file type binds a Flash version to its output container. */
-    private static final class ConversionFileFilter extends FileFilter {
+    static final class ConversionFileFilter extends FileFilter {
 
         final FlaTargetVersion version;
         final boolean directoryOutput;
@@ -238,6 +298,9 @@ public class MainMenuFrame extends JFrame {
         }
 
         private String extension() {
+            if (directoryOutput) {
+                return ".xfl";
+            }
             return version == FlaTargetVersion.F1 ? ".spa" : ".fla";
         }
 
@@ -253,18 +316,19 @@ public class MainMenuFrame extends JFrame {
 
         File destination(File selected) {
             String name = selected.getName();
-            if (directoryOutput) {
-                return selected;
-            }
             if (!name.toLowerCase(Locale.ROOT).endsWith(extension())) {
                 return new File(selected.getParentFile(), baseName(name) + extension());
             }
             return selected;
         }
 
+        File output(File selected) {
+            return directoryOutput ? new File(selected.getParentFile(), baseName(selected.getName())) : selected;
+        }
+
         @Override
         public boolean accept(File file) {
-            return file.isDirectory() || !directoryOutput && file.getName().toLowerCase(Locale.ROOT).endsWith(extension());
+            return file.isDirectory() || file.getName().toLowerCase(Locale.ROOT).endsWith(extension());
         }
 
         @Override
@@ -285,7 +349,7 @@ public class MainMenuFrame extends JFrame {
                             : "Macromedia Flash " + version.name().substring(1);
                     break;
             }
-            return name + (directoryOutput ? " — XFL directory" : " (*" + extension() + ")");
+            return name + (directoryOutput ? " — XFL" : "") + " (*" + extension() + ")";
         }
     }
 
