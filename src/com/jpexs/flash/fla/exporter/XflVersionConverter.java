@@ -19,12 +19,12 @@
 package com.jpexs.flash.fla.exporter;
 
 import com.jpexs.flash.fla.reader.BinaryData;
+import com.jpexs.flash.fla.converter.streams.ZippedInputStorage;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Stream;
-import java.util.zip.*;
 import org.w3c.dom.*;
 
 /**
@@ -66,20 +66,16 @@ public final class XflVersionConverter {
                 }
             }
         } else {
-            try (ZipFile zip = new ZipFile(input)) {
-                Enumeration<? extends ZipEntry> entries = zip.entries();
-                while (entries.hasMoreElements()) {
-                    ZipEntry entry = entries.nextElement();
-                    if (!entry.isDirectory()) {
-                        try (InputStream stream = zip.getInputStream(entry)) {
-                            ByteArrayOutputStream data = new ByteArrayOutputStream();
-                            byte[] buffer = new byte[8192];
-                            int length;
-                            while ((length = stream.read(buffer)) != -1) {
-                                data.write(buffer, 0, length);
-                            }
-                            add(files, names, entry.getName(), new BinaryData(data.toByteArray()));
+            try (ZippedInputStorage zip = new ZippedInputStorage(input)) {
+                for (String name : zip.getFileNames()) {
+                    try (InputStream stream = zip.readFile(name)) {
+                        ByteArrayOutputStream data = new ByteArrayOutputStream();
+                        byte[] buffer = new byte[8192];
+                        int length;
+                        while ((length = stream.read(buffer)) != -1) {
+                            data.write(buffer, 0, length);
                         }
+                        add(files, names, name, new BinaryData(data.toByteArray()));
                     }
                 }
             }
@@ -119,12 +115,12 @@ public final class XflVersionConverter {
 
     private static void add(Map<String, BinaryData> files, Set<String> names, String path, BinaryData data) throws IOException {
         path = checkedPath(path);
-        if (!names.add(path.toLowerCase(Locale.ROOT))) {
-            throw new IOException("Duplicate XFL resource path: " + path);
-        }
         if (path.equals("mimetype") || path.equals("conversion-report.txt")
                 || !path.contains("/") && path.toLowerCase(Locale.ROOT).endsWith(".xfl")) {
             return;
+        }
+        if (!names.add(path.toLowerCase(Locale.ROOT))) {
+            throw new IOException("Duplicate XFL resource path: " + path);
         }
         files.put(path, data);
     }
